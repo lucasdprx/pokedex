@@ -73,6 +73,28 @@
   #acctMenu { min-width: 200px; }
   #acctMenu button { display: flex; }
   #acctMenu [hidden] { display: none; }
+  /* Installer sur iPhone : la fenêtre descend près de la barre de Safari, une flèche montre où toucher */
+  #installDialog { margin-bottom: 84px; }
+  #installDialog .steps { list-style: none; margin: 0 0 6px; padding: 0; counter-reset: st; }
+  #installDialog .steps li {
+    display: flex; align-items: center; gap: 10px; padding: 10px 0; font-size: .95rem;
+    border-top: 1px solid var(--soft); counter-increment: st;
+  }
+  #installDialog .steps li:first-child { border-top: 0; }
+  #installDialog .steps li::before {
+    content: counter(st); width: 22px; height: 22px; border-radius: 50%; flex: none;
+    display: grid; place-items: center; background: var(--soft); color: var(--strong); font-weight: 700; font-size: .8rem;
+  }
+  #installDialog .steps svg { width: 20px; height: 20px; color: var(--accent); flex: none; }
+  .install-arrow {
+    position: fixed; bottom: 6px; left: 50%; transform: translateX(-50%);
+    color: #fff; font-size: 2rem; line-height: 1; text-shadow: 0 2px 6px rgba(0,0,0,.35);
+    animation: install-bob 1s ease-in-out infinite;
+  }
+  .install-arrow.right { left: auto; right: 14px; transform: none; animation-name: install-bob-r; }
+  .install-arrow[hidden] { display: none; }
+  @keyframes install-bob { 50% { transform: translate(-50%, 8px); } }
+  @keyframes install-bob-r { 50% { transform: translateY(8px); } }
   #acctMenu b { margin-left: auto; padding-left: 12px; font-weight: 400; color: var(--muted); }
   #acct .av {
     display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
@@ -435,6 +457,7 @@
       <button id="signIn" data-i18n="signIn" hidden>Se connecter</button>
       <button id="signOut" data-i18n="signOut" hidden>Se déconnecter</button>
       <hr>
+      <button id="installBtn" data-i18n="install" hidden>Installer l'appli</button>
       <button id="langBtn"><span data-i18n="language">Langue</span><b id="langCur"></b></button>
     </div>
     <div class="menu" id="langMenu" hidden></div>
@@ -514,6 +537,15 @@
   <form method="dialog">
     <button class="quiet" value="cancel" data-i18n="cancel">Annuler</button>
   </form>
+</dialog>
+
+<dialog id="installDialog">
+  <h2 data-i18n="install">Installer l'appli</h2>
+  <ol class="steps" id="installSteps"></ol>
+  <form method="dialog">
+    <button class="quiet" data-i18n="close">Fermer</button>
+  </form>
+  <div class="install-arrow" id="installArrow" aria-hidden="true">↓</div>
 </dialog>
 
 <dialog id="sentDialog">
@@ -1015,6 +1047,51 @@ document.addEventListener("click", ev => {
   if (!langMenu.hidden && !langMenu.contains(ev.target)) setLangMenu(false);
 });
 applyLang();
+
+// --- Installer sur l'écran d'accueil (menu du compte) ---
+// Android et PC : la fenêtre d'installation du navigateur. iPhone : les gestes de Safari.
+// Déjà installé (plein écran) : rien.
+const installBtn = document.getElementById("installBtn");
+const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const ua = navigator.userAgent;
+const isIos = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+let installPrompt = null;
+if (!standalone && isIos) installBtn.hidden = false;
+addEventListener("beforeinstallprompt", ev => {
+  ev.preventDefault();
+  installPrompt = ev;
+  if (!standalone) installBtn.hidden = false;
+});
+addEventListener("appinstalled", () => { installBtn.hidden = true; installPrompt = null; });
+
+const ICON = {
+  more: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>',
+  share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M6 11H5v10h14V11h-1"/></svg>',
+  down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
+  add: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>',
+};
+installBtn.addEventListener("click", async () => {
+  setAcctMenu(false);
+  if (installPrompt) {
+    installPrompt.prompt();
+    await installPrompt.userChoice;
+    installPrompt = null;
+    return;
+  }
+  // Safari 26 et après : ⋯ en bas à droite, puis Partager, Plus, Sur l'écran d'accueil.
+  // Avant : Partager au milieu de la barre du bas. Autres navigateurs : Partager en haut.
+  const safari = !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+  const version = +(ua.match(/Version\/(\d+)/) || [, 0])[1];
+  const recent = safari && version >= 26;
+  const step = (icon, key) => `<li>${ICON[icon]}${t(key)}</li>`;
+  document.getElementById("installSteps").innerHTML = recent
+    ? `<li>${t("stepMore")}${ICON.more}</li>` + step("share", "stepShare") + step("down", "stepShowMore") + step("add", "stepHome")
+    : step("share", "stepShare") + step("add", "stepHome");
+  const arrow = document.getElementById("installArrow");
+  arrow.hidden = !safari;
+  arrow.classList.toggle("right", recent);
+  document.getElementById("installDialog").showModal();
+});
 
 els.search.addEventListener("input", render);
 els.filter.addEventListener("change", render);

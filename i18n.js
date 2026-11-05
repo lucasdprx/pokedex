@@ -47,6 +47,7 @@ const FORM_NAMES = {
 // Menus et messages. {n}, {i}, {src} = valeurs insérées.
 const UI = {
   fr: {
+    install: "Installer l'appli", stepMore: "Toucher", stepShare: "Partager", stepShowMore: "Plus", stepHome: "Sur l'écran d'accueil",
     signIn: "Se connecter", signOut: "Se déconnecter", google: "Continuer avec Google", email: "Adresse e-mail", sendLink: "Recevoir un lien", linkSent: "Lien envoyé", linkSentText: "Ouvre l'e-mail envoyé à {email}, puis touche le lien.", syncFail: "Sauvegarde en ligne impossible", syncFailText: "tes coches sont gardées sur cet appareil et partiront au retour du réseau.", confirmEmail: "Confirme ton adresse e-mail", loginFail: "Connexion impossible : ",
     account: "Compte", shinyMode: "Mode Shiny",
     normal: "Normal", shiny: "✦ Shiny", collection: "Collection", menu: "Menu", language: "Langue",
@@ -65,6 +66,7 @@ const UI = {
     importN: "Importer {n} Pokémon", hereOne: "{n} est déjà marqué ici.", hereMany: "{n} sont déjà marqués ici.",
   },
   en: {
+    install: "Install the app", stepMore: "Tap", stepShare: "Share", stepShowMore: "More", stepHome: "Add to Home Screen",
     signIn: "Sign in", signOut: "Sign out", google: "Continue with Google", email: "Email address", sendLink: "Get a link", linkSent: "Link sent", linkSentText: "Open the email sent to {email}, then tap the link.", syncFail: "Online backup failed", syncFailText: "your marks are kept on this device and will be sent when you're back online.", confirmEmail: "Confirm your email address", loginFail: "Sign-in failed: ",
     account: "Account", shinyMode: "Shiny mode",
     normal: "Normal", shiny: "✦ Shiny", collection: "Collection", menu: "Menu", language: "Language",
@@ -83,6 +85,7 @@ const UI = {
     importN: "Import {n} Pokémon", hereOne: "{n} is already marked here.", hereMany: "{n} are already marked here.",
   },
   de: {
+    install: "App installieren", stepMore: "Tippe auf", stepShare: "Teilen", stepShowMore: "Mehr", stepHome: "Zum Home-Bildschirm",
     signIn: "Anmelden", signOut: "Abmelden", google: "Weiter mit Google", email: "E-Mail-Adresse", sendLink: "Link erhalten", linkSent: "Link gesendet", linkSentText: "Öffne die E-Mail an {email} und tippe auf den Link.", syncFail: "Online-Sicherung fehlgeschlagen", syncFailText: "deine Häkchen bleiben auf diesem Gerät und werden gesendet, sobald du wieder online bist.", confirmEmail: "Bestätige deine E-Mail-Adresse", loginFail: "Anmeldung fehlgeschlagen: ",
     account: "Konto", shinyMode: "Schillernd-Modus",
     normal: "Normal", shiny: "✦ Schillernd", collection: "Sammlung", menu: "Menü", language: "Sprache",
@@ -101,6 +104,7 @@ const UI = {
     importN: "{n} Pokémon importieren", hereOne: "{n} ist hier schon markiert.", hereMany: "{n} sind hier schon markiert.",
   },
   es: {
+    install: "Instalar la app", stepMore: "Toca", stepShare: "Compartir", stepShowMore: "Más", stepHome: "Añadir a pantalla de inicio",
     signIn: "Iniciar sesión", signOut: "Cerrar sesión", google: "Continuar con Google", email: "Correo electrónico", sendLink: "Recibir un enlace", linkSent: "Enlace enviado", linkSentText: "Abre el correo enviado a {email} y toca el enlace.", syncFail: "Copia en línea fallida", syncFailText: "tus marcas se guardan en este dispositivo y se enviarán al volver la conexión.", confirmEmail: "Confirma tu correo electrónico", loginFail: "No se pudo iniciar sesión: ",
     account: "Cuenta", shinyMode: "Modo variocolor",
     normal: "Normal", shiny: "✦ Variocolor", collection: "Colección", menu: "Menú", language: "Idioma",
@@ -119,6 +123,7 @@ const UI = {
     importN: "Importar {n} Pokémon", hereOne: "{n} ya está marcado aquí.", hereMany: "{n} ya están marcados aquí.",
   },
   it: {
+    install: "Installa l'app", stepMore: "Tocca", stepShare: "Condividi", stepShowMore: "Altro", stepHome: "Aggiungi alla schermata Home",
     signIn: "Accedi", signOut: "Esci", google: "Continua con Google", email: "Indirizzo email", sendLink: "Ricevi un link", linkSent: "Link inviato", linkSentText: "Apri l'email inviata a {email} e tocca il link.", syncFail: "Salvataggio online non riuscito", syncFailText: "i tuoi segni restano su questo dispositivo e partiranno al ritorno della rete.", confirmEmail: "Conferma il tuo indirizzo email", loginFail: "Accesso non riuscito: ",
     account: "Account", shinyMode: "Modalità cromatica",
     normal: "Normale", shiny: "✦ Cromatico", collection: "Collezione", menu: "Menu", language: "Lingua",
@@ -137,6 +142,7 @@ const UI = {
     importN: "Importa {n} Pokémon", hereOne: "{n} è già segnato qui.", hereMany: "{n} sono già segnati qui.",
   },
   pt: {
+    install: "Instalar o app", stepMore: "Toque em", stepShare: "Compartilhar", stepShowMore: "Mais", stepHome: "Adicionar à Tela de Início",
     signIn: "Entrar", signOut: "Sair", google: "Continuar com o Google", email: "Endereço de e-mail", sendLink: "Receber um link", linkSent: "Link enviado", linkSentText: "Abra o e-mail enviado para {email} e toque no link.", syncFail: "Falha no backup online", syncFailText: "suas marcações ficam neste aparelho e serão enviadas quando a conexão voltar.", confirmEmail: "Confirme seu e-mail", loginFail: "Falha ao entrar: ",
     account: "Conta", shinyMode: "Modo brilhante",
     normal: "Normal", shiny: "✦ Brilhante", collection: "Coleção", menu: "Menu", language: "Idioma",
@@ -155,6 +161,7 @@ const UI = {
     importN: "Importar {n} Pokémon", hereOne: "{n} já está marcado aqui.", hereMany: "{n} já estão marcados aqui.",
   },
   ja: {
+    install: "アプリをインストール", stepMore: "タップ", stepShare: "共有", stepShowMore: "その他", stepHome: "ホーム画面に追加",
     signIn: "ログイン", signOut: "ログアウト", google: "Google で続行", email: "メールアドレス", sendLink: "リンクを受け取る", linkSent: "リンクを送信しました", linkSentText: "{email} に届いたメールを開き、リンクをタップしてください。", syncFail: "オンライン保存に失敗しました", syncFailText: "チェックはこの端末に保存され、接続が戻ると送信されます。", confirmEmail: "メールアドレスを確認してください", loginFail: "ログインできません: ",
     account: "アカウント", shinyMode: "色違いモード",
     normal: "通常", shiny: "✦ 色違い", collection: "コレクション", menu: "メニュー", language: "言語",
@@ -173,6 +180,7 @@ const UI = {
     importN: "{n} 匹をインポート", hereOne: "ここではすでに {n} 匹にチェック済みです。", hereMany: "ここではすでに {n} 匹にチェック済みです。",
   },
   ko: {
+    install: "앱 설치", stepMore: "누르기", stepShare: "공유", stepShowMore: "더 보기", stepHome: "홈 화면에 추가",
     signIn: "로그인", signOut: "로그아웃", google: "Google로 계속", email: "이메일 주소", sendLink: "링크 받기", linkSent: "링크를 보냈습니다", linkSentText: "{email}(으)로 보낸 이메일을 열고 링크를 누르세요.", syncFail: "온라인 저장 실패", syncFailText: "체크는 이 기기에 보관되며 네트워크가 돌아오면 전송됩니다.", confirmEmail: "이메일 주소를 확인하세요", loginFail: "로그인 실패: ",
     account: "계정", shinyMode: "이로치 모드",
     normal: "일반", shiny: "✦ 이로치", collection: "컬렉션", menu: "메뉴", language: "언어",
@@ -191,6 +199,7 @@ const UI = {
     importN: "포켓몬 {n}마리 가져오기", hereOne: "여기에는 이미 {n}마리가 체크되어 있습니다.", hereMany: "여기에는 이미 {n}마리가 체크되어 있습니다.",
   },
   zh: {
+    install: "安裝 App", stepMore: "點選", stepShare: "分享", stepShowMore: "更多", stepHome: "加入主畫面",
     signIn: "登入", signOut: "登出", google: "使用 Google 繼續", email: "電子郵件地址", sendLink: "取得連結", linkSent: "已寄出連結", linkSentText: "開啟寄到 {email} 的郵件，然後點選連結。", syncFail: "線上備份失敗", syncFailText: "你的勾選會保留在此裝置上，恢復連線後送出。", confirmEmail: "確認你的電子郵件地址", loginFail: "無法登入：",
     account: "帳號", shinyMode: "異色模式",
     normal: "一般", shiny: "✦ 異色", collection: "收藏", menu: "選單", language: "語言",

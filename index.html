@@ -1068,10 +1068,13 @@ document.getElementById("import").addEventListener("click", () => {
   sourceDialog.returnValue = "";
   sourceDialog.showModal();
 });
-sourceDialog.addEventListener("close", () => {
-  if (sourceDialog.returnValue === "save") document.getElementById("importFile").click();
-  if (sourceDialog.returnValue === "genie") document.getElementById("genieFile").click();
-  if (sourceDialog.returnValue === "shots") document.getElementById("shotFiles").click();
+// Le sélecteur de fichiers s'ouvre dans le toucher même : Safari (iPhone) le bloque
+// s'il part plus tard, depuis l'événement « close » de la fenêtre
+const SOURCE_INPUT = { save: "importFile", genie: "genieFile", shots: "shotFiles" };
+sourceDialog.addEventListener("click", ev => {
+  const b = ev.target.closest("button[value]");
+  if (!b || !SOURCE_INPUT[b.value]) return;
+  document.getElementById(SOURCE_INPUT[b.value]).click();
 });
 
 // --- Import Poké Genie (CSV, export en français ou en anglais) ---

@@ -37,6 +37,23 @@
     padding: 14px 20px 0;
     box-shadow: 0 4px 16px rgba(0,0,0,.4);
   }
+  /* Bascule Normal / Shiny */
+  .mode {
+    margin-left: auto;
+    display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+  }
+  .mode button {
+    background: none; border: 0; padding: 5px 10px;
+    color: var(--muted); font: inherit; font-size: .85rem; cursor: pointer;
+  }
+  .mode button.on { background: var(--line); color: var(--text); }
+  .mode button.on.gold { color: #f7d84a; }
+  .mode + .more { margin-left: 4px; }
+  body.shiny .bar > div { background: linear-gradient(90deg, #f7d84a, #f59a52); }
+  body.shiny #count { color: #f7d84a; }
+  body.shiny .card.caught { background: #3a3416; border-color: #f7d84a; }
+  body.shiny .tab.done span { color: #f7d84a; }
+
   .top {
     display: flex;
     align-items: center;
@@ -290,6 +307,10 @@
   <div class="top">
     <span class="ball"></span>
     <h1>Pokédex</h1>
+    <div class="mode" id="mode" role="group" aria-label="Collection">
+      <button data-mode="normal" class="on">Normal</button>
+      <button data-mode="shiny">✦ Shiny</button>
+    </div>
     <button class="more" id="more" aria-label="Menu" aria-haspopup="true" aria-expanded="false">⋯</button>
     <div class="menu" id="menu" hidden>
       <button id="export">Exporter</button>
@@ -355,6 +376,7 @@
 <script>
 const TYPES_URL = "https://pogoapi.net/api/v1/pokemon_types.json";
 const RELEASED_URL = "https://pogoapi.net/api/v1/released_pokemon.json";
+const SHINY_URL = "https://pogoapi.net/api/v1/shiny_pokemon.json";
 // PvPoke : liste tenue à jour très fréquemment (flag "released")
 const PVP_URL = "https://raw.githubusercontent.com/pvpoke/pvpoke/master/src/data/gamemaster.json";
 
@@ -391,6 +413,11 @@ const ARTWORK_PATH = id => `raw.githubusercontent.com/PokeAPI/sprites/master/spr
 const SPRITE_SMALL = id => `https://wsrv.nl/?url=${ARTWORK_PATH(id)}&w=208&h=208&output=webp`;
 const SPRITE = id => `https://${ARTWORK_PATH(id)}`;
 const SPRITE_2D = id => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+// Versions chromatiques (shiny)
+const ARTWORK_SHINY = id => `raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${id}.png`;
+const SPRITE_SMALL_SHINY = id => `https://wsrv.nl/?url=${ARTWORK_SHINY(id)}&w=208&h=208&output=webp`;
+const SPRITE_SHINY = id => `https://${ARTWORK_SHINY(id)}`;
+const SPRITE_2D_SHINY = id => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${id}.png`;
 const CRY = id => `https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/${id}.ogg`;
 
 // Cri du Pokémon (un seul lecteur réutilisé). Repli sur l'espèce de base si la forme n'a pas de cri.
@@ -402,6 +429,7 @@ function playCry(id, baseId) {
   cryAudio.play().catch(() => {});
 }
 const STORE_KEY = "pokedex-go-caught";
+const SHINY_KEY = "pokedex-go-shiny";
 // Listes de Pokémon gardées dans le navigateur : affichage immédiat, et hors ligne
 const CACHE_KEY = "pokedex-go-data";
 const CACHE_MAX_AGE = 24 * 60 * 60 * 1000; // au-delà, mise à jour en fond
@@ -445,14 +473,21 @@ let regionFilter = ""; // "" = toutes les régions
 let entries = [];               // [{key, id, name, form, formLabel, types}]
 let byKey = new Map();          // key → entrée, pour retrouver la carte cliquée
 let caught = loadCaught();      // Set of keys (id + form)
+let shinyCaught = loadCaught(SHINY_KEY); // shiny cochés, mêmes clés
+let shinyMode = false;          // bascule Normal / Shiny
 
-function loadCaught() {
-  try { return new Set(JSON.parse(localStorage.getItem(STORE_KEY)) || []); }
+function loadCaught(key = STORE_KEY) {
+  try { return new Set(JSON.parse(localStorage.getItem(key)) || []); }
   catch { return new Set(); }
 }
 function saveCaught() {
   localStorage.setItem(STORE_KEY, JSON.stringify([...caught]));
+  localStorage.setItem(SHINY_KEY, JSON.stringify([...shinyCaught]));
 }
+// Collection affichée : normale ou shiny
+const marks = () => shinyMode ? shinyCaught : caught;
+// Cochable dans la collection affichée : sorti dans GO (et son shiny aussi, en mode Shiny)
+const can = e => e.available && (!shinyMode || e.shinyOut);
 function prettyForm(f) {
   return (f || "").replace(/_/g, " ").trim();
 }
@@ -464,7 +499,7 @@ function normalize(s) {
 function readCache() {
   try {
     const c = JSON.parse(localStorage.getItem(CACHE_KEY));
-    const ok = c && typeof c.time === "number" && Array.isArray(c.released) &&
+    const ok = c && typeof c.time === "number" && Array.isArray(c.released) && Array.isArray(c.shiny) &&
                Array.isArray(c.data) && c.data.length > 0 &&
                c.data.every(e => e && typeof e.pokemon_id === "number" && Array.isArray(e.type));
     return ok ? c : null;
@@ -488,7 +523,8 @@ async function init() {
       const fresh = await fetchSources();
       writeCache(fresh);
       const changed = JSON.stringify(fresh.data) !== JSON.stringify(cached.data) ||
-                      JSON.stringify(fresh.released) !== JSON.stringify(cached.released);
+                      JSON.stringify(fresh.released) !== JSON.stringify(cached.released) ||
+                      JSON.stringify(fresh.shiny) !== JSON.stringify(cached.shiny);
       if (changed) { buildEntries(fresh); render(); }
     } catch { /* hors ligne : on garde la copie */ }
     return;
@@ -511,8 +547,9 @@ async function init() {
 
 // Télécharge les listes (pogoapi + PvPoke) → { data, released } bruts, avant tri en cartes
 async function fetchSources() {
-  const [resTypes, resRel, resPvp] = await Promise.all([
+  const [resTypes, resRel, resPvp, resShiny] = await Promise.all([
     fetch(TYPES_URL), fetch(RELEASED_URL), fetch(PVP_URL).catch(() => null),
+    fetch(SHINY_URL).catch(() => null),
   ]);
   if (!resTypes.ok) throw new Error("HTTP " + resTypes.status);
   if (!resRel.ok) throw new Error("HTTP " + resRel.status);
@@ -540,12 +577,18 @@ async function fetchSources() {
       });
     } catch { /* PvPoke indispo : on garde pogoapi seul */ }
   }
-  return { data, released: [...released].sort((a, b) => a - b) };
+  // Shiny sortis dans GO (n° de Pokédex) ; liste vide si pogoapi ne répond pas
+  let shiny = [];
+  if (resShiny && resShiny.ok) {
+    try { shiny = Object.keys(await resShiny.json()).map(Number).sort((a, b) => a - b); } catch {}
+  }
+  return { data, released: [...released].sort((a, b) => a - b), shiny };
 }
 
 // Données brutes → cartes (une par forme de base ou régionale)
-function buildEntries({ data, released: releasedList }) {
+function buildEntries({ data, released: releasedList, shiny: shinyList = [] }) {
   const released = new Set(releasedList);
+  const shinyOut = new Set(shinyList);
   // Espèces dont la forme de base est présente dans les données.
   // Certaines espèces (Palarticho, M. Glaquette…) n'existent QUE sous un nom "régional"
   // (Galarian) sans forme de base : c'est alors leur forme normale, à compter.
@@ -584,6 +627,7 @@ function buildEntries({ data, released: releasedList }) {
       name, region, form, formLabel, types, search,
       regional: !isBase,           // formes régionales : non comptées dans le Pokédex
       available: released.has(e.pokemon_id), // disponible dans Pokémon GO ?
+      shinyOut: shinyOut.has(e.pokemon_id),   // son shiny est sorti ?
     };
   }).sort((a, b) => a.id - b.id || a.regional - b.regional || a.form.localeCompare(b.form));
   byKey = new Map(entries.map(e => [e.key, e]));
@@ -595,9 +639,9 @@ function filtered() {
   const terms = normalize(els.search.value).split(/\s+/).filter(Boolean);
   const mode = els.filter.value;
   return entries.filter(e => {
-    if (mode === "caught" && !caught.has(e.key)) return false;
-    if (mode === "missing" && (caught.has(e.key) || !e.available)) return false;
-    if (mode === "unavailable" && e.available) return false;
+    if (mode === "caught" && !marks().has(e.key)) return false;
+    if (mode === "missing" && (marks().has(e.key) || !can(e))) return false;
+    if (mode === "unavailable" && can(e)) return false;
     if (regionFilter && e.region !== regionFilter) return false;
     if (terms.length && !terms.every(t => e.search.includes(t))) return false;
     return true;
@@ -608,6 +652,7 @@ const spriteOf = e => REGIONAL_SPRITES[e.id + "_" + e.form.toUpperCase()] || e.i
 
 function typesHtml(e) {
   if (!e.available) return `<span class="na">Indisponible</span>`;
+  if (shinyMode && !e.shinyOut) return `<span class="na">Pas encore sorti</span>`;
   return e.types.map(t =>
     `<span style="color:${TYPE_COLOR[t] || "#aaa"}">${TYPE_FR[t] || t}</span>`
   ).join("");
@@ -616,10 +661,12 @@ function typesHtml(e) {
 // Image introuvable : wsrv.nl → illustration d'origine → petit sprite → rien
 function imgFallback(img) {
   const id = img.dataset.sprite;
+  const sh = img.dataset.shiny === "1";
   const step = Number(img.dataset.step || 0);
   img.dataset.step = step + 1;
-  if (step === 0) img.src = SPRITE(id);
-  else if (step === 1) img.src = SPRITE_2D(id);
+  if (step === 0) img.src = sh ? SPRITE_SHINY(id) : SPRITE(id);
+  else if (step === 1) img.src = sh ? SPRITE_2D_SHINY(id) : SPRITE_2D(id);
+  else if (step === 2 && sh) img.src = SPRITE_SMALL(id); // pas d'image shiny : l'image normale
   else img.style.visibility = "hidden";
 }
 
@@ -630,13 +677,13 @@ function render() {
   for (const e of list) {
     const spriteId = spriteOf(e);
     const card = document.createElement("div");
-    card.className = "card" + (caught.has(e.key) ? " caught" : "") + (e.available ? "" : " locked");
+    card.className = "card" + (marks().has(e.key) ? " caught" : "") + (can(e) ? "" : " locked");
     card.dataset.key = e.key;
     card.tabIndex = 0;
     card.innerHTML =
       `<button class="cry" aria-label="Écouter le cri">${SPEAKER}</button>` +
-      `<img loading="lazy" decoding="async" crossorigin="anonymous" src="${SPRITE_SMALL(spriteId)}" alt="" draggable="false" ` +
-        `data-sprite="${spriteId}" onerror="imgFallback(this)">` +
+      `<img loading="lazy" decoding="async" crossorigin="anonymous" src="${shinyMode ? SPRITE_SMALL_SHINY(spriteId) : SPRITE_SMALL(spriteId)}" alt="" draggable="false" ` +
+        `data-sprite="${spriteId}" data-shiny="${shinyMode ? 1 : 0}" onerror="imgFallback(this)">` +
       `<div class="dex">N°${String(e.id).padStart(4, "0")}</div>` +
       `<div class="name">${e.name}</div>` +
       `<div class="types">${typesHtml(e)}</div>`;
@@ -648,8 +695,9 @@ function render() {
 }
 
 function toggle(key, card) {
-  if (caught.has(key)) caught.delete(key);
-  else caught.add(key);
+  const set = marks();
+  if (set.has(key)) set.delete(key);
+  else set.add(key);
   saveCaught();
   // La fiche reste en place, même si elle ne correspond plus au filtre :
   // la liste ne se refait qu'au changement de filtre, de région ou de recherche
@@ -663,7 +711,7 @@ els.grid.addEventListener("click", ev => {
   if (!card) return;
   const e = byKey.get(card.dataset.key);
   if (ev.target.closest(".cry")) { playCry(spriteOf(e), e.id); return; }
-  if (e.available) toggle(e.key, card);
+  if (can(e)) toggle(e.key, card);
 });
 
 els.grid.addEventListener("keydown", ev => {
@@ -672,7 +720,7 @@ els.grid.addEventListener("keydown", ev => {
   if (ev.key !== "Enter" && ev.key !== " ") return;
   ev.preventDefault();
   const e = byKey.get(card.dataset.key);
-  if (e.available) toggle(e.key, card);
+  if (can(e)) toggle(e.key, card);
 });
 
 // Pas de menu « enregistrer l'image » pendant l'appui long
@@ -682,9 +730,9 @@ els.grid.addEventListener("contextmenu", ev => {
 
 function updateStats() {
   // On ne compte que les formes de base disponibles (régionales et indisponibles exclues)
-  const base = entries.filter(e => !e.regional && e.available);
+  const base = entries.filter(e => !e.regional && can(e));
   const total = base.length;
-  const got = base.filter(e => caught.has(e.key)).length;
+  const got = base.filter(e => marks().has(e.key)).length;
   const pct = total ? Math.round((got / total) * 100) : 0;
   els.count.textContent = `${got} / ${total}`;
   els.progress.style.width = pct + "%";
@@ -695,10 +743,10 @@ function renderGens() {
   const tot = {}, cau = {};
   let totAll = 0, cauAll = 0;
   for (const e of entries) {
-    if (e.regional || !e.available) continue;   // régionales et indisponibles non comptées
+    if (e.regional || !can(e)) continue;   // régionales et indisponibles non comptées
     tot[e.region] = (tot[e.region] || 0) + 1;
     totAll++;
-    if (caught.has(e.key)) { cau[e.region] = (cau[e.region] || 0) + 1; cauAll++; }
+    if (marks().has(e.key)) { cau[e.region] = (cau[e.region] || 0) + 1; cauAll++; }
   }
   // Les onglets sont reconstruits à chaque capture : garder la position de défilement
   const scroll = els.gens.scrollLeft;
@@ -718,6 +766,20 @@ function renderGens() {
   for (const r of REGION_ORDER.filter(r => tot[r])) addTab(r, cau[r] || 0, tot[r], r);
   els.gens.scrollLeft = scroll;
 }
+
+// Bascule Normal / Shiny : même grille, autre collection
+document.getElementById("mode").addEventListener("click", ev => {
+  const b = ev.target.closest("button[data-mode]");
+  if (!b || (b.dataset.mode === "shiny") === shinyMode) return;
+  shinyMode = b.dataset.mode === "shiny";
+  document.body.classList.toggle("shiny", shinyMode);
+  for (const x of document.querySelectorAll("#mode button")) {
+    const on = x === b;
+    x.classList.toggle("on", on);
+    x.classList.toggle("gold", on && shinyMode);
+  }
+  render();
+});
 
 els.search.addEventListener("input", render);
 els.filter.addEventListener("change", render);
@@ -751,6 +813,7 @@ document.getElementById("export").addEventListener("click", () => {
     date: new Date().toISOString(),
     count: caught.size,
     caught: [...caught],
+    shiny: [...shinyCaught],
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -1041,12 +1104,13 @@ document.getElementById("importFile").addEventListener("change", (ev) => {
   const reader = new FileReader();
   reader.onload = async () => {
     input.value = ""; // permet de réimporter le même fichier
-    let clean;
+    let clean, cleanShiny = [];
     try {
       const data = JSON.parse(reader.result);
       const list = Array.isArray(data) ? data : data.caught;
       if (!Array.isArray(list)) throw new Error("Format invalide");
       clean = list.filter(k => typeof k === "string");
+      cleanShiny = (Array.isArray(data.shiny) ? data.shiny : []).filter(k => typeof k === "string");
     } catch (err) {
       alert("Échec de l'import : " + err.message);
       return;
@@ -1055,6 +1119,7 @@ document.getElementById("importFile").addEventListener("change", (ev) => {
     const choice = caught.size ? await askImport(clean.length) : "replace";
     if (choice === "cancel") return;
     caught = choice === "merge" ? new Set([...caught, ...clean]) : new Set(clean);
+    shinyCaught = choice === "merge" ? new Set([...shinyCaught, ...cleanShiny]) : new Set(cleanShiny);
     saveCaught();
     render();
   };

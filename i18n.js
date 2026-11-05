@@ -47,6 +47,7 @@ const FORM_NAMES = {
 // Menus et messages. {n}, {i}, {src} = valeurs insérées.
 const UI = {
   fr: {
+    account: "Compte", shinyMode: "Mode Shiny",
     normal: "Normal", shiny: "✦ Shiny", collection: "Collection", menu: "Menu", language: "Langue",
     export: "Exporter", import: "Importer",
     search: "Rechercher", searchLabel: "Rechercher par nom, n°, type, région ou forme",
@@ -63,6 +64,7 @@ const UI = {
     importN: "Importer {n} Pokémon", hereOne: "{n} est déjà marqué ici.", hereMany: "{n} sont déjà marqués ici.",
   },
   en: {
+    account: "Account", shinyMode: "Shiny mode",
     normal: "Normal", shiny: "✦ Shiny", collection: "Collection", menu: "Menu", language: "Language",
     export: "Export", import: "Import",
     search: "Search", searchLabel: "Search by name, number, type, region or form",
@@ -79,6 +81,7 @@ const UI = {
     importN: "Import {n} Pokémon", hereOne: "{n} is already marked here.", hereMany: "{n} are already marked here.",
   },
   de: {
+    account: "Konto", shinyMode: "Schillernd-Modus",
     normal: "Normal", shiny: "✦ Schillernd", collection: "Sammlung", menu: "Menü", language: "Sprache",
     export: "Exportieren", import: "Importieren",
     search: "Suchen", searchLabel: "Nach Name, Nummer, Typ, Region oder Form suchen",
@@ -95,6 +98,7 @@ const UI = {
     importN: "{n} Pokémon importieren", hereOne: "{n} ist hier schon markiert.", hereMany: "{n} sind hier schon markiert.",
   },
   es: {
+    account: "Cuenta", shinyMode: "Modo variocolor",
     normal: "Normal", shiny: "✦ Variocolor", collection: "Colección", menu: "Menú", language: "Idioma",
     export: "Exportar", import: "Importar",
     search: "Buscar", searchLabel: "Buscar por nombre, número, tipo, región o forma",
@@ -111,6 +115,7 @@ const UI = {
     importN: "Importar {n} Pokémon", hereOne: "{n} ya está marcado aquí.", hereMany: "{n} ya están marcados aquí.",
   },
   it: {
+    account: "Account", shinyMode: "Modalità cromatica",
     normal: "Normale", shiny: "✦ Cromatico", collection: "Collezione", menu: "Menu", language: "Lingua",
     export: "Esporta", import: "Importa",
     search: "Cerca", searchLabel: "Cerca per nome, numero, tipo, regione o forma",
@@ -127,6 +132,7 @@ const UI = {
     importN: "Importa {n} Pokémon", hereOne: "{n} è già segnato qui.", hereMany: "{n} sono già segnati qui.",
   },
   pt: {
+    account: "Conta", shinyMode: "Modo brilhante",
     normal: "Normal", shiny: "✦ Brilhante", collection: "Coleção", menu: "Menu", language: "Idioma",
     export: "Exportar", import: "Importar",
     search: "Pesquisar", searchLabel: "Pesquisar por nome, número, tipo, região ou forma",
@@ -143,6 +149,7 @@ const UI = {
     importN: "Importar {n} Pokémon", hereOne: "{n} já está marcado aqui.", hereMany: "{n} já estão marcados aqui.",
   },
   ja: {
+    account: "アカウント", shinyMode: "色違いモード",
     normal: "通常", shiny: "✦ 色違い", collection: "コレクション", menu: "メニュー", language: "言語",
     export: "エクスポート", import: "インポート",
     search: "検索", searchLabel: "名前・番号・タイプ・地方・すがたで検索",
@@ -159,6 +166,7 @@ const UI = {
     importN: "{n} 匹をインポート", hereOne: "ここではすでに {n} 匹にチェック済みです。", hereMany: "ここではすでに {n} 匹にチェック済みです。",
   },
   ko: {
+    account: "계정", shinyMode: "이로치 모드",
     normal: "일반", shiny: "✦ 이로치", collection: "컬렉션", menu: "메뉴", language: "언어",
     export: "내보내기", import: "가져오기",
     search: "검색", searchLabel: "이름, 번호, 타입, 지방, 폼으로 검색",
@@ -175,6 +183,7 @@ const UI = {
     importN: "포켓몬 {n}마리 가져오기", hereOne: "여기에는 이미 {n}마리가 체크되어 있습니다.", hereMany: "여기에는 이미 {n}마리가 체크되어 있습니다.",
   },
   zh: {
+    account: "帳號", shinyMode: "異色模式",
     normal: "一般", shiny: "✦ 異色", collection: "收藏", menu: "選單", language: "語言",
     export: "匯出", import: "匯入",
     search: "搜尋", searchLabel: "依名稱、編號、屬性、地區或樣子搜尋",

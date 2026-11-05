@@ -68,7 +68,12 @@
     .mode button { padding: 4px 4px; font-size: .76rem; }
     .globe { padding: 2px; }
   }
+  #acct { margin-left: auto; }
   #langMenu { min-width: 160px; }
+  #acctMenu { min-width: 200px; }
+  #acctMenu button { display: flex; }
+  #acctMenu b { margin-left: auto; padding-left: 12px; font-weight: 400; color: var(--muted); }
+  #shinyCheck { display: inline-block; width: 1.2em; color: var(--gold); }
   #langMenu button.on { color: var(--accent2); }
   body.shiny .bar > div { background: linear-gradient(90deg, #f7d84a, #f59a52); }
   body.shiny #count { color: #f7d84a; }
@@ -402,14 +407,15 @@
   <div class="top">
     <span class="ball"></span>
     <h1>Pokédex</h1>
-    <div class="mode" id="mode" role="group" data-i18n-aria="collection">
-      <button data-mode="normal" class="on" data-i18n="normal">Normal</button>
-      <button data-mode="shiny" data-i18n="shiny">✦ Shiny</button>
+    <button class="globe" id="acct" data-i18n-aria="account" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10" cy="7" r="3.5"/><path d="M3 18c1-4 4-5.5 7-5.5s6 1.5 7 5.5"/></svg></button>
+    <div class="menu" id="acctMenu" hidden>
+      <button id="langBtn"><span data-i18n="language">Langue</span><b id="langCur"></b></button>
     </div>
-    <button class="globe" id="globe" data-i18n-aria="language" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10" cy="10" r="8"/><ellipse cx="10" cy="10" rx="3.5" ry="8"/><path d="M2 10h16M3.5 6h13M3.5 14h13"/></svg></button>
     <div class="menu" id="langMenu" hidden></div>
     <button class="more" id="more" data-i18n-aria="menu" aria-haspopup="true" aria-expanded="false">⋯</button>
     <div class="menu" id="menu" hidden>
+      <button id="shinyBtn"><span id="shinyCheck"></span><span data-i18n="shinyMode">Mode Shiny</span></button>
+      <hr>
       <button id="export" data-i18n="export">Exporter</button>
       <button id="import" data-i18n="import">Importer</button>
       <hr>
@@ -882,19 +888,14 @@ function renderGens() {
   els.gens.scrollLeft = scroll;
 }
 
-// Bascule Normal / Shiny : même grille, autre collection
-document.getElementById("mode").addEventListener("click", ev => {
-  const b = ev.target.closest("button[data-mode]");
-  if (!b || (b.dataset.mode === "shiny") === shinyMode) return;
-  shinyMode = b.dataset.mode === "shiny";
-  document.body.classList.toggle("shiny", shinyMode);
-  for (const x of document.querySelectorAll("#mode button")) {
-    const on = x === b;
-    x.classList.toggle("on", on);
-    x.classList.toggle("gold", on && shinyMode);
-  }
+// Mode Shiny (menu ⋯) : même grille, autre collection
+function setShiny(on) {
+  shinyMode = on;
+  document.body.classList.toggle("shiny", on);
+  document.getElementById("shinyCheck").textContent = on ? "✦" : "";
   render();
-});
+}
+document.getElementById("shinyBtn").addEventListener("click", () => setShiny(!shinyMode));
 
 // Textes fixes de la page (data-i18n, -ph, -aria)
 function applyLang() {
@@ -902,21 +903,35 @@ function applyLang() {
   for (const el of document.querySelectorAll("[data-i18n]")) el.textContent = t(el.dataset.i18n);
   for (const el of document.querySelectorAll("[data-i18n-ph]")) el.placeholder = t(el.dataset.i18nPh);
   for (const el of document.querySelectorAll("[data-i18n-aria]")) el.setAttribute("aria-label", t(el.dataset.i18nAria));
+  document.getElementById("langCur").textContent = (LANGS.find(([c]) => c === LANG) || [, ""])[1];
   langMenu.innerHTML = LANGS.map(([code, label]) =>
     `<button data-lang="${code}"${code === LANG ? ' class="on"' : ""}>${label}</button>`).join("");
 }
 
-// Planète : la liste des langues tombe dessous
+// Compte : son menu (langue ; connexion à venir), puis la liste des langues
 const langMenu = document.getElementById("langMenu");
-const globeBtn = document.getElementById("globe");
+const acctBtn = document.getElementById("acct");
+const acctMenu = document.getElementById("acctMenu");
+function setAcctMenu(open) {
+  acctMenu.hidden = !open;
+  acctBtn.setAttribute("aria-expanded", open);
+}
 function setLangMenu(open) {
   langMenu.hidden = !open;
-  globeBtn.setAttribute("aria-expanded", open);
 }
-globeBtn.addEventListener("click", ev => {
+acctBtn.addEventListener("click", ev => {
   ev.stopPropagation();
   setMenu(false);
-  setLangMenu(langMenu.hidden);
+  setLangMenu(false);
+  setAcctMenu(acctMenu.hidden);
+});
+document.getElementById("langBtn").addEventListener("click", ev => {
+  ev.stopPropagation();
+  setAcctMenu(false);
+  setLangMenu(true);
+});
+document.addEventListener("click", ev => {
+  if (!acctMenu.hidden && !acctMenu.contains(ev.target)) setAcctMenu(false);
 });
 langMenu.addEventListener("click", ev => {
   const b = ev.target.closest("button[data-lang]");
@@ -945,6 +960,8 @@ function setMenu(open) {
 }
 moreBtn.addEventListener("click", ev => {
   ev.stopPropagation();
+  setAcctMenu(false);
+  setLangMenu(false);
   setMenu(menu.hidden);
 });
 menu.addEventListener("click", ev => {

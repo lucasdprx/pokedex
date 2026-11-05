@@ -352,7 +352,8 @@
   dialog.review[open] { display: flex; }
   dialog.review h2 { padding: 18px 18px 4px; margin: 0; }
   dialog.review p { padding: 0 18px; margin: 0 0 8px; }
-  .rv-list { flex: 1; overflow-y: auto; padding: 0 12px; min-height: 0; }
+  /* Hauteur du contenu, rognée par la fenêtre : avec flex: 1, Safari la mettait à zéro */
+  .rv-list { flex: 1 1 auto; overflow-y: auto; padding: 0 12px; min-height: 0; }
   .rv-row {
     display: flex; align-items: center; gap: 10px;
     padding: 6px 4px; border-bottom: 1px solid #1c2747; cursor: pointer;

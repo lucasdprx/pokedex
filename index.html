@@ -72,7 +72,29 @@
   #langMenu { min-width: 160px; }
   #acctMenu { min-width: 200px; }
   #acctMenu button { display: flex; }
+  #acctMenu [hidden] { display: none; }
   #acctMenu b { margin-left: auto; padding-left: 12px; font-weight: 400; color: var(--muted); }
+  #acct .av {
+    display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent); color: #fff; font-weight: 700; font-size: .78rem;
+  }
+  #acctMenu .who {
+    padding: 8px 12px 6px; font-size: .85rem; color: var(--muted);
+    max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #loginDialog form + form { margin-top: 8px; }
+  #loginDialog .google { display: flex; align-items: center; justify-content: center; gap: 8px; }
+  #loginDialog .google svg { width: 18px; height: 18px; background: #fff; border-radius: 50%; padding: 2px; box-sizing: content-box; }
+  #loginDialog input {
+    padding: 10px; border: 2px solid var(--line); border-radius: 10px; font: inherit; color: var(--text);
+  }
+  #loginDialog input:focus { border-color: var(--accent); outline: none; }
+  .toast {
+    position: fixed; left: 12px; right: 12px; bottom: 14px; z-index: 30; max-width: 480px; margin: 0 auto;
+    background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+    font-size: .88rem; color: var(--text); box-shadow: 0 8px 24px rgba(31,95,122,.3);
+  }
+  .toast b { color: var(--warn); }
   #shinyCheck { display: inline-block; width: 1.2em; color: var(--gold); }
   #langMenu button.on { color: var(--accent2); }
   body.shiny .bar > div { background: linear-gradient(90deg, #f7d84a, #f59a52); }
@@ -409,6 +431,10 @@
     <h1>Pokédex</h1>
     <button class="globe" id="acct" data-i18n-aria="account" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10" cy="7" r="3.5"/><path d="M3 18c1-4 4-5.5 7-5.5s6 1.5 7 5.5"/></svg></button>
     <div class="menu" id="acctMenu" hidden>
+      <div class="who" id="acctWho" hidden></div>
+      <button id="signIn" data-i18n="signIn" hidden>Se connecter</button>
+      <button id="signOut" data-i18n="signOut" hidden>Se déconnecter</button>
+      <hr>
       <button id="langBtn"><span data-i18n="language">Langue</span><b id="langCur"></b></button>
     </div>
     <div class="menu" id="langMenu" hidden></div>
@@ -475,6 +501,30 @@
     <button class="quiet" value="cancel" data-i18n="cancel">Annuler</button>
   </form>
 </dialog>
+
+<dialog id="loginDialog">
+  <h2 data-i18n="signIn">Se connecter</h2>
+  <form method="dialog">
+    <button class="primary google" type="button" id="googleBtn"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg><span data-i18n="google">Continuer avec Google</span></button>
+  </form>
+  <form id="linkForm" class="link">
+    <input type="email" id="loginEmail" required autocomplete="email" data-i18n-ph="email" data-i18n-aria="email">
+    <button type="submit" data-i18n="sendLink">Recevoir un lien</button>
+  </form>
+  <form method="dialog">
+    <button class="quiet" value="cancel" data-i18n="cancel">Annuler</button>
+  </form>
+</dialog>
+
+<dialog id="sentDialog">
+  <h2 data-i18n="linkSent">Lien envoyé</h2>
+  <p id="sentText"></p>
+  <form method="dialog">
+    <button class="quiet" data-i18n="close">Fermer</button>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" hidden></div>
 
 <script src="i18n.js"></script>
 <script>
@@ -595,10 +645,28 @@ function loadCaught(key = STORE_KEY) {
   try { return new Set(JSON.parse(localStorage.getItem(key)) || []); }
   catch { return new Set(); }
 }
-function saveCaught() {
+function saveLocal() {
   localStorage.setItem(STORE_KEY, JSON.stringify([...caught]));
   localStorage.setItem(SHINY_KEY, JSON.stringify([...shinyCaught]));
 }
+// Coche changée ici : gardée sur l'appareil, puis envoyée au compte (sync.js) s'il y en a un
+const SYNC_KEY = "pokedex-go-sync";
+function saveCaught() {
+  saveLocal();
+  localStorage.setItem(SYNC_KEY, "dirty");
+  if (window.syncPush) syncPush();
+}
+// Pour sync.js : lire et remplacer les coches
+window.marksApi = {
+  get: () => ({ caught: [...caught], shiny: [...shinyCaught] }),
+  sets: () => ({ caught, shiny: shinyCaught }),
+  set(c, s) {
+    caught = new Set(c);
+    shinyCaught = new Set(s);
+    saveLocal();
+    if (entries.length) render();
+  },
+};
 // Collection affichée : normale ou shiny
 const marks = () => shinyMode ? shinyCaught : caught;
 // Cochable dans la collection affichée : sorti dans GO (et son shiny aussi, en mode Shiny)
@@ -908,7 +976,7 @@ function applyLang() {
     `<button data-lang="${code}"${code === LANG ? ' class="on"' : ""}>${label}</button>`).join("");
 }
 
-// Compte : son menu (langue ; connexion à venir), puis la liste des langues
+// Compte : son menu (connexion, langue), puis la liste des langues
 const langMenu = document.getElementById("langMenu");
 const acctBtn = document.getElementById("acct");
 const acctMenu = document.getElementById("acctMenu");
@@ -1302,5 +1370,6 @@ if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   navigator.serviceWorker.register("sw.js");
 }
 </script>
+<script type="module" src="sync.js"></script>
 </body>
 </html>

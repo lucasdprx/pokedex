@@ -978,7 +978,8 @@ document.getElementById("shotFiles").addEventListener("change", async ev => {
     alert("Échec de l'import : " + err.message);
     return;
   }
-  reviewDialog.close();
+  // Attendre la vraie fermeture : sinon cet événement « close » serait pris pour la réponse de la liste
+  await new Promise(ok => { reviewDialog.addEventListener("close", ok, { once: true }); reviewDialog.close(); });
   const doubt = new Set();
   const fresh = [];
   for (const [id, r] of seen) {

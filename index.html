@@ -252,6 +252,36 @@
   dialog .primary { background: var(--accent2); border-color: var(--accent2); color: var(--deep); font-weight: 600; }
   dialog .danger { color: var(--accent); border-color: #5a2738; }
   dialog .quiet { background: none; border-color: transparent; color: var(--muted); }
+
+  /* Import : choix de la source en bas de l'écran, puis liste des nouveaux */
+  dialog.sheet {
+    width: 100%; max-width: 480px;
+    margin: auto auto 0; border-radius: 14px 14px 0 0; border-bottom: 0;
+  }
+  dialog.review {
+    width: min(440px, 100%); max-height: min(640px, 92vh);
+    flex-direction: column; padding: 0;
+  }
+  dialog.review[open] { display: flex; }
+  dialog.review h2 { padding: 18px 18px 4px; margin: 0; }
+  dialog.review p { padding: 0 18px; margin: 0 0 8px; }
+  .rv-list { flex: 1; overflow-y: auto; padding: 0 12px; min-height: 0; }
+  .rv-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 4px; border-bottom: 1px solid #1c2747; cursor: pointer;
+    user-select: none; -webkit-user-select: none;
+  }
+  .rv-row img { width: 44px; height: 44px; object-fit: contain; }
+  .rv-row .rv-name { flex: 1; font-size: .92rem; font-weight: 600; }
+  .rv-row .rv-dex { font-size: .72rem; color: var(--muted); }
+  .rv-box {
+    width: 22px; height: 22px; flex: none; border-radius: 5px;
+    border: 2px solid var(--accent2); background: var(--accent2); color: var(--deep);
+    font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center;
+  }
+  .rv-row.off .rv-box { background: none; color: transparent; border-color: var(--line); }
+  .rv-row.off img { filter: grayscale(1) opacity(.4); }
+  dialog.review form { padding: 12px 18px 18px; }
 </style>
 </head>
 <body>
@@ -267,6 +297,7 @@
       <a href="https://leekduck.com/" target="_blank" rel="noopener">Leek Duck ↗</a>
     </div>
     <input type="file" id="importFile" accept="application/json,.json" hidden>
+    <input type="file" id="genieFile" accept="text/csv,.csv" hidden>
   </div>
   <div class="controls">
     <input type="search" id="search" placeholder="Rechercher" autocomplete="off"
@@ -288,6 +319,25 @@
   <div id="status" class="status"><div class="spinner"></div>Récupération des Pokémon de Pokémon GO…</div>
   <div id="grid" class="grid"></div>
 </main>
+
+<dialog id="sourceDialog" class="sheet">
+  <h2>Importer</h2>
+  <form method="dialog">
+    <button value="save">Sauvegarde du site</button>
+    <button value="genie">Poké Genie</button>
+    <button class="quiet" value="cancel">Annuler</button>
+  </form>
+</dialog>
+
+<dialog id="reviewDialog" class="review">
+  <h2 id="reviewTitle"></h2>
+  <p id="reviewText"></p>
+  <div class="rv-list" id="reviewList"></div>
+  <form method="dialog">
+    <button class="primary" value="add" id="reviewAdd"></button>
+    <button class="quiet" value="cancel" id="reviewCancel">Annuler</button>
+  </form>
+</dialog>
 
 <dialog id="importDialog">
   <h2 id="importTitle"></h2>
@@ -708,8 +758,126 @@ document.getElementById("export").addEventListener("click", () => {
   URL.revokeObjectURL(url);
 });
 
+// Importer → choix de la source en bas de l'écran
+const sourceDialog = document.getElementById("sourceDialog");
 document.getElementById("import").addEventListener("click", () => {
-  document.getElementById("importFile").click();
+  setMenu(false);
+  sourceDialog.returnValue = "";
+  sourceDialog.showModal();
+});
+sourceDialog.addEventListener("close", () => {
+  if (sourceDialog.returnValue === "save") document.getElementById("importFile").click();
+  if (sourceDialog.returnValue === "genie") document.getElementById("genieFile").click();
+});
+
+// --- Import Poké Genie (CSV, export en français ou en anglais) ---
+function parseCsv(text) {
+  const rows = [];
+  let row = [], cell = "", quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+      else if (c === '"') quoted = false;
+      else cell += c;
+    } else if (c === '"') quoted = true;
+    else if (c === ",") { row.push(cell); cell = ""; }
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && text[i + 1] === "\n") i++;
+      row.push(cell); cell = "";
+      if (row.some(x => x !== "")) rows.push(row);
+      row = [];
+    } else cell += c;
+  }
+  row.push(cell);
+  if (row.some(x => x !== "")) rows.push(row);
+  return rows;
+}
+
+// Une ligne Poké Genie (n°, forme) → la carte du site qui lui correspond
+const REGION_PREFIX = { alola: "ALOLA", galar: "GALAR", hisui: "HISUI", paldea: "PALDEA" };
+function genieKey(id, forme) {
+  const same = entries.filter(e => e.id === id);
+  if (!same.length) return null;
+  const reg = Object.keys(REGION_PREFIX).find(r => normalize(forme).startsWith(r));
+  if (reg) {
+    const e = same.find(e => e.regional && e.form.toUpperCase().startsWith(REGION_PREFIX[reg]));
+    if (e) return e.key;
+  }
+  // Forme normale, ou forme sans carte à part (Mâle, Marche, Totémique…) : la carte de base
+  const base = same.find(e => !e.regional);
+  return base ? base.key : null;
+}
+
+function readGenie(text) {
+  const rows = parseCsv(text.replace(/^﻿/, ""));
+  const head = (rows.shift() || []).map(h => normalize(h).trim());
+  const num = head.findIndex(h => h === "nombre pokemon" || h === "pokemon number");
+  const form = head.findIndex(h => h === "forme" || h === "form");
+  if (num < 0) throw new Error("ce fichier n'est pas un export Poké Genie");
+  const keys = new Set();
+  for (const r of rows) {
+    const k = genieKey(Number(r[num]), form >= 0 ? r[form] || "" : "");
+    if (k) keys.add(k);
+  }
+  return { count: rows.length, keys: [...keys] };
+}
+
+// Liste des nouveaux, chacun décochable, puis Ajouter
+const reviewDialog = document.getElementById("reviewDialog");
+function askReview(source, count, fresh) {
+  const list = document.getElementById("reviewList");
+  const addBtn = document.getElementById("reviewAdd");
+  const n = fresh.length;
+  document.getElementById("reviewTitle").textContent =
+    n ? `${n} nouveau${n > 1 ? "x" : ""}` : "Rien de nouveau";
+  document.getElementById("reviewText").textContent = `${source}, ${count} Pokémon lus`;
+  list.innerHTML = fresh.map(e =>
+    `<div class="rv-row" data-key="${e.key}">` +
+      `<img src="${SPRITE_SMALL(spriteOf(e))}" alt="" data-sprite="${spriteOf(e)}" onerror="imgFallback(this)">` +
+      `<span class="rv-name">${e.name}</span>` +
+      `<span class="rv-dex">N°${String(e.id).padStart(4, "0")}</span>` +
+      `<span class="rv-box">✓</span></div>`).join("");
+  const update = () => {
+    const on = list.querySelectorAll(".rv-row:not(.off)").length;
+    addBtn.textContent = `Ajouter ${on}`;
+    addBtn.hidden = !n;
+    addBtn.disabled = !on;
+  };
+  list.onclick = ev => {
+    const row = ev.target.closest(".rv-row");
+    if (row) { row.classList.toggle("off"); update(); }
+  };
+  document.getElementById("reviewCancel").textContent = n ? "Annuler" : "Fermer";
+  update();
+  reviewDialog.returnValue = "";
+  reviewDialog.showModal();
+  return new Promise(resolve => {
+    reviewDialog.addEventListener("close", () => resolve(reviewDialog.returnValue === "add"
+      ? [...list.querySelectorAll(".rv-row:not(.off)")].map(r => r.dataset.key) : []), { once: true });
+  });
+}
+
+document.getElementById("genieFile").addEventListener("change", ev => {
+  const input = ev.target;
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    input.value = "";
+    let res;
+    try { res = readGenie(reader.result); }
+    catch (err) { alert("Échec de l'import : " + err.message); return; }
+    // Import qui ne fait qu'ajouter : seulement les cartes pas encore cochées
+    const fresh = res.keys.map(k => byKey.get(k)).filter(e => e && e.available && !caught.has(e.key))
+      .sort((a, b) => a.id - b.id || a.regional - b.regional);
+    const add = await askReview("Poké Genie", res.count, fresh);
+    if (!add.length) return;
+    add.forEach(k => caught.add(k));
+    saveCaught();
+    render();
+  };
+  reader.readAsText(file);
 });
 
 // Fenêtre Fusionner / Remplacer / Annuler. Échap ou Annuler : rien ne change.

@@ -2,7 +2,8 @@
 pokedex-go-*.json
 
 # Maquettes et sauvegardes de travail
-maquettes/
+/maquettes/
 
 # Réglages locaux de Claude Code
-.claude/
+.claude/*
+!.claude/skills/

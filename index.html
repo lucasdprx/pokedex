@@ -4,21 +4,29 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pokédex Pokémon GO</title>
-<meta name="theme-color" content="#0f1626">
+<meta name="theme-color" content="#9fe3ec">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700;800&display=swap" rel="stylesheet">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
+  /* Style « Pokémon GO » : ciel bleu clair, cartes blanches translucides */
   :root {
-    --bg: #1a1a2e;
-    --card: #16213e;
-    --card-caught: #0f3d2e;
-    --deep: #0f1626;
-    --line: #2a2a4a;
-    --accent: #e94560;
-    --accent2: #4ecca3;
-    --text: #eaeaea;
-    --muted: #8a8ab0;
+    --bg: #9fe3ec;
+    --card: rgba(255,255,255,.45);
+    --card-caught: rgba(255,255,255,.88);
+    --deep: #ffffff;
+    --line: #c6ebf1;
+    --soft: #e3f6f9;
+    --accent: #1b8fb0;
+    --accent2: #1b8fb0;
+    --warn: #d64545;
+    --gold: #f0b429;
+    --text: #1f5f7a;
+    --strong: #1b7a9b;
+    --muted: #5c9bb0;
   }
   * { box-sizing: border-box; }
   body {
@@ -313,6 +321,80 @@
   .rv-row.off img { filter: grayscale(1) opacity(.4); }
   .rv-row.doubt .rv-name::after { content: " ?"; color: var(--accent); }
   dialog.review form { padding: 12px 18px 18px; }
+  /* ---------- Style « Pokémon GO » (maquettes/design/v1, D1) ---------- */
+  body {
+    font-family: "Rubik", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(180deg, #9fe3ec, #5cc6db) fixed;
+    min-height: 100vh;
+  }
+  header {
+    top: 10px;
+    margin: 10px 10px 0;
+    padding: 12px 12px 0;
+    border-radius: 14px;
+    background: rgba(255,255,255,.78);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    box-shadow: 0 4px 14px rgba(31,95,122,.15);
+  }
+  h1 { font-weight: 800; color: var(--strong); text-transform: uppercase; letter-spacing: .02em; font-size: 1.05rem; }
+  .mode { border: 0; background: var(--soft); border-radius: 10px; }
+  .mode button { color: var(--muted); font-weight: 500; }
+  .mode button.on { background: var(--accent); color: #fff; }
+  .mode button.on.gold { background: var(--gold); color: #fff; }
+  .globe, .more { color: var(--strong); }
+  input[type="search"], select {
+    background: #fff; border: 2px solid var(--line); border-radius: 10px; color: var(--text); font-family: inherit;
+  }
+  input[type="search"]::placeholder { color: #8fc0cf; }
+  select { font-weight: 700; }
+  select:hover, input[type="search"]:focus { border-color: var(--accent); outline: none; }
+  .stats { color: var(--strong); font-weight: 800; }
+  .bar { height: 8px; background: #d4f0f5; border-radius: 4px; }
+  .bar > div { background: var(--accent); border-radius: 4px; }
+  .tabs { margin: 0 -12px; padding: 0 12px; }
+  .tab { color: var(--muted); font-weight: 700; text-transform: uppercase; font-size: .78rem; }
+  .tab span { opacity: 1; }
+  .tab:hover { color: var(--strong); }
+  .tab.active { color: var(--strong); border-bottom-color: var(--accent); }
+  .tab.done span { color: var(--accent); }
+  main { padding: 12px 10px 48px; }
+  .card { background: var(--card); border: 2px solid rgba(255,255,255,.7); border-radius: 12px; }
+  .card:focus-visible { outline: 2px solid var(--accent); }
+  .card img { filter: brightness(0) opacity(.12); }
+  .card.caught { background: var(--card-caught); border-color: rgba(255,255,255,.95); }
+  .card.locked { background: rgba(255,255,255,.2); opacity: .6; }
+  .card.locked img { filter: brightness(0) opacity(.08); }
+  .card .dex { color: #4b8fa5; font-weight: 500; font-size: .95rem; }
+  .card .name { font-weight: 700; color: var(--text); }
+  .types { font-weight: 700; }
+  .types .na { color: var(--warn); }
+  .card .cry { background: #fff; border-color: var(--line); color: var(--strong); }
+  .card .cry:hover { border-color: var(--accent); }
+  body.shiny .bar > div { background: var(--gold); }
+  body.shiny #count { color: #b7791f; }
+  body.shiny .card.caught { background: rgba(255,248,214,.94); border-color: var(--gold); }
+  body.shiny .tab.done span { color: #b7791f; }
+  .menu { background: #fff; border-color: var(--line); box-shadow: 0 8px 24px rgba(31,95,122,.25); }
+  .menu button, .menu a { color: var(--text); }
+  .menu button:hover, .menu a:hover { background: var(--soft); }
+  .status { color: var(--strong); }
+  .spinner { border-color: #d4f0f5; border-top-color: var(--accent); }
+  .retry button { background: #fff; border-color: var(--line); color: var(--text); }
+  dialog { background: #fff; color: var(--text); border-color: var(--line); box-shadow: 0 12px 40px rgba(31,95,122,.3); }
+  dialog::backdrop { background: rgba(20,60,80,.45); }
+  dialog h2 { color: var(--strong); }
+  dialog button { background: var(--soft); border-color: var(--line); color: var(--text); font-family: inherit; }
+  dialog .primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  dialog .danger { color: var(--warn); border-color: #f3c4c4; background: #fff; }
+  dialog .quiet { background: none; border-color: transparent; color: var(--muted); }
+  dialog button:focus-visible, .menu button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  dialog button:focus:not(:focus-visible) { outline: none; }
+  .rv-row { border-bottom-color: var(--soft); }
+  .rv-box { color: #fff; }
+  .rv-row.doubt .rv-name::after { color: var(--warn); }
+  @media (max-width: 600px) {
+    .card .dex { font-size: .88rem; }
+  }
 </style>
 </head>
 <body>
@@ -462,13 +544,13 @@ const CACHE_KEY = "pokedex-go-data";
 const CACHE_MAX_AGE = 24 * 60 * 60 * 1000; // au-delà, mise à jour en fond
 
 
-// Couleurs des types, éclaircies pour rester lisibles en texte sur fond sombre
+// Couleurs des types, assombries pour rester lisibles en texte sur fond clair
 const TYPE_COLOR = {
-  Normal:"#C9C8A0", Fire:"#F59A52", Water:"#7FA6F5", Electric:"#F7D84A",
-  Grass:"#8FD65F", Ice:"#A8E3E0", Fighting:"#E0605A", Poison:"#C879C6",
-  Ground:"#E8CB80", Flying:"#B8A3F7", Psychic:"#FB7AA1", Bug:"#BCCF3A",
-  Rock:"#CDB75A", Ghost:"#A98FCF", Dragon:"#9C7BFF", Dark:"#B39A86",
-  Steel:"#C6C6DC", Fairy:"#E7A3C6"
+  Normal:"#7a7955", Fire:"#d0601a", Water:"#2f6fd6", Electric:"#b08a00",
+  Grass:"#3f8f1c", Ice:"#2a9c97", Fighting:"#b8322c", Poison:"#93358f",
+  Ground:"#a07a1d", Flying:"#6d55c9", Psychic:"#d83a6c", Bug:"#7a8c12",
+  Rock:"#8f7a25", Ghost:"#61478f", Dragon:"#5a3fd0", Dark:"#5b4636",
+  Steel:"#6b6b8a", Fairy:"#c4528c"
 };
 // Formes régionales en français, ajoutées au nom (« Rattata d'Alola »)
 const FORM_FR = {
@@ -717,7 +799,7 @@ function render() {
       `<button class="cry" aria-label="${t("cry")}">${SPEAKER}</button>` +
       `<img loading="lazy" decoding="async" crossorigin="anonymous" src="${shinyMode ? SPRITE_SMALL_SHINY(spriteId) : SPRITE_SMALL(spriteId)}" alt="" draggable="false" ` +
         `data-sprite="${spriteId}" data-shiny="${shinyMode ? 1 : 0}" onerror="imgFallback(this)">` +
-      `<div class="dex">${t("dex")}${String(e.id).padStart(4, "0")}</div>` +
+      `<div class="dex">${String(e.id).padStart(4, "0")}</div>` +
       `<div class="name">${e.name}</div>` +
       `<div class="types">${typesHtml(e)}</div>`;
     frag.appendChild(card);

@@ -1,0 +1,8 @@
+# Progression exportée : reste sur ce PC
+pokedex-go-*.json
+
+# Maquettes et sauvegardes de travail
+maquettes/
+
+# Réglages locaux de Claude Code
+.claude/

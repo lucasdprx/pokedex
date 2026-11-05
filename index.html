@@ -281,6 +281,7 @@
   }
   .rv-row.off .rv-box { background: none; color: transparent; border-color: var(--line); }
   .rv-row.off img { filter: grayscale(1) opacity(.4); }
+  .rv-row.doubt .rv-name::after { content: " ?"; color: var(--accent); }
   dialog.review form { padding: 12px 18px 18px; }
 </style>
 </head>
@@ -298,6 +299,7 @@
     </div>
     <input type="file" id="importFile" accept="application/json,.json" hidden>
     <input type="file" id="genieFile" accept="text/csv,.csv" hidden>
+    <input type="file" id="shotFiles" accept="image/*" multiple hidden>
   </div>
   <div class="controls">
     <input type="search" id="search" placeholder="Rechercher" autocomplete="off"
@@ -325,6 +327,7 @@
   <form method="dialog">
     <button value="save">Sauvegarde du site</button>
     <button value="genie">Poké Genie</button>
+    <button value="shots">Captures du Pokédex</button>
     <button class="quiet" value="cancel">Annuler</button>
   </form>
 </dialog>
@@ -768,6 +771,7 @@ document.getElementById("import").addEventListener("click", () => {
 sourceDialog.addEventListener("close", () => {
   if (sourceDialog.returnValue === "save") document.getElementById("importFile").click();
   if (sourceDialog.returnValue === "genie") document.getElementById("genieFile").click();
+  if (sourceDialog.returnValue === "shots") document.getElementById("shotFiles").click();
 });
 
 // --- Import Poké Genie (CSV, export en français ou en anglais) ---
@@ -825,15 +829,16 @@ function readGenie(text) {
 
 // Liste des nouveaux, chacun décochable, puis Ajouter
 const reviewDialog = document.getElementById("reviewDialog");
-function askReview(source, count, fresh) {
+function askReview(source, count, fresh, doubt = new Set()) {
   const list = document.getElementById("reviewList");
   const addBtn = document.getElementById("reviewAdd");
   const n = fresh.length;
   document.getElementById("reviewTitle").textContent =
     n ? `${n} nouveau${n > 1 ? "x" : ""}` : "Rien de nouveau";
   document.getElementById("reviewText").textContent = `${source}, ${count} Pokémon lus`;
+  document.getElementById("reviewCancel").hidden = false;
   list.innerHTML = fresh.map(e =>
-    `<div class="rv-row" data-key="${e.key}">` +
+    `<div class="rv-row${doubt.has(e.key) ? " off doubt" : ""}" data-key="${e.key}">` +
       `<img src="${SPRITE_SMALL(spriteOf(e))}" alt="" data-sprite="${spriteOf(e)}" onerror="imgFallback(this)">` +
       `<span class="rv-name">${e.name}</span>` +
       `<span class="rv-dex">N°${String(e.id).padStart(4, "0")}</span>` +
@@ -857,6 +862,140 @@ function askReview(source, count, fresh) {
       ? [...list.querySelectorAll(".rv-row:not(.off)")].map(r => r.dataset.key) : []), { once: true });
   });
 }
+
+// --- Import de captures du Pokédex du jeu ---
+// Chaque case montre son numéro (« 0722 ») : en couleur au-dessus = attrapé,
+// silhouette bleue = vu seulement, rien = jamais vu. Tout est lu ici, dans le navigateur.
+let ocrWorker = null;
+async function getOcr() {
+  if (ocrWorker) return ocrWorker;
+  if (!window.Tesseract) await new Promise((ok, ko) => {
+    const sc = document.createElement("script");
+    sc.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+    sc.onload = ok; sc.onerror = () => ko(new Error("lecteur de texte introuvable (hors ligne ?)"));
+    document.head.appendChild(sc);
+  });
+  ocrWorker = await Tesseract.createWorker("eng");
+  await ocrWorker.setParameters({ tessedit_char_whitelist: "0123456789" });
+  return ocrWorker;
+}
+
+function loadImage(file) {
+  return new Promise((ok, ko) => {
+    const img = new Image();
+    img.onload = () => ok(img);
+    img.onerror = () => ko(new Error("image illisible"));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// Part des pixels « en couleur » dans un rectangle : ni le fond de la case, ni la silhouette bleue
+function colorShare(px, W, x0, y0, x1, y1, bg) {
+  let n = 0, hit = 0;
+  for (let y = Math.max(0, y0 | 0); y < Math.min(px.length / 4 / W, y1); y += 2) {
+    for (let x = Math.max(0, x0 | 0); x < Math.min(W, x1); x += 2) {
+      const i = (y * W + x) * 4, r = px[i], g = px[i + 1], b = px[i + 2];
+      n++;
+      const d = Math.abs(r - bg[0]) + Math.abs(g - bg[1]) + Math.abs(b - bg[2]);
+      if (d < 70) continue;                          // fond de la case
+      if (b > r + 35 && g > r + 15 && b >= g - 10) continue; // bleu-cyan : silhouette ou reflet
+      hit++;
+    }
+  }
+  return n ? hit / n : 0;
+}
+
+async function readShot(file) {
+  const img = await loadImage(file);
+  const W = img.naturalWidth, H = img.naturalHeight;
+  const cv = document.createElement("canvas");
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext("2d", { willReadFrequently: true });
+  ctx.drawImage(img, 0, 0);
+  const px = ctx.getImageData(0, 0, W, H).data;
+  // Lecture des numéros sur une copie en noir et blanc (le bleu clair du jeu se lit mal)
+  const bw = document.createElement("canvas");
+  bw.width = W; bw.height = H;
+  const bctx = bw.getContext("2d");
+  const bd = bctx.createImageData(W, H);
+  for (let i = 0; i < px.length; i += 4) {
+    const v = 0.3 * px[i] + 0.59 * px[i + 1] + 0.11 * px[i + 2] < 150 ? 0 : 255;
+    bd.data[i] = bd.data[i + 1] = bd.data[i + 2] = v; bd.data[i + 3] = 255;
+  }
+  bctx.putImageData(bd, 0, 0);
+  const { data } = await (await getOcr()).recognize(bw);
+  const nums = (data.words || [])
+    .map(w => ({ t: w.text.trim(), b: w.bbox, conf: w.confidence }))
+    .filter(w => /^0\d{3}$/.test(w.t));
+  // Largeur d'une case : 4 colonnes
+  const cellW = W / 4.3;
+  const out = [];
+  for (const w of nums) {
+    const id = Number(w.t);
+    const cx = (w.b.x0 + w.b.x1) / 2, top = w.b.y0;
+    // Les boutons du jeu cachent le bas de l'écran : on ignore ce qui est dessous
+    if (top > H * 0.8) continue;
+    const zoneTop = top - cellW * 0.95;
+    // Couleur du fond de la case : juste à gauche du numéro
+    const s = ((Math.max(0, w.b.y0 + 4) * W) + Math.max(0, (cx - cellW * 0.42) | 0)) * 4;
+    const bg = [px[s], px[s + 1], px[s + 2]];
+    const share = colorShare(px, W, cx - cellW * 0.4, zoneTop, cx + cellW * 0.4, top - 4, bg);
+    // Image coupée par le haut de l'écran, ou numéro mal lu : à vérifier
+    const doubt = zoneTop < H * 0.2 || w.conf < 70;
+    out.push({ id, caught: share > 0.005, doubt });
+  }
+  URL.revokeObjectURL(img.src);
+  return out;
+}
+
+document.getElementById("shotFiles").addEventListener("change", async ev => {
+  const input = ev.target;
+  const files = [...input.files];
+  input.value = "";
+  if (!files.length) return;
+  // Pendant la lecture : la fenêtre de la liste, sans boutons
+  document.getElementById("reviewTitle").textContent = "Lecture des captures…";
+  document.getElementById("reviewList").innerHTML = "";
+  document.getElementById("reviewAdd").hidden = true;
+  document.getElementById("reviewCancel").hidden = true;
+  const step = document.getElementById("reviewText");
+  reviewDialog.showModal();
+  const seen = new Map(); // id → {caught, doubt}
+  let read = 0;
+  try {
+    for (const [i, f] of files.entries()) {
+      step.textContent = `Capture ${i + 1} sur ${files.length}`;
+      for (const r of await readShot(f)) {
+        read++;
+        const prev = seen.get(r.id);
+        // Vu net sur une capture, douteux sur une autre : le net l'emporte
+        if (!prev || (prev.doubt && !r.doubt) || (!prev.caught && r.caught && !r.doubt))
+          seen.set(r.id, r);
+      }
+    }
+  } catch (err) {
+    reviewDialog.close();
+    alert("Échec de l'import : " + err.message);
+    return;
+  }
+  reviewDialog.close();
+  const doubt = new Set();
+  const fresh = [];
+  for (const [id, r] of seen) {
+    if (!r.caught) continue;
+    const e = entries.find(e => e.id === id && !e.regional);
+    if (!e || !e.available || caught.has(e.key)) continue;
+    fresh.push(e);
+    if (r.doubt) doubt.add(e.key);
+  }
+  fresh.sort((a, b) => a.id - b.id);
+  const n = files.length;
+  const add = await askReview(`${n} capture${n > 1 ? "s" : ""}`, read, fresh, doubt);
+  if (!add.length) return;
+  add.forEach(k => caught.add(k));
+  saveCaught();
+  render();
+});
 
 document.getElementById("genieFile").addEventListener("change", ev => {
   const input = ev.target;

@@ -176,7 +176,7 @@
   .types span + span { margin-left: 6px; }
   .types .na { color: var(--accent); }
 
-  /* Cri : bouton au survol (souris, clavier) ; appui long sur écran tactile */
+  /* Cri : bouton au survol (souris, clavier) ; rien sur écran tactile */
   .card .cry {
     position: absolute; top: 6px; left: 6px;
     width: 26px; height: 26px; padding: 0;
@@ -598,21 +598,18 @@ function toggle(key, card) {
   if (caught.has(key)) caught.delete(key);
   else caught.add(key);
   saveCaught();
+  // La fiche reste en place, même si elle ne correspond plus au filtre :
+  // la liste ne se refait qu'au changement de filtre, de région ou de recherche
   card.classList.toggle("caught");
-  if (els.filter.value !== "all") render();
-  else updateStats();
+  updateStats();
 }
 
-// --- Clics sur la grille : marquer capturé, cri (bouton ou appui long sur écran tactile) ---
-let pressTimer = null;
-let suppressClick = false;   // l'appui long a joué le cri : le relâchement ne coche pas
-
+// --- Clics sur la grille : marquer capturé, cri (bouton au survol, souris ou clavier) ---
 els.grid.addEventListener("click", ev => {
   const card = ev.target.closest(".card");
   if (!card) return;
   const e = byKey.get(card.dataset.key);
   if (ev.target.closest(".cry")) { playCry(spriteOf(e), e.id); return; }
-  if (suppressClick) { suppressClick = false; return; }
   if (e.available) toggle(e.key, card);
 });
 
@@ -625,22 +622,6 @@ els.grid.addEventListener("keydown", ev => {
   if (e.available) toggle(e.key, card);
 });
 
-els.grid.addEventListener("pointerdown", ev => {
-  if (ev.pointerType === "mouse") return;
-  const card = ev.target.closest(".card");
-  if (!card) return;
-  suppressClick = false;
-  clearTimeout(pressTimer);
-  pressTimer = setTimeout(() => {
-    const e = byKey.get(card.dataset.key);
-    suppressClick = true;
-    playCry(spriteOf(e), e.id);
-    if (navigator.vibrate) navigator.vibrate(15);
-  }, 450);
-});
-for (const type of ["pointerup", "pointercancel", "pointerleave"]) {
-  els.grid.addEventListener(type, () => clearTimeout(pressTimer));
-}
 // Pas de menu « enregistrer l'image » pendant l'appui long
 els.grid.addEventListener("contextmenu", ev => {
   if (ev.target.closest(".card")) ev.preventDefault();

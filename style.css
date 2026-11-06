@@ -592,3 +592,47 @@ html[data-theme="dark"] #splash { --sp: #0a1c28; }
 @keyframes sp-down { to { transform: translateY(100%); } }
 @keyframes sp-fade { to { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { #splash { display: none; } }
+
+/* --- Animations v1 : A2, B2, D2, F1, G1, H1, I1 --- */
+.card { position: relative; }
+/* A2 : reflet doré quand on coche un shiny */
+.card.glint::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(100deg, transparent 35%, rgba(255,255,255,.95) 50%, transparent 65%) no-repeat;
+  background-size: 300% 100%; animation: glint .7s ease-in .15s both;
+}
+@keyframes glint { from { background-position: 100% 0; } to { background-position: -50% 0; } }
+/* B2 : barre dorée quand la collection est complète */
+.bar.full > div { background: linear-gradient(90deg, #f7d84a, var(--gold)); }
+/* D2 : Poké Ball qui tourne au premier chargement */
+.spinner { width: 44px; height: 44px; border: 3px solid #222 !important; border-radius: 50%; position: relative;
+  background: linear-gradient(#e94560 50%, #fff 50%); animation: spin .9s linear infinite; }
+.spinner::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 3px; margin-top: -1.5px; background: #222; }
+.spinner::after { content: ""; position: absolute; inset: 0; margin: auto; width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 3px solid #222; }
+/* F1 : cascade au changement de collection */
+.card.arrive { animation: arrive .35s ease-out both; }
+@keyframes arrive { from { opacity: 0; transform: translateY(14px); } }
+/* G1 : aura violette des Obscurs, lueur blanche des Purifiés */
+body[data-coll="shadow"] .card::before, body[data-coll="purified"] .card::before {
+  content: ""; position: absolute; top: 12px; left: 50%; width: 64px; height: 64px; margin-left: -32px; border-radius: 50%;
+  pointer-events: none; animation: aura 1.6s ease-in-out infinite alternate;
+}
+body[data-coll="shadow"] .card::before { background: radial-gradient(#a35ce0, #6a2fb0 60%, transparent 70%); filter: blur(6px); }
+body[data-coll="purified"] .card::before { background: radial-gradient(#fff6c8, rgba(246,226,122,.6) 45%, transparent 70%); filter: blur(5px); }
+body[data-coll="shadow"] .card img, body[data-coll="purified"] .card img { position: relative; }
+@keyframes aura { from { transform: scale(.9) translateY(2px); opacity: .6; } to { transform: scale(1.15, 1.25) translateY(-4px); opacity: .95; } }
+/* H1 : le soleil descend, la lune monte ; l'écran passe en fondu */
+body { transition: background-color .4s, color .4s; }
+#themeBtn b { display: flex; align-items: center; gap: 6px; }
+.sky { width: 20px; height: 20px; position: relative; overflow: hidden; display: inline-block; }
+.sky i { position: absolute; inset: 0; font-style: normal; line-height: 20px; text-align: center; font-size: 15px; transition: transform .5s cubic-bezier(.5,1.5,.5,1); }
+.sky i + i { transform: translateY(22px); }
+html[data-theme="dark"] .sky i { transform: translateY(-22px); }
+html[data-theme="dark"] .sky i + i { transform: none; }
+/* I1 : l'icône calendrier sautille quand un événement t'attend */
+#nowBtn:has(#nowDot:not([hidden])) { animation: hop 6s ease-out 2s infinite; }
+@keyframes hop { 0%, 8%, 16%, 100% { transform: none; } 4%, 12% { transform: translateY(-5px); } }
+@media (prefers-reduced-motion: reduce) {
+  .card.glint::after, .card.arrive, .card::before, #nowBtn, .spinner { animation: none !important; }
+  .sky i, body { transition: none; }
+}

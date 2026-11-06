@@ -415,6 +415,7 @@ function toggle(key, card) {
   const finished = now && done(e.region);
   card.classList.remove("pop", "shake");
   restartAnim(card, now ? "pop" : "shake");
+  if (now && shinyMode && coll === "dex") restartAnim(card, "glint");
   if (now && navigator.vibrate) navigator.vibrate(15);
   updateStats();
   if (finished) restartAnim(els.progress.parentNode, "shine");
@@ -473,11 +474,34 @@ function updateStats() {
   const got = base.filter(e => marks().has(e.key)).length;
   const pct = total ? Math.round((got / total) * 100) : 0;
   els.count.textContent = `${got} / ${total}`;
+  els.progress.parentNode.classList.toggle("full", total > 0 && got === total);
+  if (countUp(got, total, pct)) return renderGens();
   els.progress.style.width = pct + "%";
   renderGens();
   if (window.updateNowDot) { clearTimeout(nowDotTimer); nowDotTimer = setTimeout(updateNowDot, 300); }
 }
 var nowDotTimer = null; // var : utilisable avant cette ligne
+
+// Au lancement (animations v1 : C1), juste après la Poké Ball : la barre part de zéro et le compteur monte
+var countedUp = false;
+function countUp(got, total, pct) {
+  if (countedUp || !total) return false;
+  countedUp = true;
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
+  const bar = els.progress, start = performance.now() + 900;
+  bar.style.transition = "none";
+  bar.style.width = "0%";
+  els.count.textContent = `0 / ${total}`;
+  const step = now => {
+    const p = Math.max(0, Math.min(1, (now - start) / 900)), e = 1 - Math.pow(1 - p, 3);
+    bar.style.width = pct * e + "%";
+    els.count.textContent = `${Math.round(got * e)} / ${total}`;
+    if (p < 1) requestAnimationFrame(step);
+    else { bar.style.transition = ""; updateStats(); }
+  };
+  requestAnimationFrame(step);
+  return true;
+}
 
 function renderGens() {
   const tot = {}, cau = {};
@@ -1146,6 +1170,8 @@ document.getElementById("coll").addEventListener("change", ev => {
   if (coll !== "dex" && shinyMode) setShiny(false); // le Shiny ne vaut que pour le Pokédex
   updateStats();
   render();
+  // Cascade (animations v1 : F1) : les cartes visibles arrivent une à une
+  [...els.grid.children].slice(0, 30).forEach((c, i) => { c.style.animationDelay = i * 0.03 + "s"; c.classList.add("arrive"); });
 });
 
 // --- Thème (mode-sombre : B1 suit le téléphone, choix dans le menu ⋯ ; couleurs N3 bleu nuit foncé) ---

@@ -92,7 +92,11 @@ def has(caught, dex, reg):
 def label(dex, reg, lang):
     lst = names.get(lang) or names.get("en") or []
     n = lst[dex - 1] if 0 < dex <= len(lst) else str(dex)
-    return f"{n} ({reg})" if reg else n
+    if not reg:
+        return n
+    fr = {"Alola": "d'Alola", "Galarian": "de Galar", "Hisuian": "de Hisui", "Paldea": "de Paldea"}
+    en = {"Alola": "Alolan", "Galarian": "Galarian", "Hisuian": "Hisuian", "Paldea": "Paldean"}
+    return f"{n} {fr[reg]}" if lang == "fr" else f"{en[reg]} {n}"
 
 
 # --- Envoi ---

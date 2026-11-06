@@ -1009,6 +1009,7 @@ function toggle(key, card) {
   const e = byKey.get(key), now = set.has(key);
   const done = r => entries.every(x => x.regional || !can(x) || x.region !== r || marks().has(x.key));
   const finished = now && done(e.region);
+  card.classList.remove("pop", "shake");
   restartAnim(card, now ? "pop" : "shake");
   if (now && navigator.vibrate) navigator.vibrate(15);
   updateStats();

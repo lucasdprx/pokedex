@@ -298,29 +298,6 @@
   .types span + span { margin-left: 6px; }
   .types .na { color: var(--accent); }
 
-  /* Cri : bouton au survol (souris, clavier) ; rien sur écran tactile */
-  .card .cry {
-    position: absolute; top: 6px; left: 6px;
-    width: 26px; height: 26px; padding: 0;
-    display: flex; align-items: center; justify-content: center;
-    background: var(--deep);
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    color: var(--text);
-    cursor: pointer;
-    opacity: 0;
-    transition: opacity .15s, border-color .15s;
-  }
-  .card .cry svg { width: 14px; height: 14px; }
-  .card:focus-within .cry { opacity: 1; }
-  .card .cry:hover { border-color: var(--accent2); }
-  @media (hover: hover) {
-    .card:hover .cry { opacity: 1; }
-  }
-  @media (hover: none) {
-    .card .cry { display: none; }
-  }
-
   @media (max-width: 600px) {
     header { padding: 12px 14px 0; }
     .tabs { margin: 0 -14px; padding: 0 14px; gap: 18px; }
@@ -459,8 +436,6 @@
   .card .name { font-weight: 700; color: var(--text); }
   .types { font-weight: 700; }
   .types .na { color: var(--warn); }
-  .card .cry { background: #fff; border-color: var(--line); color: var(--strong); }
-  .card .cry:hover { border-color: var(--accent); }
   body.shiny .bar > div { background: var(--gold); }
   body.shiny #count { color: #b7791f; }
   body.shiny .card.caught { background: rgba(255,248,214,.94); border-color: var(--gold); }
@@ -693,16 +668,7 @@ const ARTWORK_SHINY = id => `raw.githubusercontent.com/PokeAPI/sprites/master/sp
 const SPRITE_SMALL_SHINY = id => `https://wsrv.nl/?url=${ARTWORK_SHINY(id)}&w=208&h=208&output=webp`;
 const SPRITE_SHINY = id => `https://${ARTWORK_SHINY(id)}`;
 const SPRITE_2D_SHINY = id => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${id}.png`;
-const CRY = id => `https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/${id}.ogg`;
 
-// Cri du Pokémon (un seul lecteur réutilisé). Repli sur l'espèce de base si la forme n'a pas de cri.
-const cryAudio = new Audio();
-cryAudio.volume = 0.5;
-function playCry(id, baseId) {
-  cryAudio.onerror = baseId && baseId !== id ? () => playCry(baseId) : null;
-  cryAudio.src = CRY(id);
-  cryAudio.play().catch(() => {});
-}
 const STORE_KEY = "pokedex-go-caught";
 const SHINY_KEY = "pokedex-go-shiny";
 // Listes de Pokémon gardées dans le navigateur : affichage immédiat, et hors ligne
@@ -725,7 +691,6 @@ const FORM_FR = {
   PALDEA_COMBAT: "de Paldea (Combative)", PALDEA_BLAZE: "de Paldea (Flamboyante)",
   PALDEA_AQUA: "de Paldea (Aquatique)",
 };
-const SPEAKER = `<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M2 6h3l4-3v10L5 10H2z"/><path d="M11 5.5a3.5 3.5 0 0 1 0 5" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>`;
 const TYPE_FR = {
   Normal:"Normal", Fire:"Feu", Water:"Eau", Electric:"Électrik", Grass:"Plante",
   Ice:"Glace", Fighting:"Combat", Poison:"Poison", Ground:"Sol", Flying:"Vol",
@@ -984,7 +949,7 @@ function render() {
     card.dataset.key = e.key;
     card.tabIndex = 0;
     card.innerHTML =
-      `<button class="cry" aria-label="${t("cry")}">${SPEAKER}</button><i class="ball-mark"></i>` +
+      `<i class="ball-mark"></i>` +
       `<img loading="lazy" decoding="async" crossorigin="anonymous" src="${shinyMode ? SPRITE_SMALL_SHINY(spriteId) : SPRITE_SMALL(spriteId)}" alt="" draggable="false" ` +
         `data-sprite="${spriteId}" data-shiny="${shinyMode ? 1 : 0}" onerror="imgFallback(this)">` +
       `<div class="dex">${String(e.id).padStart(4, "0")}</div>` +
@@ -1038,12 +1003,11 @@ function undoToast(e, card) {
   };
 }
 
-// --- Clics sur la grille : marquer capturé, cri (bouton au survol, souris ou clavier) ---
+// --- Clics sur la grille : marquer capturé ---
 els.grid.addEventListener("click", ev => {
   const card = ev.target.closest(".card");
   if (!card) return;
   const e = byKey.get(card.dataset.key);
-  if (ev.target.closest(".cry")) { playCry(spriteOf(e), e.id); return; }
   if (can(e)) toggle(e.key, card);
 });
 

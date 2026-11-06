@@ -48,7 +48,7 @@ self.addEventListener("fetch", ev => {
   const url = new URL(req.url);
   if (isImage(url)) ev.respondWith(cacheFirst(req));
   else if (url.origin === self.location.origin) ev.respondWith(networkFirst(req));
-  // Le reste (listes pogoapi / PvPoke, cris) passe directement par le réseau
+  // Le reste (listes pogoapi / PvPoke) passe directement par le réseau
 });
 
 async function cacheFirst(req) {

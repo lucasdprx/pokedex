@@ -1,0 +1,130 @@
+"""Notification du matin : les Pokémon qui manquent à chaque personne et qui viennent d'arriver.
+
+Lit ScrapedDuck (raids, œufs, études, Heures vedettes, Journées Communauté en cours), puis pour
+chaque compte abonné (users/<uid>.pushSub) envoie une seule notification qui les liste.
+Un Pokémon n'est annoncé qu'une fois : users/<uid>.pushSent garde ce qui l'a déjà été.
+Lancé chaque matin par .github/workflows/notify.yml.
+
+Secrets : FIREBASE_SA (clé JSON d'un compte de service Firebase), VAPID_PRIVATE.
+"""
+import json, os, re, urllib.request
+from datetime import datetime, timezone
+
+import firebase_admin
+from firebase_admin import credentials, firestore
+from pywebpush import webpush, WebPushException
+
+DUCK = "https://raw.githubusercontent.com/bigfoott/ScrapedDuck/data/"
+SITE = "https://lucasdprx.github.io/pokedex/"
+REGIONAL = {"Alolan": "Alola", "Galarian": "Galarian", "Hisuian": "Hisuian", "Paldean": "Paldea"}
+REG_PREFIX = tuple(REGIONAL.values())
+TEXT = {
+    "fr": ("{n} Pokémon qui te manque", "{n} Pokémon qui te manquent", " et "),
+    "en": ("{n} Pokémon you're missing", "{n} Pokémon you're missing", " and "),
+}
+
+
+def get(url):
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (pokedex notify)"})
+    return json.loads(urllib.request.urlopen(req, timeout=60).read().decode("utf-8"))
+
+
+def when(s):
+    if not s:
+        return None
+    d = datetime.fromisoformat(s.replace("Z", "+00:00"))
+    return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
+
+
+def dex_of(img):
+    m = re.search(r"(?:pm|pokemon_icon_|poke_capture_0*)(\d+)", img or "")
+    return int(m.group(1)) if m else 0
+
+
+# --- Ce qu'on peut avoir maintenant : (n°, forme régionale ou None) → comment ---
+now = datetime.now(timezone.utc)
+avail = {}
+
+
+def add(name, img, how):
+    dex = dex_of(img)
+    if not dex:
+        return
+    reg = next((f for w, f in REGIONAL.items() if w in (name or "")), None)
+    avail.setdefault((dex, reg), how)
+
+
+for r in get(DUCK + "raids.json"):
+    add(r["name"], r.get("image"), ("raid", r.get("tier", "")))
+for g in get(DUCK + "eggs.json"):
+    add(g["name"], g.get("image"), ("egg", g.get("eggType", "")))
+for task in get(DUCK + "research.json"):
+    for r in task.get("rewards", []):
+        add(r["name"], r.get("image"), ("research", ""))
+for ev in get(DUCK + "events.json"):
+    start, end = when(ev.get("start")), when(ev.get("end"))
+    if not start or start > now or (end and end < now):
+        continue
+    x = ev.get("extraData") or {}
+    for p in (x.get("spotlight") or {}).get("list", []):
+        add(p["name"], p.get("image"), ("spotlight", ""))
+    for p in (x.get("communityday") or {}).get("spawns", []):
+        add(p["name"], p.get("image"), ("cday", ""))
+
+HOW_FR = {"raid": "en raid", "egg": "en œuf", "research": "en étude", "spotlight": "en Heure vedette", "cday": "en Journée Communauté"}
+HOW_EN = {"raid": "in raids", "egg": "in eggs", "research": "in research", "spotlight": "in Spotlight Hour", "cday": "on Community Day"}
+names = json.load(open("names.json", encoding="utf-8"))
+
+
+def has(caught, dex, reg):
+    """La personne a-t-elle ce Pokémon ? Forme de base : n'importe quelle forme non régionale."""
+    for k in caught:
+        d, _, form = k.partition("_")
+        if d != str(dex):
+            continue
+        if reg and form.startswith(reg):
+            return True
+        if not reg and not form.startswith(REG_PREFIX):
+            return True
+    return False
+
+
+def label(dex, reg, lang):
+    lst = names.get(lang) or names.get("en") or []
+    n = lst[dex - 1] if 0 < dex <= len(lst) else str(dex)
+    return f"{n} ({reg})" if reg else n
+
+
+# --- Envoi ---
+firebase_admin.initialize_app(credentials.Certificate(json.loads(os.environ["FIREBASE_SA"])))
+db = firestore.client()
+vapid = os.environ["VAPID_PRIVATE"]
+for snap in db.collection("users").stream():
+    d = snap.to_dict()
+    if not d.get("pushSub"):
+        continue
+    caught = d.get("caught") or []
+    missing = {f"{dex}_{reg or ''}": (dex, reg, how) for (dex, reg), how in avail.items() if not has(caught, dex, reg)}
+    sent = set(d.get("pushSent") or [])
+    fresh = [v for k, v in missing.items() if k not in sent]
+    upd = {"pushSent": sorted(missing)}  # repartis : annoncés à nouveau s'ils reviennent
+    # Premier matin après l'abonnement : on note ce qui est déjà là, sans tout annoncer
+    if fresh and "pushSent" in d:
+        lang = "fr" if d.get("pushLang") == "fr" else "en"
+        one, many, et = TEXT[lang]
+        hows = HOW_FR if lang == "fr" else HOW_EN
+        parts = [f"{label(dex, reg, lang)} {hows[how[0]]}" for dex, reg, how in fresh[:4]]
+        body = (", ".join(parts[:-1]) + et + parts[-1]) if len(parts) > 1 else parts[0]
+        if len(fresh) > 4:
+            body += "…"
+        msg = {"title": (one if len(fresh) == 1 else many).format(n=len(fresh)), "body": body,
+               "icon": f"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/{fresh[0][0]}.png"}
+        try:
+            webpush(json.loads(d["pushSub"]), json.dumps(msg, ensure_ascii=False), vapid_private_key=vapid,
+                    vapid_claims={"sub": "mailto:darpeixlucas@gmail.com"})
+            print(snap.id, "→", msg["title"])
+        except WebPushException as e:
+            if e.response is not None and e.response.status_code in (404, 410):
+                upd["pushSub"] = None  # appareil désabonné
+            print(snap.id, "échec", e)
+    snap.reference.update(upd)

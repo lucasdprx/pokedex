@@ -508,3 +508,10 @@ dialog .fiche-btns button { flex: 1; padding: 11px; font-weight: 700; border-rad
 dialog .fiche-btns button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 dialog .fiche-btns button.gold.on { background: var(--gold); border-color: var(--gold); }
 .types .zone { color: #b7791f; }
+
+/* Interrupteur des notifications, dans le menu */
+#notifBtn { display: flex; align-items: center; gap: 10px; }
+#notifBtn .sw { margin-left: auto; width: 34px; height: 20px; border-radius: 10px; background: var(--line); position: relative; transition: background .2s; flex: none; }
+#notifBtn .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .2s; }
+#notifBtn .sw.on { background: var(--accent); }
+#notifBtn .sw.on::after { left: 16px; }

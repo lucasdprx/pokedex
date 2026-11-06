@@ -1,7 +1,7 @@
 // Pokédex hors ligne : la page et les images déjà vues restent disponibles sans réseau.
 // Les listes de Pokémon, elles, sont gardées par la page (localStorage).
 
-const VERSION = "v15";                       // à changer quand la liste PAGE_FILES change
+const VERSION = "v16";                       // à changer quand la liste PAGE_FILES change
 const PAGE_CACHE = `pokedex-page-${VERSION}`;
 const IMG_CACHE = "pokedex-images";         // gardé d'une version à l'autre
 const IMG_MAX = 1200;                       // au-delà, les plus anciennes partent
@@ -83,3 +83,15 @@ async function networkFirst(req) {
            (req.mode === "navigate" ? await cache.match("./index.html") : Response.error());
   }
 }
+
+// Notification du matin (tools/notify.py) : une par jour, qui liste les Pokémon arrivés
+self.addEventListener("push", ev => {
+  const d = ev.data ? ev.data.json() : {};
+  ev.waitUntil(self.registration.showNotification(d.title || "Pokédex GO", {
+    body: d.body || "", icon: d.icon || "icons/icon-192.png", badge: "icons/icon-192.png", tag: "pokedex-daily",
+  }));
+});
+self.addEventListener("notificationclick", ev => {
+  ev.notification.close();
+  ev.waitUntil(self.clients.openWindow("./?now=1"));
+});

@@ -1010,3 +1010,43 @@ function bulkEnd() {
 addEventListener("pointerup", bulkEnd);
 addEventListener("touchend", bulkEnd);
 addEventListener("pointercancel", () => { if (bulk && !("ontouchstart" in window)) bulkEnd(); });
+
+// --- Notifications (notifications v1 : A1 menu, B1 une par jour) ---
+// Chaque matin, tools/notify.py annonce les Pokémon manquants qui viennent d'arriver
+const VAPID_PUBLIC = "BNNXFLnEOxzGfVWepJipU5OcaMIV7kmCKIaLQ2xdYr8r_iTM7zT5rDztGLkmeD8voCoZIYlk6TeHJbFw8ABgByA";
+const NOTIF_KEY = "pokedex-go-notif";
+const notifSw = document.getElementById("notifSw");
+const pushOk = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+document.getElementById("notifBtn").hidden = !pushOk;
+const showNotif = () => notifSw.classList.toggle("on", localStorage.getItem(NOTIF_KEY) === "on" && Notification.permission === "granted");
+if (pushOk) showNotif();
+function flash(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.hidden = false;
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(() => { el.hidden = true; }, 4000);
+}
+document.getElementById("notifBtn").addEventListener("click", async () => {
+  const reg = await navigator.serviceWorker.ready;
+  if (notifSw.classList.contains("on")) {
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) await sub.unsubscribe();
+    localStorage.setItem(NOTIF_KEY, "off");
+    if (window.pushAccount && pushAccount()) savePushSub(null).catch(() => {});
+    showNotif();
+    return;
+  }
+  if (!(window.pushAccount && pushAccount())) { flash(t("notifLogin")); return; }
+  if (await Notification.requestPermission() !== "granted") { flash(t("notifBlocked")); return; }
+  const key = Uint8Array.from(atob(VAPID_PUBLIC.replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0));
+  const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+  await savePushSub(sub.toJSON());
+  localStorage.setItem(NOTIF_KEY, "on");
+  showNotif();
+});
+// Toucher la notification ouvre le site avec ?now : on ouvre le calendrier
+if (new URLSearchParams(location.search).has("now")) {
+  history.replaceState(null, "", location.pathname);
+  addEventListener("load", () => setTimeout(() => document.getElementById("nowBtn").click(), 300));
+}

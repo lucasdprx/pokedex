@@ -1,0 +1,15 @@
+name: Morning notifications
+on:
+  schedule:
+    - cron: "0 7 * * *"   # 8 h (heure de Paris, hiver)
+  workflow_dispatch:
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install firebase-admin pywebpush
+      - run: python tools/notify.py
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SA }}
+          VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}

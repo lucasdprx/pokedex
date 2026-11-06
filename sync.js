@@ -50,10 +50,14 @@ function track(promise) {
 function push() {
   if (!ready) return;
   const m = marksApi.get();
-  track(setDoc(ref, { caught: m.caught, shiny: m.shiny, updated: serverTimestamp() }));
+  // merge : garde l'abonnement aux notifications (pushSub) et ce qui a déjà été annoncé (pushSent)
+  track(setDoc(ref, { caught: m.caught, shiny: m.shiny, updated: serverTimestamp() }, { merge: true }));
   localStorage.setItem(SYNC_KEY, "clean:" + user.uid);
 }
 window.syncPush = push;
+// Notifications : l'abonnement de cet appareil est gardé sur le compte, lu chaque matin par tools/notify.py
+window.pushAccount = () => ready;
+window.savePushSub = sub => setDoc(ref, { pushSub: sub ? JSON.stringify(sub) : null, pushLang: LANG }, { merge: true });
 
 const union = (a = [], b = []) => [...new Set([...a, ...b])];
 const same = (a, b) => a.length === b.size && a.every(k => b.has(k));

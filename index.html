@@ -416,6 +416,12 @@
     -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
     box-shadow: 0 4px 14px rgba(31,95,122,.15);
   }
+  /* Bande de ciel au-dessus de l'en-tête : les cartes y disparaissent au défilement,
+     sous l'heure de l'iPhone comprise (maquettes/haut-defilement/v1, H1) */
+  header::before {
+    content: ""; position: absolute; left: -10px; right: -10px; bottom: 100%; height: 200px;
+    background: #9fe3ec; pointer-events: none;
+  }
   h1 { font-weight: 800; color: var(--strong); text-transform: uppercase; letter-spacing: .02em; font-size: 1.05rem; }
   .mode { border: 0; background: var(--soft); border-radius: 10px; }
   .mode button { color: var(--muted); font-weight: 500; }

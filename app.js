@@ -293,6 +293,8 @@ function filtered() {
     if (mode === "caught" && !marks().has(e.key)) return false;
     if (mode === "missing" && (marks().has(e.key) || !can(e))) return false;
     if (mode === "unavailable" && can(e)) return false;
+    // Manquant et disponible maintenant (raid, œuf, étude, sauvage… sans date de début) : events.js
+    if (mode === "now" && !(window.howToGet && (howFor(e) || []).some(h => !h.start))) return false;
     if (regionFilter && e.region !== regionFilter) return false;
     if (terms.length && !terms.every(t => e.search.includes(t))) return false;
     return true;

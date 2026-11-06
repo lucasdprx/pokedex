@@ -1,7 +1,7 @@
 // Pokédex hors ligne : la page et les images déjà vues restent disponibles sans réseau.
 // Les listes de Pokémon, elles, sont gardées par la page (localStorage).
 
-const VERSION = "v21";                       // à changer quand la liste PAGE_FILES change
+const VERSION = "v22";                       // à changer quand la liste PAGE_FILES change
 const PAGE_CACHE = `pokedex-page-${VERSION}`;
 const IMG_CACHE = "pokedex-images";         // gardé d'une version à l'autre
 const IMG_MAX = 1200;                       // au-delà, les plus anciennes partent
@@ -75,7 +75,8 @@ async function trimImages(cache) {
 async function networkFirst(req) {
   const cache = await caches.open(PAGE_CACHE);
   try {
-    const res = await fetch(req);
+    // no-cache : toujours demander au serveur s'il y a plus récent (sinon le navigateur garde 10 min l'ancien)
+    const res = await fetch(req, { cache: "no-cache" });
     if (res.ok) cache.put(req, res.clone());
     return res;
   } catch {

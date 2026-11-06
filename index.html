@@ -486,6 +486,29 @@
   @media (max-width: 600px) {
     .card .dex { font-size: .88rem; }
   }
+  /* Retours aux gestes : rebond et Poké Ball en cochant, secousse en décochant, onglet doré en fin de région */
+  .card .ball-mark {
+    position: absolute; top: 7px; right: 7px; width: 14px; height: 14px; border-radius: 50%;
+    background: linear-gradient(var(--warn) 50%, #fff 50%); border: 1.5px solid var(--text);
+    opacity: 0; transform: scale(0); pointer-events: none;
+  }
+  .card.caught .ball-mark { opacity: 1; transform: none; }
+  .card.pop { animation: card-pop .35s cubic-bezier(.3,1.6,.5,1); }
+  .card.pop .ball-mark { animation: ball-in .55s cubic-bezier(.3,1.5,.5,1); }
+  .card.shake { animation: card-shake .3s; }
+  @keyframes card-pop { 40% { transform: scale(.9); } }
+  @keyframes ball-in { 0% { opacity: 1; transform: scale(0) rotate(-200deg); } 60% { transform: scale(1.4) rotate(15deg); } }
+  @keyframes card-shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+  .tab.gold, .tab.gold span { color: #b7791f !important; }
+  .tab.gold.active { border-bottom-color: var(--gold); }
+  .bar.shine { position: relative; }
+  .bar.shine::after {
+    content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.95), transparent); animation: bar-shine .9s ease-out;
+  }
+  @keyframes bar-shine { to { transform: translateX(100%); } }
+  .toast .undo { float: right; background: none; border: 0; padding: 0; font: inherit; font-weight: 700; text-transform: uppercase; font-size: .8rem; color: var(--accent); cursor: pointer; }
+  @media (prefers-reduced-motion: reduce) { .card.pop, .card.pop .ball-mark, .card.shake, .bar.shine::after { animation: none; } }
 </style>
 </head>
 <body>
@@ -961,7 +984,7 @@ function render() {
     card.dataset.key = e.key;
     card.tabIndex = 0;
     card.innerHTML =
-      `<button class="cry" aria-label="${t("cry")}">${SPEAKER}</button>` +
+      `<button class="cry" aria-label="${t("cry")}">${SPEAKER}</button><i class="ball-mark"></i>` +
       `<img loading="lazy" decoding="async" crossorigin="anonymous" src="${shinyMode ? SPRITE_SMALL_SHINY(spriteId) : SPRITE_SMALL(spriteId)}" alt="" draggable="false" ` +
         `data-sprite="${spriteId}" data-shiny="${shinyMode ? 1 : 0}" onerror="imgFallback(this)">` +
       `<div class="dex">${String(e.id).padStart(4, "0")}</div>` +
@@ -983,7 +1006,35 @@ function toggle(key, card) {
   // la liste ne se refait qu'au changement de filtre, de région ou de recherche
   card.classList.toggle("caught");
   card.querySelector(".types").innerHTML = typesHtml(byKey.get(key));
+  const e = byKey.get(key), now = set.has(key);
+  const done = r => entries.every(x => x.regional || !can(x) || x.region !== r || marks().has(x.key));
+  const finished = now && done(e.region);
+  restartAnim(card, now ? "pop" : "shake");
+  if (now && navigator.vibrate) navigator.vibrate(15);
   updateStats();
+  if (finished) restartAnim(els.progress.parentNode, "shine");
+  if (!now) undoToast(e, card);
+}
+
+function restartAnim(el, cls) {
+  el.classList.remove(cls);
+  void el.offsetWidth;
+  el.classList.add(cls);
+}
+
+// Décocher : « Annuler » 4 s en bas
+let undoTimer = null;
+function undoToast(e, card) {
+  const el = document.getElementById("toast");
+  el.innerHTML = `${t("removed", { n: e.name })}<button class="undo">${t("undo")}</button>`;
+  el.hidden = false;
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(() => { el.hidden = true; }, 4000);
+  el.querySelector(".undo").onclick = () => {
+    el.hidden = true;
+    clearTimeout(undoTimer);
+    if (!marks().has(e.key)) toggle(e.key, card);
+  };
 }
 
 // --- Clics sur la grille : marquer capturé, cri (bouton au survol, souris ou clavier) ---
@@ -1035,7 +1086,7 @@ function renderGens() {
   els.gens.innerHTML = "";
   const addTab = (label, c, t, region) => {
     const tab = document.createElement("button");
-    tab.className = "tab" + (regionFilter === region ? " active" : "") + (c === t ? " done" : "");
+    tab.className = "tab" + (regionFilter === region ? " active" : "") + (c === t ? " done" : "") + (c === t && region ? " gold" : "");
     tab.innerHTML = `${regionName(label)}<span>${c}/${t}</span>`;
     tab.addEventListener("click", () => {
       regionFilter = region;

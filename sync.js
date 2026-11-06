@@ -112,6 +112,7 @@ onAuthStateChanged(auth, u => {
 // --- Messages ---
 const toast = $("toast");
 function showToast(on) {
+  if (!on && toast.querySelector(".undo")) return; // ne pas cacher un « Annuler » en cours
   toast.hidden = !(on && user);
   if (on) toast.innerHTML = `<b>${t("syncFail")}</b> : ${t("syncFailText")}`;
 }

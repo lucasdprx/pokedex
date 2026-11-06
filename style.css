@@ -522,7 +522,12 @@ dialog .fiche-btns button.gold.on { background: var(--gold); border-color: var(-
 .friend-band[hidden] { display: none; }
 .friend-band button { background: none !important; border: 0 !important; box-shadow: none !important; color: #fff; font-size: 1rem; cursor: pointer; padding: 0 4px; }
 
-/* Pseudo, dans la fenêtre du compte */
-.pseudo { display: block; margin: 0 0 14px; font-size: .8rem; font-weight: 700; color: var(--muted); text-transform: uppercase; }
+/* Pseudo, dans le menu du compte : aligné sur l'e-mail et les lignes du menu */
+.pseudo { display: block; padding: 2px 12px 10px; font-size: .78rem; color: var(--muted); }
 .pseudo[hidden] { display: none; }
-.pseudo input { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; padding: 10px; border: 2px solid var(--line); border-radius: 10px; font: inherit; font-size: 1rem; text-transform: none; color: var(--text); background: #fff; }
+.pseudo input {
+  display: block; width: 100%; box-sizing: border-box; margin-top: 4px; padding: 7px 10px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--soft);
+  font: inherit; font-size: .92rem; color: var(--text); outline: none;
+}
+.pseudo input:focus { border-color: var(--accent); background: #fff; }

@@ -636,3 +636,40 @@ html[data-theme="dark"] .sky i + i { transform: none; }
   .card.glint::after, .card.arrive, .card::before, #nowBtn, .spinner { animation: none !important; }
   .sky i, body { transition: none; }
 }
+
+/* --- Effets du calendrier (calendrier-effets v1 : A2, B1, B2, C1, D1, E1, E2, F2, G2) --- */
+dialog.now.opening { animation: now-up .3s cubic-bezier(.2,.8,.3,1); }
+dialog.now.opening .now-cell { animation: now-casc .3s ease-out both; }
+@keyframes now-up { from { transform: translateY(100%); } }
+@keyframes now-casc { from { opacity: 0; transform: translateY(10px) scale(.8); } }
+dialog.now.closing { animation: now-down .25s ease-in forwards; }
+@keyframes now-down { to { transform: translateY(100%); } }
+#nowBody.fade { animation: now-fade .3s; }
+@keyframes now-fade { from { opacity: 0; } }
+/* B1 : halo qui respire derrière les boss ; B2 : l'icône de raid brille */
+.now-grid.boss .now-cell::before { content: ""; position: absolute; inset: -4px; border-radius: 50%;
+  background: radial-gradient(rgba(138,143,163,.6), transparent 68%); animation: now-breath 2s ease-in-out infinite alternate; }
+.now-grid.boss .now-cell img { position: relative; }
+@keyframes now-breath { from { transform: scale(.8); opacity: .5; } to { transform: scale(1.15); opacity: 1; } }
+.now-sub.boss svg { animation: now-shine 4s ease-in-out infinite; }
+@keyframes now-shine { 0%, 80%, 100% { filter: none; transform: none; } 88% { filter: brightness(1.6) drop-shadow(0 0 4px #fff); transform: scale(1.15); } }
+/* C1 : l'œuf tremble de temps en temps */
+.now-sub.egg svg { animation: now-wob 3s ease-in-out infinite; transform-origin: 50% 90%; }
+@keyframes now-wob { 0%, 70%, 100% { transform: none; } 75% { transform: rotate(-14deg); } 80% { transform: rotate(12deg); } 85% { transform: rotate(-8deg); } 90% { transform: rotate(4deg); } }
+/* D1 : flammes violettes des raids obscurs */
+.now-grid.shadow .now-cell::before { content: ""; position: absolute; inset: 12% 14% 4%; border-radius: 50% 50% 45% 45%;
+  background: radial-gradient(ellipse at 50% 70%, #a35ce0, #6a2fb0 55%, transparent 72%); filter: blur(3px);
+  animation: aura 1.4s ease-in-out infinite alternate; }
+.now-grid.shadow .now-cell img { position: relative; }
+/* E1 : les nouveaux sautillent à l'ouverture ; E2 : leur point pulse */
+.now-cell.fresh img { animation: now-hop .7s ease-out .6s both; }
+@keyframes now-hop { 0%, 50%, 100% { transform: none; } 25%, 75% { transform: translateY(-8px); } }
+.now-cell .now-dot { animation: now-pulse 1.4s ease-in-out infinite; z-index: 1; }
+@keyframes now-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(214,69,69,.6); } 50% { box-shadow: 0 0 0 6px rgba(214,69,69,0); } }
+/* G2 : la carte du Pokémon s'allume deux fois */
+.card.lit { animation: lit .9s; }
+@keyframes lit { 25%, 75% { box-shadow: 0 0 0 4px #fff, 0 0 18px 6px #fff; } 50% { box-shadow: none; } }
+@media (prefers-reduced-motion: reduce) {
+  dialog.now.opening, dialog.now.opening .now-cell, dialog.now.closing, #nowBody.fade, .now-cell::before, .now-sub svg,
+  .now-cell.fresh img, .now-cell .now-dot, .card.lit { animation: none !important; }
+}

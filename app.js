@@ -1020,7 +1020,7 @@ window.goToEntry = key => {
   const card = find();
   if (!card) return;
   card.scrollIntoView({ block: "center" });
-  setTimeout(() => restartAnim(card, "found"), 350);
+  setTimeout(() => restartAnim(card, "lit"), 350);
 };
 
 // --- Cocher plusieurs cartes : appui long puis glisser (cocher-plusieurs v1 : A1) ---

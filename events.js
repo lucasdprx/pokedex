@@ -182,7 +182,7 @@ function markNowSeen() {
 // Groupes d'une liste : [{icon, title, rows, showTier}] dans l'ordre d'affichage
 function sheetGroups(rows) {
   const groups = [];
-  const push = (icon, title, list, showTier = false) => { if (list.length) groups.push({ icon, title, list: list.sort((a, b) => b.missing - a.missing), showTier }); };
+  const push = (icon, title, list, showTier = false, kind = "") => { if (list.length) groups.push({ icon, title, list: list.sort((a, b) => b.missing - a.missing), showTier, kind }); };
   const byStart = (a, b) => (a.h.start || 0) - (b.h.start || 0) || a.e.id - b.e.id;
   if (nowCat === "all" || nowCat === "raid") {
     const raids = rows.filter(r => r.h.src === "raid");
@@ -192,16 +192,16 @@ function sheetGroups(rows) {
       (a === "mega" ? 4.5 : +a || 0) > (b === "mega" ? 4.5 : +b || 0) ? -1 : 1);
     for (const tr of tiers) push(raidIcon(RAID_COLORS[tr] || RAID_COLORS[5]),
       tr === "mega" ? t("hRaidMega") : tr ? t("hRaidTier", { n: tr }) : t("hRaids"),
-      plain.filter(r => r.h.detail === tr).sort(byStart));
+      plain.filter(r => r.h.detail === tr).sort(byStart), false, tr === "mega" || +tr >= 5 ? "boss" : "");
     push(raidIcon(RAID_COLORS.shadow), t("hRaidShadow"),
-      raids.filter(r => r.h.shadow).sort((a, b) => (+b.h.detail || 0) - (+a.h.detail || 0) || byStart(a, b)), true);
+      raids.filter(r => r.h.shadow).sort((a, b) => (+b.h.detail || 0) - (+a.h.detail || 0) || byStart(a, b)), true, "shadow");
   }
   if (nowCat === "all" || nowCat === "egg") {
     const eggs = rows.filter(r => r.h.src === "egg");
     const kms = [...new Set(eggs.map(r => r.h.detail))].sort((a, b) => parseFloat(a) - parseFloat(b));
     for (const km of kms) {
       const c = EGG_COLORS[parseFloat(km)] || EGG_COLORS[5];
-      push(eggIcon(c[0], c[1]), t("hEggKm", { km }), eggs.filter(r => r.h.detail === km).sort(byStart));
+      push(eggIcon(c[0], c[1]), t("hEggKm", { km }), eggs.filter(r => r.h.detail === km).sort(byStart), false, "egg");
     }
   }
   if (nowCat === "all" || nowCat === "research") {
@@ -238,11 +238,11 @@ function renderNow() {
   }
   // Vignettes sans nom, six par rangée (calendrier-allege v1 : A1) ; le nom au survol
   body.innerHTML = groups.map(g =>
-    `<div class="now-sub">${g.icon}${g.title}</div><div class="now-grid">` + g.list.map(({ e, h, missing }) => {
-      const sp = spriteOf(e);
-      return `<div class="now-cell${missing ? " missing" : ""}" title="${e.name}" data-key="${e.key}" role="button" tabindex="0"><img loading="lazy" src="${shinyMode ? SPRITE_TINY_SHINY(sp) : SPRITE_TINY(sp)}" alt="${e.name}" ` +
+    `<div class="now-sub ${g.kind}">${g.icon}${g.title}</div><div class="now-grid ${g.kind}">` + g.list.map(({ e, h, missing }) => {
+      const sp = spriteOf(e), fresh = missing && nowFresh.has((shinyMode ? "s:" : "") + e.key);
+      return `<div class="now-cell${missing ? " missing" : ""}${fresh ? " fresh" : ""}" title="${e.name}" data-key="${e.key}" role="button" tabindex="0"><img loading="lazy" src="${shinyMode ? SPRITE_TINY_SHINY(sp) : SPRITE_TINY(sp)}" alt="${e.name}" ` +
         `data-sprite="${sp}" data-shiny="${shinyMode ? 1 : 0}" onerror="imgFallback(this)">` +
-        (missing && nowFresh.has((shinyMode ? "s:" : "") + e.key) ? `<i class="now-dot"></i>` : "") + (h.start ? `<b>${fmtDay(h.start)}</b>` : "") + `</div>`;
+        (fresh ? `<i class="now-dot"></i>` : "") + (h.start ? `<b>${fmtDay(h.start)}</b>` : "") + `</div>`;
     }).join("") + `</div>`).join("");
 }
 
@@ -254,14 +254,19 @@ document.getElementById("nowBtn").addEventListener("click", () => {
   markNowSeen();
   renderNow();
   nowDialog.showModal();
+  // Ouverture (calendrier-effets v1 : A2) : la feuille monte, puis les vignettes arrivent rangée par rangée
+  [...document.querySelectorAll("#nowBody .now-cell")].slice(0, 48).forEach((c, i) => { c.style.animationDelay = 0.25 + Math.floor(i / 6) * 0.06 + (i % 6) * 0.02 + "s"; });
+  restartAnim(nowDialog, "opening");
+  setTimeout(() => nowDialog.classList.remove("opening"), 1500);
   loadDuck().then(() => { if (nowDialog.open) { markNowSeen(); renderNow(); } });
 });
 // Toucher une vignette : fermer la feuille et aller au Pokémon dans le Pokédex
 document.getElementById("nowBody").addEventListener("click", ev => {
   const cell = ev.target.closest(".now-cell");
   if (!cell) return;
-  nowDialog.close();
-  goToEntry(cell.dataset.key);
+  // calendrier-effets v1 : G2, la feuille descend puis la carte s'allume
+  nowDialog.classList.add("closing");
+  setTimeout(() => { nowDialog.close(); nowDialog.classList.remove("closing"); goToEntry(cell.dataset.key); }, 250);
 });
 document.getElementById("nowBody").addEventListener("keydown", ev => {
   if ((ev.key === "Enter" || ev.key === " ") && ev.target.closest(".now-cell")) { ev.preventDefault(); ev.target.click(); }
@@ -272,6 +277,7 @@ for (const id of ["nowTabs", "nowCats"]) document.getElementById(id).addEventLis
   if (b.dataset.p) nowPane = b.dataset.p;
   if (b.dataset.c) nowCat = b.dataset.c;
   renderNow();
+  restartAnim(document.getElementById("nowBody"), "fade");
 });
 
 document.getElementById("nowDay").textContent = new Date().getDate();

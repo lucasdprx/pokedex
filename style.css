@@ -61,7 +61,7 @@ header {
 .now-row.missing span { color: var(--muted); }
 .now-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); flex: none; }
 .now-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; }
-.now-cell { position: relative; }
+.now-cell { position: relative; cursor: pointer; }
 .now-cell img { display: block; width: 100%; aspect-ratio: 1; object-fit: contain; }
 .now-cell.missing img { filter: grayscale(1) opacity(.45); }
 .now-cell b { display: block; text-align: center; font-size: .68rem; color: #b7791f; white-space: nowrap; }
@@ -464,6 +464,7 @@ dialog button:focus:not(:focus-visible) { outline: none; }
 .card.pop { animation: card-pop .35s cubic-bezier(.3,1.6,.5,1); }
 .card.pop .ball-mark { animation: ball-in .55s cubic-bezier(.3,1.5,.5,1); }
 .card.shake { animation: card-shake .3s; }
+.card.found { animation: card-pop .35s cubic-bezier(.3,1.6,.5,1); }
 @keyframes card-pop { 40% { transform: scale(.9); } }
 @keyframes ball-in { 0% { opacity: 1; transform: scale(0) rotate(-200deg); } 60% { transform: scale(1.4) rotate(15deg); } }
 @keyframes card-shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
@@ -476,7 +477,7 @@ dialog button:focus:not(:focus-visible) { outline: none; }
 }
 @keyframes bar-shine { to { transform: translateX(100%); } }
 .toast .undo { float: right; background: none; border: 0; padding: 0; font: inherit; font-weight: 700; text-transform: uppercase; font-size: .8rem; color: var(--accent); cursor: pointer; }
-@media (prefers-reduced-motion: reduce) { .card.pop, .card.pop .ball-mark, .card.shake, .bar.shine::after { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .card.found, .card.pop, .card.pop .ball-mark, .card.shake, .bar.shine::after { animation: none; } }
 
 /* Grand écran : les feuilles flottent au centre, plus collées en bas */
 @media (min-width: 601px) {

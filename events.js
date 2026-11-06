@@ -248,7 +248,7 @@ function renderNow() {
   body.innerHTML = groups.map(g =>
     `<div class="now-sub">${g.icon}${g.title}</div><div class="now-grid">` + g.list.map(({ e, h, missing }) => {
       const sp = spriteOf(e);
-      return `<div class="now-cell${missing ? " missing" : ""}" title="${e.name}"><img loading="lazy" src="${shinyMode ? SPRITE_TINY_SHINY(sp) : SPRITE_TINY(sp)}" alt="${e.name}" ` +
+      return `<div class="now-cell${missing ? " missing" : ""}" title="${e.name}" data-key="${e.key}" role="button" tabindex="0"><img loading="lazy" src="${shinyMode ? SPRITE_TINY_SHINY(sp) : SPRITE_TINY(sp)}" alt="${e.name}" ` +
         `data-sprite="${sp}" data-shiny="${shinyMode ? 1 : 0}" onerror="imgFallback(this)">` +
         (missing && nowFresh.has((shinyMode ? "s:" : "") + e.key) ? `<i class="now-dot"></i>` : "") + (h.start ? `<b>${fmtDay(h.start)}</b>` : "") + `</div>`;
     }).join("") + `</div>`).join("");
@@ -263,6 +263,16 @@ document.getElementById("nowBtn").addEventListener("click", () => {
   renderNow();
   nowDialog.showModal();
   loadDuck().then(() => { if (nowDialog.open) { markNowSeen(); renderNow(); } });
+});
+// Toucher une vignette : fermer la feuille et aller au Pokémon dans le Pokédex
+document.getElementById("nowBody").addEventListener("click", ev => {
+  const cell = ev.target.closest(".now-cell");
+  if (!cell) return;
+  nowDialog.close();
+  goToEntry(cell.dataset.key);
+});
+document.getElementById("nowBody").addEventListener("keydown", ev => {
+  if ((ev.key === "Enter" || ev.key === " ") && ev.target.closest(".now-cell")) { ev.preventDefault(); ev.target.click(); }
 });
 for (const id of ["nowTabs", "nowCats"]) document.getElementById(id).addEventListener("click", ev => {
   const b = ev.target.closest("button[data-p],button[data-c]");

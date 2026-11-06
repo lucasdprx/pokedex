@@ -915,3 +915,20 @@ init();
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   navigator.serviceWorker.register("sw.js");
 }
+
+// Depuis le calendrier : aller à la carte d'un Pokémon dans le Pokédex
+// (filtres et recherche retirés s'ils la cachent), puis un petit rebond pour la repérer
+window.goToEntry = key => {
+  const find = () => [...els.grid.children].find(c => c.dataset.key === key);
+  if (!find()) {
+    els.search.value = "";
+    els.filter.value = "all";
+    regionFilter = "";
+    renderGens();
+    render();
+  }
+  const card = find();
+  if (!card) return;
+  card.scrollIntoView({ block: "center" });
+  setTimeout(() => restartAnim(card, "found"), 350);
+};

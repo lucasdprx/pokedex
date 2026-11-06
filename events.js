@@ -244,15 +244,14 @@ function renderNow() {
     body.innerHTML = `<p class="now-empty">${t(unknown ? (nowCat === "egg" ? "soonEggsUnknown" : "soonResearchUnknown") : "nowNothing")}</p>`;
     return;
   }
+  // Vignettes sans nom, six par rangée (calendrier-allege v1 : A1) ; le nom au survol
   body.innerHTML = groups.map(g =>
-    `<div class="now-sub">${g.icon}${g.title}</div>` + g.list.map(({ e, h, missing }) => {
+    `<div class="now-sub">${g.icon}${g.title}</div><div class="now-grid">` + g.list.map(({ e, missing }) => {
       const sp = spriteOf(e);
-      const right = [g.showTier && h.detail ? (h.detail === "mega" ? t("mega") : h.detail + "★") : "",
-        h.start ? t("fromDay", { d: fmtDay(h.start) }) : h.src === "wild" && h.end ? t("untilDay", { d: fmtDay(h.end) }) : ""].filter(Boolean).join(" ");
-      return `<div class="now-row${missing ? " missing" : ""}"><img loading="lazy" src="${shinyMode ? SPRITE_TINY_SHINY(sp) : SPRITE_TINY(sp)}" alt="" ` +
-        `data-sprite="${sp}" data-shiny="${shinyMode ? 1 : 0}" onerror="imgFallback(this)"><span>${e.name}</span>` + (missing && !h.start && nowFresh.has((shinyMode ? "s:" : "") + e.key) ? `<i class="now-dot"></i>` : "") +
-        `<b${h.start ? ' class="later"' : ""}>${right}</b></div>`;
-    }).join("")).join("");
+      return `<div class="now-cell${missing ? " missing" : ""}" title="${e.name}"><img loading="lazy" src="${shinyMode ? SPRITE_TINY_SHINY(sp) : SPRITE_TINY(sp)}" alt="${e.name}" ` +
+        `data-sprite="${sp}" data-shiny="${shinyMode ? 1 : 0}" onerror="imgFallback(this)">` +
+        (missing && nowFresh.has((shinyMode ? "s:" : "") + e.key) ? `<i class="now-dot"></i>` : "") + `</div>`;
+    }).join("") + `</div>`).join("");
 }
 
 document.getElementById("nowBtn").addEventListener("click", () => {

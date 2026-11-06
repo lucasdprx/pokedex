@@ -60,6 +60,11 @@ header {
 .now-row.missing img { filter: grayscale(1) opacity(.45); }
 .now-row.missing span { color: var(--muted); }
 .now-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); flex: none; }
+.now-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; }
+.now-cell { position: relative; }
+.now-cell img { display: block; width: 100%; aspect-ratio: 1; object-fit: contain; }
+.now-cell.missing img { filter: grayscale(1) opacity(.45); }
+.now-cell .now-dot { position: absolute; top: 2px; right: 2px; }
 #langMenu { min-width: 160px; }
 #acctMenu { min-width: 200px; }
 #acctMenu button { display: flex; }

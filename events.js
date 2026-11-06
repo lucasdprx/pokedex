@@ -105,7 +105,7 @@ function howLabel(h) {
 window.howToGet = e => {
   const list = howFor(e);
   if (!list) return null;
-  if (!list.length) return `<span class="how off">${t("notNow")}</span>`;
+  if (!list.length) return null; // rien de connu : les types (il peut être sauvage sans qu'on le sache)
   return `<span class="how">${howLabel(list[0])}</span>`;
 };
 
@@ -302,13 +302,11 @@ function renderFiche() {
     `<div class="fiche-hero"><img src="${shiny ? SPRITE_SMALL_SHINY(sp) : SPRITE_SMALL(sp)}" alt="" data-sprite="${sp}" data-shiny="${shiny ? 1 : 0}" onerror="imgFallback(this)">` +
     `<div><div class="dex">${String(e.id).padStart(4, "0")}</div><h2>${e.name}</h2><div class="fiche-types">` +
     e.types.map(ty => `<span style="color:${TYPE_COLOR[ty] || "#aaa"}">${typeName(ty)}</span>`).join(" ") + `</div></div></div>` +
-    `<h3>${t("fHow")}</h3><div class="fiche-how">` +
-    (how.length ? how.map(h => `<div>${howLabel({ ...h, start: null })}<b>${h.start ? t("fromDay", { d: fmtDay(h.start) }) : ""}</b></div>`).join("")
-      : `<div class="off">${e.available ? t("notNow") : t("unavailable")}</div>`) + `</div>` +
+    (how.length ? `<h3>${t("fHow")}</h3><div class="fiche-how">` +
+      how.map(h => `<div>${howLabel({ ...h, start: null })}<b>${h.start ? t("fromDay", { d: fmtDay(h.start) }) : ""}</b></div>`).join("") + `</div>` : "") +
     (forms.length > 1 ? `<h3>${t("fForms")}</h3><div class="fiche-forms">` + forms.map(f => {
-      const fh = (howMap && howMap.get(f.key)) || [];
       return `<button data-k="${f.key}" class="${f.key === e.key ? "on" : ""}${caught.has(f.key) ? "" : " miss"}"><img src="${SPRITE_TINY(spriteOf(f))}" alt="" data-sprite="${spriteOf(f)}" data-shiny="0" onerror="imgFallback(this)">` +
-        `${f.formLabel || t("fNormal")}${f.key !== e.key && !fh.length ? `<small>${t("notNow")}</small>` : ""}</button>`;
+        `${f.formLabel || t("fNormal")}</button>`;
     }).join("") + `</div>` : "") +
     `<div class="fiche-btns">` +
     (e.available ? `<button data-t="c" class="${own ? "on" : ""}">${t("ficheCaught")}${own ? " ✓" : ""}</button>` : "") +

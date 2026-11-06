@@ -639,8 +639,6 @@ html[data-theme="dark"] .sky i + i { transform: none; }
 
 /* --- Effets du calendrier (calendrier-effets v1 : A2, B1, B2, C1, D1, E1, E2, F2, G2) --- */
 dialog.now.before-open { transform: translateY(100%); }
-dialog.now.opening, dialog.now.closing { will-change: transform; }
-.now-scroll { contain: content; }
 dialog.now.opening { animation: now-up .45s cubic-bezier(.3,.6,.35,1) both; }
 dialog.now.before-open .now-cell, dialog.now.opening .now-cell { animation: now-casc .3s ease-out both; }
 @keyframes now-up { from { transform: translateY(100%); } }

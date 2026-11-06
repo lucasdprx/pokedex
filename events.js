@@ -207,7 +207,7 @@ function renderNow() {
       const sp = spriteOf(e);
       const right = [g.showTier && h.detail ? (h.detail === "mega" ? t("mega") : h.detail + "★") : "",
         h.start ? t("fromDay", { d: fmtDay(h.start) }) : ""].filter(Boolean).join(" ");
-      return `<div class="now-row${missing ? " missing" : ""}"><img loading="lazy" src="${shinyMode ? SPRITE_SMALL_SHINY(sp) : SPRITE_SMALL(sp)}" alt="" ` +
+      return `<div class="now-row${missing ? " missing" : ""}"><img loading="lazy" src="${shinyMode ? SPRITE_TINY_SHINY(sp) : SPRITE_TINY(sp)}" alt="" ` +
         `data-sprite="${sp}" data-shiny="${shinyMode ? 1 : 0}" onerror="imgFallback(this)"><span>${e.name}</span>` + (missing && !h.start && nowFresh.has((shinyMode ? "s:" : "") + e.key) ? `<i class="now-dot"></i>` : "") +
         `<b${h.start ? ' class="later"' : ""}>${right}</b></div>`;
     }).join("")).join("");

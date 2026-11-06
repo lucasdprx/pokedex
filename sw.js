@@ -1,12 +1,16 @@
 // Pokédex hors ligne : la page et les images déjà vues restent disponibles sans réseau.
 // Les listes de Pokémon, elles, sont gardées par la page (localStorage).
 
-const VERSION = "v5";                       // à changer quand la liste PAGE_FILES change
+const VERSION = "v6";                       // à changer quand la liste PAGE_FILES change
 const PAGE_CACHE = `pokedex-page-${VERSION}`;
 const IMG_CACHE = "pokedex-images";         // gardé d'une version à l'autre
+const IMG_MAX = 1200;                       // au-delà, les plus anciennes partent
 const PAGE_FILES = [
   "./",
   "./index.html",
+  "./style.css",
+  "./app.js",
+  "./pvp.json",
   "./i18n.js",
   "./sync.js",
   "./events.js",
@@ -56,8 +60,15 @@ async function cacheFirst(req) {
   const hit = await cache.match(req);
   if (hit) return hit;
   const res = await fetch(req);
-  if (res.ok) cache.put(req, res.clone());
+  if (res.ok) cache.put(req, res.clone()).then(() => { if (++puts % 50 === 0) trimImages(cache); });
   return res;
+}
+
+// Les clés sortent dans l'ordre d'ajout : on retire les plus anciennes
+let puts = 0;
+async function trimImages(cache) {
+  const keys = await cache.keys();
+  for (const k of keys.slice(0, Math.max(0, keys.length - IMG_MAX))) await cache.delete(k);
 }
 
 // La page : toujours la dernière version en ligne, la copie gardée sinon

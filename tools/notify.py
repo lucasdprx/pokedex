@@ -99,9 +99,11 @@ def label(dex, reg, lang):
 firebase_admin.initialize_app(credentials.Certificate(json.loads(os.environ["FIREBASE_SA"])))
 db = firestore.client()
 vapid = os.environ["VAPID_PRIVATE"]
+print(len(avail), "Pokémon disponibles maintenant")
 for snap in db.collection("users").stream():
     d = snap.to_dict()
     if not d.get("pushSub"):
+        print(snap.id, ": pas abonné")
         continue
     caught = d.get("caught") or []
     missing = {f"{dex}_{reg or ''}": (dex, reg, how) for (dex, reg), how in avail.items() if not has(caught, dex, reg)}
@@ -110,6 +112,7 @@ for snap in db.collection("users").stream():
     fresh = [v for k, v in missing.items() if test or k not in sent]
     upd = {"pushSent": sorted(missing)}  # repartis : annoncés à nouveau s'ils reviennent
     # Premier matin après l'abonnement : on note ce qui est déjà là, sans tout annoncer
+    print(snap.id, f": {len(missing)} manquants dispo, {len(fresh)} nouveaux, test={test}, premier passage={'pushSent' not in d}")
     if fresh and ("pushSent" in d or test):
         lang = "fr" if d.get("pushLang") == "fr" else "en"
         one, many, et = TEXT[lang]
@@ -123,7 +126,7 @@ for snap in db.collection("users").stream():
         try:
             webpush(json.loads(d["pushSub"]), json.dumps(msg, ensure_ascii=False), vapid_private_key=vapid,
                     vapid_claims={"sub": "mailto:darpeixlucas@gmail.com"})
-            print(snap.id, "→", msg["title"])
+            print(snap.id, ": envoyé →", msg["title"], "/", msg["body"])
         except WebPushException as e:
             if e.response is not None and e.response.status_code in (404, 410):
                 upd["pushSub"] = None  # appareil désabonné

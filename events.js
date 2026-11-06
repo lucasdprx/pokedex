@@ -172,6 +172,7 @@ const nowImgs = [];
 function preloadNow() {
   if (nowPreloaded || !howMap) return;
   nowPreloaded = true;
+  renderNow(); // feuille prête avant le premier toucher
   const { now, soon } = sheetRows();
   const urls = new Set([...now, ...soon].map(({ e }) => (shinyMode ? SPRITE_TINY_SHINY : SPRITE_TINY)(spriteOf(e))));
   // Téléchargées et décodées, puis gardées en mémoire : la feuille les affiche sans travail
@@ -230,7 +231,11 @@ function sheetGroups(rows) {
   return groups;
 }
 
+// Ce dont dépend la feuille : la refaire seulement quand ça change
+let nowDrawn = "";
+const nowSig = () => [nowPane, nowCat, shinyMode, duck && duck.time, marks().size, document.documentElement.lang, nowFresh.size].join("|");
 function renderNow() {
+  nowDrawn = nowSig();
   const { now, soon } = sheetRows();
   document.getElementById("nowTitle").textContent = t("nowTitle") + (shinyMode ? " ✦" : "");
   const tab = (attr, key, on, label) => `<button data-${attr}="${key}"${on ? ' class="on"' : ""}>${label}</button>`;
@@ -272,16 +277,18 @@ document.getElementById("nowBtn").addEventListener("click", () => {
   setMenu(false);
   nowPane = "now";
   nowCat = "all";
-  nowFresh = new Set();
-  markNowSeen();
-  renderNow();
+  // La feuille est préparée d'avance (preloadNow) : on ne la refait que si elle a changé,
+  // sinon l'iPhone perd le début de la montée à la reconstruire
+  const seen = seenNow();
+  nowFresh = new Set(missingNow().filter(k => !seen.has(k)));
+  if (nowFresh.size || nowSig() !== nowDrawn) renderNow();
   nowDialog.showModal();
-  // Ouverture (calendrier-effets v1 : A2) : la feuille monte, puis les vignettes arrivent rangée par rangée
-  [...document.querySelectorAll("#nowBody .now-cell")].slice(0, 48).forEach((c, i) => { c.style.animationDelay = 0.3 + Math.floor(i / 6) * 0.06 + (i % 6) * 0.02 + "s"; });
+  // Ouverture (calendrier-effets v1 : A2) : la feuille monte, les vignettes arrivent pendant la montée
+  [...document.querySelectorAll("#nowBody .now-cell")].slice(0, 48).forEach((c, i) => { c.style.animationDelay = 0.05 + Math.floor(i / 6) * 0.04 + (i % 6) * 0.015 + "s"; });
   restartAnim(nowDialog, "opening");
-  setTimeout(() => nowDialog.classList.remove("opening"), 1800);
-  // Mise à jour de la liste après la montée : rien de lourd pendant l'animation
-  setTimeout(() => loadDuck().then(() => { if (nowDialog.open) { markNowSeen(); renderNow(); } }), 600);
+  setTimeout(() => nowDialog.classList.remove("opening"), 900);
+  // Après la montée : points vus, puis liste relue si elle a vieilli
+  setTimeout(() => { markNowSeen(); loadDuck().then(() => { if (nowDialog.open && nowSig() !== nowDrawn) renderNow(); }); }, 600);
 });
 // Toucher une vignette : fermer la feuille et aller au Pokémon dans le Pokédex
 document.getElementById("nowBody").addEventListener("click", ev => {

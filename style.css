@@ -544,3 +544,30 @@ body[data-coll="mega"] .card.caught img { filter: drop-shadow(0 0 6px #e0731f); 
   .controls input[type="search"] { flex: 1 1 100%; order: -1; }
   .controls select { flex: 1 1 0; }
 }
+
+/* --- Mode sombre : bleu nuit foncé (maquettes/mode-sombre v3, N3) --- */
+#themeBtn b { margin-left: auto; padding-left: 12px; font-weight: 400; color: var(--muted); }
+#themeBtn { display: flex; }
+html[data-theme="dark"] {
+  --bg: #0b2130; --card: rgba(255,255,255,.04); --card-caught: rgba(46,104,130,.45); --deep: #0f2734;
+  --line: #1f4659; --soft: #12303f; --text: #cfeaf2; --strong: #8fdcef; --muted: #6a9aac; --accent: #3fb6d8;
+  color-scheme: dark;
+}
+html[data-theme="dark"] body { background: linear-gradient(180deg, #0b2130, #08161f) fixed; color: var(--text); }
+html[data-theme="dark"] header { background: rgba(18,42,57,.92); box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+html[data-theme="dark"] header::before { background: #0b2130; }
+html[data-theme="dark"] input[type="search"], html[data-theme="dark"] select,
+html[data-theme="dark"] .retry button, html[data-theme="dark"] #loginDialog input { background: var(--deep); color: var(--text); border-color: var(--line); }
+html[data-theme="dark"] input[type="search"]::placeholder { color: var(--muted); }
+html[data-theme="dark"] .bar, html[data-theme="dark"] .spinner { background: var(--soft); }
+html[data-theme="dark"] .card { border-color: rgba(120,190,215,.14); }
+html[data-theme="dark"] .card.caught { border-color: rgba(120,190,215,.35); }
+html[data-theme="dark"] .card img { filter: brightness(0) invert(1) opacity(.1); }
+html[data-theme="dark"] .card.caught img { filter: none; }
+html[data-theme="dark"] .card.locked { background: rgba(255,255,255,.02); }
+html[data-theme="dark"] .card .dex { color: var(--muted); }
+html[data-theme="dark"] body.shiny .card.caught { background: rgba(240,180,41,.18); }
+html[data-theme="dark"] .menu, html[data-theme="dark"] dialog { background: var(--deep); color: var(--text); border-color: var(--line); box-shadow: 0 12px 40px rgba(0,0,0,.5); }
+html[data-theme="dark"] dialog .danger { background: var(--deep); border-color: #6b2a2a; }
+html[data-theme="dark"] .pseudo input:focus { background: var(--deep); }
+html[data-theme="dark"] .now-row b.later, html[data-theme="dark"] .now-cell b, html[data-theme="dark"] .fiche-how b, html[data-theme="dark"] .types .zone { color: #e0a84a; }

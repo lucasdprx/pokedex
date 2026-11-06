@@ -1147,3 +1147,21 @@ document.getElementById("coll").addEventListener("change", ev => {
   updateStats();
   render();
 });
+
+// --- Thème (mode-sombre : B1 suit le téléphone, choix dans le menu ⋯ ; couleurs N3 bleu nuit foncé) ---
+const THEME_KEY = "pokedex-go-theme";
+const darkMq = matchMedia("(prefers-color-scheme: dark)");
+function applyTheme() {
+  const th = localStorage.getItem(THEME_KEY) || "auto";
+  const dark = th === "dark" || (th === "auto" && darkMq.matches);
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  document.querySelector('meta[name="theme-color"]').content = dark ? "#0b2130" : "#9fe3ec";
+  document.getElementById("themeCur").textContent = t({ auto: "thAuto", light: "thLight", dark: "thDark" }[th]);
+}
+document.getElementById("themeBtn").addEventListener("click", () => {
+  const th = localStorage.getItem(THEME_KEY) || "auto";
+  localStorage.setItem(THEME_KEY, { auto: "light", light: "dark", dark: "auto" }[th]);
+  applyTheme();
+});
+darkMq.addEventListener("change", applyTheme);
+applyTheme();

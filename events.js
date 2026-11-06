@@ -171,7 +171,12 @@ function renderNow() {
   const body = document.getElementById("nowBody");
   if (!howMap) { body.innerHTML = `<p class="now-empty">${t("nowOffline")}</p>`; return; }
   const groups = sheetGroups(nowPane === "now" ? now : soon);
-  if (!groups.length) { body.innerHTML = `<p class="now-empty">${t("nowNothing")}</p>`; return; }
+  if (!groups.length) {
+    // Leek Duck ne liste que les œufs et études du moment : pour Bientôt, on ne sait pas encore
+    const unknown = nowPane === "soon" && (nowCat === "egg" || nowCat === "research");
+    body.innerHTML = `<p class="now-empty">${t(unknown ? (nowCat === "egg" ? "soonEggsUnknown" : "soonResearchUnknown") : "nowNothing")}</p>`;
+    return;
+  }
   body.innerHTML = groups.map(g =>
     `<div class="now-sub">${g.icon}${g.title}</div>` + g.list.map(({ e, h }) => {
       const sp = spriteOf(e);

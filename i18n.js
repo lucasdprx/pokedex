@@ -47,6 +47,7 @@ const FORM_NAMES = {
 // Menus et messages. {n}, {i}, {src} = valeurs insérées.
 const UI = {
   fr: {
+    soonEggsUnknown: "Les prochains œufs ne sont pas encore connus.", soonResearchUnknown: "Les prochaines études ne sont pas encore connues.",
     catAll: "Tout", catRaids: "Raids", catEggs: "Œufs", catResearch: "Études", hRaidTier: "Raids {n}★", hRaidMega: "Raids Méga", hRaidShadow: "Raids obscurs", hEggKm: "Œufs {km}", raidShadow: "Raid obscur",
     nowTitle: "En ce moment", nowTab: "Maintenant", soonTab: "Bientôt", hRaids: "Raids", hEggs: "Œufs", hResearch: "Études de terrain", hSpotlight: "Heures vedettes", hCday: "Journées Communauté", hMore: "Plus", raidN: "Raid {n}★", raidMega: "Raid Méga", mega: "Méga", eggKm: "Œuf {km}", fieldResearch: "Étude de terrain", spotlightOne: "Heure vedette", cdayOne: "Journée Communauté", fromDay: "dès le {d}", notNow: "Pas en ce moment", nowNothing: "Rien qui te manque.", nowOffline: "Liste indisponible hors ligne.",
     install: "Installer l'appli", stepMore: "Toucher", stepShare: "Partager", stepShowMore: "Plus", stepHome: "Sur l'écran d'accueil",
@@ -68,6 +69,7 @@ const UI = {
     importN: "Importer {n} Pokémon", hereOne: "{n} est déjà marqué ici.", hereMany: "{n} sont déjà marqués ici.",
   },
   en: {
+    soonEggsUnknown: "Upcoming eggs aren't known yet.", soonResearchUnknown: "Upcoming research isn't known yet.",
     catAll: "All", catRaids: "Raids", catEggs: "Eggs", catResearch: "Research", hRaidTier: "{n}★ raids", hRaidMega: "Mega raids", hRaidShadow: "Shadow raids", hEggKm: "{km} eggs", raidShadow: "Shadow raid",
     nowTitle: "Right now", nowTab: "Now", soonTab: "Soon", hRaids: "Raids", hEggs: "Eggs", hResearch: "Field research", hSpotlight: "Spotlight Hours", hCday: "Community Days", hMore: "More", raidN: "{n}★ raid", raidMega: "Mega raid", mega: "Mega", eggKm: "{km} egg", fieldResearch: "Field research", spotlightOne: "Spotlight Hour", cdayOne: "Community Day", fromDay: "from {d}", notNow: "Not right now", nowNothing: "Nothing you're missing.", nowOffline: "List unavailable offline.",
     install: "Install the app", stepMore: "Tap", stepShare: "Share", stepShowMore: "More", stepHome: "Add to Home Screen",
@@ -89,6 +91,7 @@ const UI = {
     importN: "Import {n} Pokémon", hereOne: "{n} is already marked here.", hereMany: "{n} are already marked here.",
   },
   de: {
+    soonEggsUnknown: "Die nächsten Eier sind noch nicht bekannt.", soonResearchUnknown: "Die nächsten Forschungen sind noch nicht bekannt.",
     catAll: "Alle", catRaids: "Raids", catEggs: "Eier", catResearch: "Forschung", hRaidTier: "{n}★-Raids", hRaidMega: "Mega-Raids", hRaidShadow: "Crypto-Raids", hEggKm: "{km}-Eier", raidShadow: "Crypto-Raid",
     nowTitle: "Gerade jetzt", nowTab: "Jetzt", soonTab: "Bald", hRaids: "Raids", hEggs: "Eier", hResearch: "Feldforschung", hSpotlight: "Rampenlicht-Stunden", hCday: "Community Days", hMore: "Mehr", raidN: "{n}★-Raid", raidMega: "Mega-Raid", mega: "Mega", eggKm: "{km}-Ei", fieldResearch: "Feldforschung", spotlightOne: "Rampenlicht-Stunde", cdayOne: "Community Day", fromDay: "ab {d}", notNow: "Gerade nicht", nowNothing: "Nichts, was dir fehlt.", nowOffline: "Liste offline nicht verfügbar.",
     install: "App installieren", stepMore: "Tippe auf", stepShare: "Teilen", stepShowMore: "Mehr", stepHome: "Zum Home-Bildschirm",
@@ -110,6 +113,7 @@ const UI = {
     importN: "{n} Pokémon importieren", hereOne: "{n} ist hier schon markiert.", hereMany: "{n} sind hier schon markiert.",
   },
   es: {
+    soonEggsUnknown: "Aún no se conocen los próximos huevos.", soonResearchUnknown: "Aún no se conocen las próximas investigaciones.",
     catAll: "Todo", catRaids: "Incursiones", catEggs: "Huevos", catResearch: "Investigación", hRaidTier: "Incursiones {n}★", hRaidMega: "Megaincursiones", hRaidShadow: "Incursiones oscuras", hEggKm: "Huevos de {km}", raidShadow: "Incursión oscura",
     nowTitle: "Ahora mismo", nowTab: "Ahora", soonTab: "Pronto", hRaids: "Incursiones", hEggs: "Huevos", hResearch: "Investigación de campo", hSpotlight: "Horas destacadas", hCday: "Días de la Comunidad", hMore: "Más", raidN: "Incursión {n}★", raidMega: "Megaincursión", mega: "Mega", eggKm: "Huevo {km}", fieldResearch: "Investigación de campo", spotlightOne: "Hora destacada", cdayOne: "Día de la Comunidad", fromDay: "desde el {d}", notNow: "Ahora no", nowNothing: "Nada que te falte.", nowOffline: "Lista no disponible sin conexión.",
     install: "Instalar la app", stepMore: "Toca", stepShare: "Compartir", stepShowMore: "Más", stepHome: "Añadir a pantalla de inicio",
@@ -131,6 +135,7 @@ const UI = {
     importN: "Importar {n} Pokémon", hereOne: "{n} ya está marcado aquí.", hereMany: "{n} ya están marcados aquí.",
   },
   it: {
+    soonEggsUnknown: "Le prossime uova non sono ancora note.", soonResearchUnknown: "Le prossime ricerche non sono ancora note.",
     catAll: "Tutto", catRaids: "Raid", catEggs: "Uova", catResearch: "Ricerche", hRaidTier: "Raid {n}★", hRaidMega: "Megaraid", hRaidShadow: "Raid ombra", hEggKm: "Uova da {km}", raidShadow: "Raid ombra",
     nowTitle: "In questo momento", nowTab: "Ora", soonTab: "Presto", hRaids: "Raid", hEggs: "Uova", hResearch: "Ricerca sul campo", hSpotlight: "Ore in risalto", hCday: "Community Day", hMore: "Altro", raidN: "Raid {n}★", raidMega: "Megaraid", mega: "Mega", eggKm: "Uovo {km}", fieldResearch: "Ricerca sul campo", spotlightOne: "Ora in risalto", cdayOne: "Community Day", fromDay: "dal {d}", notNow: "Non ora", nowNothing: "Niente che ti manca.", nowOffline: "Elenco non disponibile offline.",
     install: "Installa l'app", stepMore: "Tocca", stepShare: "Condividi", stepShowMore: "Altro", stepHome: "Aggiungi alla schermata Home",
@@ -152,6 +157,7 @@ const UI = {
     importN: "Importa {n} Pokémon", hereOne: "{n} è già segnato qui.", hereMany: "{n} sono già segnati qui.",
   },
   pt: {
+    soonEggsUnknown: "Os próximos ovos ainda não são conhecidos.", soonResearchUnknown: "As próximas pesquisas ainda não são conhecidas.",
     catAll: "Tudo", catRaids: "Reides", catEggs: "Ovos", catResearch: "Pesquisas", hRaidTier: "Reides {n}★", hRaidMega: "Mega Reides", hRaidShadow: "Reides Sombrosas", hEggKm: "Ovos de {km}", raidShadow: "Reide Sombrosa",
     nowTitle: "Agora mesmo", nowTab: "Agora", soonTab: "Em breve", hRaids: "Reides", hEggs: "Ovos", hResearch: "Pesquisa de campo", hSpotlight: "Horas de Destaque", hCday: "Dias Comunitários", hMore: "Mais", raidN: "Reide {n}★", raidMega: "Mega Reide", mega: "Mega", eggKm: "Ovo de {km}", fieldResearch: "Pesquisa de campo", spotlightOne: "Hora de Destaque", cdayOne: "Dia Comunitário", fromDay: "a partir de {d}", notNow: "Agora não", nowNothing: "Nada que te falte.", nowOffline: "Lista indisponível offline.",
     install: "Instalar o app", stepMore: "Toque em", stepShare: "Compartilhar", stepShowMore: "Mais", stepHome: "Adicionar à Tela de Início",
@@ -173,6 +179,7 @@ const UI = {
     importN: "Importar {n} Pokémon", hereOne: "{n} já está marcado aqui.", hereMany: "{n} já estão marcados aqui.",
   },
   ja: {
+    soonEggsUnknown: "次のタマゴはまだ分かりません。", soonResearchUnknown: "次のリサーチはまだ分かりません。",
     catAll: "すべて", catRaids: "レイド", catEggs: "タマゴ", catResearch: "リサーチ", hRaidTier: "★{n}レイド", hRaidMega: "メガレイド", hRaidShadow: "シャドウレイド", hEggKm: "{km}タマゴ", raidShadow: "シャドウレイド",
     nowTitle: "いま", nowTab: "いま", soonTab: "近日", hRaids: "レイド", hEggs: "タマゴ", hResearch: "フィールドリサーチ", hSpotlight: "スポットライトアワー", hCday: "コミュニティ・デイ", hMore: "その他", raidN: "★{n}レイド", raidMega: "メガレイド", mega: "メガ", eggKm: "{km}タマゴ", fieldResearch: "フィールドリサーチ", spotlightOne: "スポットライトアワー", cdayOne: "コミュニティ・デイ", fromDay: "{d}から", notNow: "いまは入手不可", nowNothing: "足りないポケモンはありません。", nowOffline: "オフラインでは表示できません。",
     install: "アプリをインストール", stepMore: "タップ", stepShare: "共有", stepShowMore: "その他", stepHome: "ホーム画面に追加",
@@ -194,6 +201,7 @@ const UI = {
     importN: "{n} 匹をインポート", hereOne: "ここではすでに {n} 匹にチェック済みです。", hereMany: "ここではすでに {n} 匹にチェック済みです。",
   },
   ko: {
+    soonEggsUnknown: "다음 알은 아직 알려지지 않았습니다.", soonResearchUnknown: "다음 리서치는 아직 알려지지 않았습니다.",
     catAll: "전체", catRaids: "레이드", catEggs: "알", catResearch: "리서치", hRaidTier: "{n}성 레이드", hRaidMega: "메가레이드", hRaidShadow: "그림자 레이드", hEggKm: "{km} 알", raidShadow: "그림자 레이드",
     nowTitle: "지금", nowTab: "지금", soonTab: "곧", hRaids: "레이드", hEggs: "알", hResearch: "필드리서치", hSpotlight: "스포트라이트 아워", hCday: "커뮤니티 데이", hMore: "더 보기", raidN: "{n}성 레이드", raidMega: "메가레이드", mega: "메가", eggKm: "{km} 알", fieldResearch: "필드리서치", spotlightOne: "스포트라이트 아워", cdayOne: "커뮤니티 데이", fromDay: "{d}부터", notNow: "지금은 없음", nowNothing: "부족한 포켓몬이 없습니다.", nowOffline: "오프라인에서는 볼 수 없습니다.",
     install: "앱 설치", stepMore: "누르기", stepShare: "공유", stepShowMore: "더 보기", stepHome: "홈 화면에 추가",
@@ -215,6 +223,7 @@ const UI = {
     importN: "포켓몬 {n}마리 가져오기", hereOne: "여기에는 이미 {n}마리가 체크되어 있습니다.", hereMany: "여기에는 이미 {n}마리가 체크되어 있습니다.",
   },
   zh: {
+    soonEggsUnknown: "尚不知道接下來的蛋。", soonResearchUnknown: "尚不知道接下來的調查。",
     catAll: "全部", catRaids: "團體戰", catEggs: "蛋", catResearch: "調查", hRaidTier: "{n}星團體戰", hRaidMega: "超級團體戰", hRaidShadow: "暗影團體戰", hEggKm: "{km}蛋", raidShadow: "暗影團體戰",
     nowTitle: "目前", nowTab: "現在", soonTab: "即將", hRaids: "團體戰", hEggs: "蛋", hResearch: "田野調查", hSpotlight: "聚光燈時刻", hCday: "社群日", hMore: "更多", raidN: "{n}星團體戰", raidMega: "超級團體戰", mega: "超級", eggKm: "{km}蛋", fieldResearch: "田野調查", spotlightOne: "聚光燈時刻", cdayOne: "社群日", fromDay: "{d}起", notNow: "目前沒有", nowNothing: "沒有缺少的寶可夢。", nowOffline: "離線時無法顯示清單。",
     install: "安裝 App", stepMore: "點選", stepShare: "分享", stepShowMore: "更多", stepHome: "加入主畫面",

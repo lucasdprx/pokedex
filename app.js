@@ -399,7 +399,7 @@ function undoToast(e, card) {
 // --- Clics sur la grille : marquer capturé ---
 els.grid.addEventListener("click", ev => {
   const card = ev.target.closest(".card");
-  if (!card) return;
+  if (!card || bulkClick) return;
   // Le nom ouvre la fiche (events.js), le reste de la carte coche
   if (ev.target.closest(".name") && window.openFiche) { openFiche(card.dataset.key); return; }
   const e = byKey.get(card.dataset.key);
@@ -941,3 +941,72 @@ window.goToEntry = key => {
   card.scrollIntoView({ block: "center" });
   setTimeout(() => restartAnim(card, "found"), 350);
 };
+
+// --- Cocher plusieurs cartes : appui long puis glisser (cocher-plusieurs v1 : A1) ---
+// Les cartes traversées prennent l'état de la première ; « n cochés / Annuler » ensuite
+let bulk = null, bulkTimer = null, bulkClick = false;
+function bulkSet(card) {
+  const key = card.dataset.key, e = byKey.get(key);
+  if (!e || !can(e) || bulk.before.has(key)) return;
+  const set = marks();
+  bulk.before.set(key, set.has(key));
+  bulk.on ? set.add(key) : set.delete(key);
+  card.classList.toggle("caught", bulk.on);
+  card.querySelector(".types").innerHTML = typesHtml(e);
+  restartAnim(card, "found");
+}
+els.grid.addEventListener("pointerdown", ev => {
+  const card = ev.target.closest(".card");
+  if (!card || ev.button > 0 || ev.target.closest(".name")) return;
+  const x0 = ev.clientX, y0 = ev.clientY;
+  const cancel = m => { if (Math.hypot(m.clientX - x0, m.clientY - y0) > 10) stopWait(); };
+  const stopWait = () => { clearTimeout(bulkTimer); removeEventListener("pointermove", cancel); };
+  addEventListener("pointermove", cancel);
+  addEventListener("pointerup", stopWait, { once: true });
+  addEventListener("pointercancel", stopWait, { once: true });
+  bulkTimer = setTimeout(() => {
+    stopWait();
+    const e = byKey.get(card.dataset.key);
+    if (!e || !can(e)) return;
+    bulk = { on: !marks().has(e.key), before: new Map() };
+    bulkSet(card);
+    if (navigator.vibrate) navigator.vibrate(15);
+  }, 500);
+});
+const bulkMove = (x, y) => {
+  const el = document.elementFromPoint(x, y), card = el && el.closest(".card");
+  if (card && els.grid.contains(card)) bulkSet(card);
+};
+addEventListener("pointermove", ev => { if (bulk && ev.pointerType === "mouse") bulkMove(ev.clientX, ev.clientY); });
+// Au doigt : la page ne défile pas pendant le glissé
+addEventListener("touchmove", ev => {
+  if (!bulk) return;
+  ev.preventDefault();
+  bulkMove(ev.touches[0].clientX, ev.touches[0].clientY);
+}, { passive: false });
+function bulkEnd() {
+  if (!bulk) return;
+  const done = bulk;
+  bulk = null;
+  bulkClick = true; // le clic qui suit le relâché ne recoche pas la carte
+  setTimeout(() => { bulkClick = false; }, 400);
+  saveCaught();
+  updateStats();
+  const el = document.getElementById("toast");
+  el.innerHTML = `${t(done.on ? "bulkOn" : "bulkOff", { n: done.before.size })}<button class="undo">${t("undo")}</button>`;
+  el.hidden = false;
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(() => { el.hidden = true; }, 4000);
+  el.querySelector(".undo").onclick = () => {
+    el.hidden = true;
+    clearTimeout(undoTimer);
+    const set = marks();
+    for (const [k, had] of done.before) had ? set.add(k) : set.delete(k);
+    saveCaught();
+    render();
+    updateStats();
+  };
+}
+addEventListener("pointerup", bulkEnd);
+addEventListener("touchend", bulkEnd);
+addEventListener("pointercancel", () => { if (bulk && !("ontouchstart" in window)) bulkEnd(); });

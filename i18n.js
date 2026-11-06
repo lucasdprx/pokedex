@@ -48,7 +48,7 @@ const FORM_NAMES = {
 const UI = {
   fr: {
     soonEggsUnknown: "Les prochains œufs ne sont pas encore connus.", soonResearchUnknown: "Les prochaines études ne sont pas encore connues.",
-    catAll: "Tout", onlyIn: "Seulement : {z}", fHow: "Comment l'avoir", fForms: "Formes", fNormal: "Normal", ficheCaught: "Capturé", catRaids: "Raids", catEggs: "Œufs", catResearch: "Études", hRaidTier: "Raids {n}★", hRaidMega: "Raids Méga", hRaidShadow: "Raids obscurs", hEggKm: "Œufs {km}", raidShadow: "Raid obscur",
+    catAll: "Tout", bulkOn: "{n} cochés", bulkOff: "{n} décochés", onlyIn: "Seulement : {z}", fHow: "Comment l'avoir", fForms: "Formes", fNormal: "Normal", ficheCaught: "Capturé", catRaids: "Raids", catEggs: "Œufs", catResearch: "Études", hRaidTier: "Raids {n}★", hRaidMega: "Raids Méga", hRaidShadow: "Raids obscurs", hEggKm: "Œufs {km}", raidShadow: "Raid obscur",
     nowTitle: "En ce moment", nowTab: "Maintenant", soonTab: "Bientôt", hRaids: "Raids", hEggs: "Œufs", hResearch: "Études de terrain", hSpotlight: "Heures vedettes", hCday: "Journées Communauté", hMore: "Plus", raidN: "Raid {n}★", raidMega: "Raid Méga", mega: "Méga", eggKm: "Œuf {km}", fieldResearch: "Étude de terrain", spotlightOne: "Heure vedette", cdayOne: "Journée Communauté", fromDay: "dès le {d}", notNow: "Pas en ce moment", nowNothing: "Rien en ce moment.", nowOffline: "Liste indisponible hors ligne.",
     install: "Installer l'appli", stepMore: "Toucher", stepShare: "Partager", stepShowMore: "Plus", stepHome: "Sur l'écran d'accueil",
     signIn: "Se connecter", signOut: "Se déconnecter", google: "Continuer avec Google", email: "Adresse e-mail", sendLink: "Recevoir un lien", linkSent: "Lien envoyé", linkSentText: "Ouvre l'e-mail envoyé à {email}, puis touche le lien.", syncFail: "Sauvegarde en ligne impossible", syncFailText: "tes coches sont gardées sur cet appareil et partiront au retour du réseau.", confirmEmail: "Confirme ton adresse e-mail", loginFail: "Connexion impossible : ",
@@ -70,7 +70,7 @@ const UI = {
   },
   en: {
     soonEggsUnknown: "Upcoming eggs aren't known yet.", soonResearchUnknown: "Upcoming research isn't known yet.",
-    catAll: "All", onlyIn: "Only: {z}", fHow: "How to get it", fForms: "Forms", fNormal: "Normal", ficheCaught: "Caught", catRaids: "Raids", catEggs: "Eggs", catResearch: "Research", hRaidTier: "{n}★ raids", hRaidMega: "Mega raids", hRaidShadow: "Shadow raids", hEggKm: "{km} eggs", raidShadow: "Shadow raid",
+    catAll: "All", bulkOn: "{n} checked", bulkOff: "{n} unchecked", onlyIn: "Only: {z}", fHow: "How to get it", fForms: "Forms", fNormal: "Normal", ficheCaught: "Caught", catRaids: "Raids", catEggs: "Eggs", catResearch: "Research", hRaidTier: "{n}★ raids", hRaidMega: "Mega raids", hRaidShadow: "Shadow raids", hEggKm: "{km} eggs", raidShadow: "Shadow raid",
     nowTitle: "Right now", nowTab: "Now", soonTab: "Soon", hRaids: "Raids", hEggs: "Eggs", hResearch: "Field research", hSpotlight: "Spotlight Hours", hCday: "Community Days", hMore: "More", raidN: "{n}★ raid", raidMega: "Mega raid", mega: "Mega", eggKm: "{km} egg", fieldResearch: "Field research", spotlightOne: "Spotlight Hour", cdayOne: "Community Day", fromDay: "from {d}", notNow: "Not right now", nowNothing: "Nothing right now.", nowOffline: "List unavailable offline.",
     install: "Install the app", stepMore: "Tap", stepShare: "Share", stepShowMore: "More", stepHome: "Add to Home Screen",
     signIn: "Sign in", signOut: "Sign out", google: "Continue with Google", email: "Email address", sendLink: "Get a link", linkSent: "Link sent", linkSentText: "Open the email sent to {email}, then tap the link.", syncFail: "Online backup failed", syncFailText: "your marks are kept on this device and will be sent when you're back online.", confirmEmail: "Confirm your email address", loginFail: "Sign-in failed: ",
@@ -92,7 +92,7 @@ const UI = {
   },
   de: {
     soonEggsUnknown: "Die nächsten Eier sind noch nicht bekannt.", soonResearchUnknown: "Die nächsten Forschungen sind noch nicht bekannt.",
-    catAll: "Alle", onlyIn: "Nur: {z}", fHow: "So bekommst du es", fForms: "Formen", fNormal: "Normal", ficheCaught: "Gefangen", catRaids: "Raids", catEggs: "Eier", catResearch: "Forschung", hRaidTier: "{n}★-Raids", hRaidMega: "Mega-Raids", hRaidShadow: "Crypto-Raids", hEggKm: "{km}-Eier", raidShadow: "Crypto-Raid",
+    catAll: "Alle", bulkOn: "{n} abgehakt", bulkOff: "{n} entfernt", onlyIn: "Nur: {z}", fHow: "So bekommst du es", fForms: "Formen", fNormal: "Normal", ficheCaught: "Gefangen", catRaids: "Raids", catEggs: "Eier", catResearch: "Forschung", hRaidTier: "{n}★-Raids", hRaidMega: "Mega-Raids", hRaidShadow: "Crypto-Raids", hEggKm: "{km}-Eier", raidShadow: "Crypto-Raid",
     nowTitle: "Gerade jetzt", nowTab: "Jetzt", soonTab: "Bald", hRaids: "Raids", hEggs: "Eier", hResearch: "Feldforschung", hSpotlight: "Rampenlicht-Stunden", hCday: "Community Days", hMore: "Mehr", raidN: "{n}★-Raid", raidMega: "Mega-Raid", mega: "Mega", eggKm: "{km}-Ei", fieldResearch: "Feldforschung", spotlightOne: "Rampenlicht-Stunde", cdayOne: "Community Day", fromDay: "ab {d}", notNow: "Gerade nicht", nowNothing: "Gerade nichts.", nowOffline: "Liste offline nicht verfügbar.",
     install: "App installieren", stepMore: "Tippe auf", stepShare: "Teilen", stepShowMore: "Mehr", stepHome: "Zum Home-Bildschirm",
     signIn: "Anmelden", signOut: "Abmelden", google: "Weiter mit Google", email: "E-Mail-Adresse", sendLink: "Link erhalten", linkSent: "Link gesendet", linkSentText: "Öffne die E-Mail an {email} und tippe auf den Link.", syncFail: "Online-Sicherung fehlgeschlagen", syncFailText: "deine Häkchen bleiben auf diesem Gerät und werden gesendet, sobald du wieder online bist.", confirmEmail: "Bestätige deine E-Mail-Adresse", loginFail: "Anmeldung fehlgeschlagen: ",
@@ -114,7 +114,7 @@ const UI = {
   },
   es: {
     soonEggsUnknown: "Aún no se conocen los próximos huevos.", soonResearchUnknown: "Aún no se conocen las próximas investigaciones.",
-    catAll: "Todo", onlyIn: "Solo: {z}", fHow: "Cómo conseguirlo", fForms: "Formas", fNormal: "Normal", ficheCaught: "Capturado", catRaids: "Incursiones", catEggs: "Huevos", catResearch: "Investigación", hRaidTier: "Incursiones {n}★", hRaidMega: "Megaincursiones", hRaidShadow: "Incursiones oscuras", hEggKm: "Huevos de {km}", raidShadow: "Incursión oscura",
+    catAll: "Todo", bulkOn: "{n} marcados", bulkOff: "{n} desmarcados", onlyIn: "Solo: {z}", fHow: "Cómo conseguirlo", fForms: "Formas", fNormal: "Normal", ficheCaught: "Capturado", catRaids: "Incursiones", catEggs: "Huevos", catResearch: "Investigación", hRaidTier: "Incursiones {n}★", hRaidMega: "Megaincursiones", hRaidShadow: "Incursiones oscuras", hEggKm: "Huevos de {km}", raidShadow: "Incursión oscura",
     nowTitle: "Ahora mismo", nowTab: "Ahora", soonTab: "Pronto", hRaids: "Incursiones", hEggs: "Huevos", hResearch: "Investigación de campo", hSpotlight: "Horas destacadas", hCday: "Días de la Comunidad", hMore: "Más", raidN: "Incursión {n}★", raidMega: "Megaincursión", mega: "Mega", eggKm: "Huevo {km}", fieldResearch: "Investigación de campo", spotlightOne: "Hora destacada", cdayOne: "Día de la Comunidad", fromDay: "desde el {d}", notNow: "Ahora no", nowNothing: "Nada por ahora.", nowOffline: "Lista no disponible sin conexión.",
     install: "Instalar la app", stepMore: "Toca", stepShare: "Compartir", stepShowMore: "Más", stepHome: "Añadir a pantalla de inicio",
     signIn: "Iniciar sesión", signOut: "Cerrar sesión", google: "Continuar con Google", email: "Correo electrónico", sendLink: "Recibir un enlace", linkSent: "Enlace enviado", linkSentText: "Abre el correo enviado a {email} y toca el enlace.", syncFail: "Copia en línea fallida", syncFailText: "tus marcas se guardan en este dispositivo y se enviarán al volver la conexión.", confirmEmail: "Confirma tu correo electrónico", loginFail: "No se pudo iniciar sesión: ",
@@ -136,7 +136,7 @@ const UI = {
   },
   it: {
     soonEggsUnknown: "Le prossime uova non sono ancora note.", soonResearchUnknown: "Le prossime ricerche non sono ancora note.",
-    catAll: "Tutto", onlyIn: "Solo: {z}", fHow: "Come ottenerlo", fForms: "Forme", fNormal: "Normale", ficheCaught: "Catturato", catRaids: "Raid", catEggs: "Uova", catResearch: "Ricerche", hRaidTier: "Raid {n}★", hRaidMega: "Megaraid", hRaidShadow: "Raid ombra", hEggKm: "Uova da {km}", raidShadow: "Raid ombra",
+    catAll: "Tutto", bulkOn: "{n} segnati", bulkOff: "{n} tolti", onlyIn: "Solo: {z}", fHow: "Come ottenerlo", fForms: "Forme", fNormal: "Normale", ficheCaught: "Catturato", catRaids: "Raid", catEggs: "Uova", catResearch: "Ricerche", hRaidTier: "Raid {n}★", hRaidMega: "Megaraid", hRaidShadow: "Raid ombra", hEggKm: "Uova da {km}", raidShadow: "Raid ombra",
     nowTitle: "In questo momento", nowTab: "Ora", soonTab: "Presto", hRaids: "Raid", hEggs: "Uova", hResearch: "Ricerca sul campo", hSpotlight: "Ore in risalto", hCday: "Community Day", hMore: "Altro", raidN: "Raid {n}★", raidMega: "Megaraid", mega: "Mega", eggKm: "Uovo {km}", fieldResearch: "Ricerca sul campo", spotlightOne: "Ora in risalto", cdayOne: "Community Day", fromDay: "dal {d}", notNow: "Non ora", nowNothing: "Niente al momento.", nowOffline: "Elenco non disponibile offline.",
     install: "Installa l'app", stepMore: "Tocca", stepShare: "Condividi", stepShowMore: "Altro", stepHome: "Aggiungi alla schermata Home",
     signIn: "Accedi", signOut: "Esci", google: "Continua con Google", email: "Indirizzo email", sendLink: "Ricevi un link", linkSent: "Link inviato", linkSentText: "Apri l'email inviata a {email} e tocca il link.", syncFail: "Salvataggio online non riuscito", syncFailText: "i tuoi segni restano su questo dispositivo e partiranno al ritorno della rete.", confirmEmail: "Conferma il tuo indirizzo email", loginFail: "Accesso non riuscito: ",
@@ -158,7 +158,7 @@ const UI = {
   },
   pt: {
     soonEggsUnknown: "Os próximos ovos ainda não são conhecidos.", soonResearchUnknown: "As próximas pesquisas ainda não são conhecidas.",
-    catAll: "Tudo", onlyIn: "Só: {z}", fHow: "Como obter", fForms: "Formas", fNormal: "Normal", ficheCaught: "Capturado", catRaids: "Reides", catEggs: "Ovos", catResearch: "Pesquisas", hRaidTier: "Reides {n}★", hRaidMega: "Mega Reides", hRaidShadow: "Reides Sombrosas", hEggKm: "Ovos de {km}", raidShadow: "Reide Sombrosa",
+    catAll: "Tudo", bulkOn: "{n} marcados", bulkOff: "{n} desmarcados", onlyIn: "Só: {z}", fHow: "Como obter", fForms: "Formas", fNormal: "Normal", ficheCaught: "Capturado", catRaids: "Reides", catEggs: "Ovos", catResearch: "Pesquisas", hRaidTier: "Reides {n}★", hRaidMega: "Mega Reides", hRaidShadow: "Reides Sombrosas", hEggKm: "Ovos de {km}", raidShadow: "Reide Sombrosa",
     nowTitle: "Agora mesmo", nowTab: "Agora", soonTab: "Em breve", hRaids: "Reides", hEggs: "Ovos", hResearch: "Pesquisa de campo", hSpotlight: "Horas de Destaque", hCday: "Dias Comunitários", hMore: "Mais", raidN: "Reide {n}★", raidMega: "Mega Reide", mega: "Mega", eggKm: "Ovo de {km}", fieldResearch: "Pesquisa de campo", spotlightOne: "Hora de Destaque", cdayOne: "Dia Comunitário", fromDay: "a partir de {d}", notNow: "Agora não", nowNothing: "Nada por ahora.", nowOffline: "Lista indisponível offline.",
     install: "Instalar o app", stepMore: "Toque em", stepShare: "Compartilhar", stepShowMore: "Mais", stepHome: "Adicionar à Tela de Início",
     signIn: "Entrar", signOut: "Sair", google: "Continuar com o Google", email: "Endereço de e-mail", sendLink: "Receber um link", linkSent: "Link enviado", linkSentText: "Abra o e-mail enviado para {email} e toque no link.", syncFail: "Falha no backup online", syncFailText: "suas marcações ficam neste aparelho e serão enviadas quando a conexão voltar.", confirmEmail: "Confirme seu e-mail", loginFail: "Falha ao entrar: ",
@@ -180,7 +180,7 @@ const UI = {
   },
   ja: {
     soonEggsUnknown: "次のタマゴはまだ分かりません。", soonResearchUnknown: "次のリサーチはまだ分かりません。",
-    catAll: "すべて", onlyIn: "限定: {z}", fHow: "入手方法", fForms: "すがた", fNormal: "ノーマル", ficheCaught: "捕獲済み", catRaids: "レイド", catEggs: "タマゴ", catResearch: "リサーチ", hRaidTier: "★{n}レイド", hRaidMega: "メガレイド", hRaidShadow: "シャドウレイド", hEggKm: "{km}タマゴ", raidShadow: "シャドウレイド",
+    catAll: "すべて", bulkOn: "{n}件チェック", bulkOff: "{n}件解除", onlyIn: "限定: {z}", fHow: "入手方法", fForms: "すがた", fNormal: "ノーマル", ficheCaught: "捕獲済み", catRaids: "レイド", catEggs: "タマゴ", catResearch: "リサーチ", hRaidTier: "★{n}レイド", hRaidMega: "メガレイド", hRaidShadow: "シャドウレイド", hEggKm: "{km}タマゴ", raidShadow: "シャドウレイド",
     nowTitle: "いま", nowTab: "いま", soonTab: "近日", hRaids: "レイド", hEggs: "タマゴ", hResearch: "フィールドリサーチ", hSpotlight: "スポットライトアワー", hCday: "コミュニティ・デイ", hMore: "その他", raidN: "★{n}レイド", raidMega: "メガレイド", mega: "メガ", eggKm: "{km}タマゴ", fieldResearch: "フィールドリサーチ", spotlightOne: "スポットライトアワー", cdayOne: "コミュニティ・デイ", fromDay: "{d}から", notNow: "いまは入手不可", nowNothing: "今は何もありません。", nowOffline: "オフラインでは表示できません。",
     install: "アプリをインストール", stepMore: "タップ", stepShare: "共有", stepShowMore: "その他", stepHome: "ホーム画面に追加",
     signIn: "ログイン", signOut: "ログアウト", google: "Google で続行", email: "メールアドレス", sendLink: "リンクを受け取る", linkSent: "リンクを送信しました", linkSentText: "{email} に届いたメールを開き、リンクをタップしてください。", syncFail: "オンライン保存に失敗しました", syncFailText: "チェックはこの端末に保存され、接続が戻ると送信されます。", confirmEmail: "メールアドレスを確認してください", loginFail: "ログインできません: ",
@@ -202,7 +202,7 @@ const UI = {
   },
   ko: {
     soonEggsUnknown: "다음 알은 아직 알려지지 않았습니다.", soonResearchUnknown: "다음 리서치는 아직 알려지지 않았습니다.",
-    catAll: "전체", onlyIn: "한정: {z}", fHow: "얻는 방법", fForms: "폼", fNormal: "노말", ficheCaught: "포획함", catRaids: "레이드", catEggs: "알", catResearch: "리서치", hRaidTier: "{n}성 레이드", hRaidMega: "메가레이드", hRaidShadow: "그림자 레이드", hEggKm: "{km} 알", raidShadow: "그림자 레이드",
+    catAll: "전체", bulkOn: "{n}개 체크", bulkOff: "{n}개 해제", onlyIn: "한정: {z}", fHow: "얻는 방법", fForms: "폼", fNormal: "노말", ficheCaught: "포획함", catRaids: "레이드", catEggs: "알", catResearch: "리서치", hRaidTier: "{n}성 레이드", hRaidMega: "메가레이드", hRaidShadow: "그림자 레이드", hEggKm: "{km} 알", raidShadow: "그림자 레이드",
     nowTitle: "지금", nowTab: "지금", soonTab: "곧", hRaids: "레이드", hEggs: "알", hResearch: "필드리서치", hSpotlight: "스포트라이트 아워", hCday: "커뮤니티 데이", hMore: "더 보기", raidN: "{n}성 레이드", raidMega: "메가레이드", mega: "메가", eggKm: "{km} 알", fieldResearch: "필드리서치", spotlightOne: "스포트라이트 아워", cdayOne: "커뮤니티 데이", fromDay: "{d}부터", notNow: "지금은 없음", nowNothing: "지금은 없습니다.", nowOffline: "오프라인에서는 볼 수 없습니다.",
     install: "앱 설치", stepMore: "누르기", stepShare: "공유", stepShowMore: "더 보기", stepHome: "홈 화면에 추가",
     signIn: "로그인", signOut: "로그아웃", google: "Google로 계속", email: "이메일 주소", sendLink: "링크 받기", linkSent: "링크를 보냈습니다", linkSentText: "{email}(으)로 보낸 이메일을 열고 링크를 누르세요.", syncFail: "온라인 저장 실패", syncFailText: "체크는 이 기기에 보관되며 네트워크가 돌아오면 전송됩니다.", confirmEmail: "이메일 주소를 확인하세요", loginFail: "로그인 실패: ",
@@ -224,7 +224,7 @@ const UI = {
   },
   zh: {
     soonEggsUnknown: "尚不知道接下來的蛋。", soonResearchUnknown: "尚不知道接下來的調查。",
-    catAll: "全部", onlyIn: "限定: {z}", fHow: "取得方式", fForms: "樣子", fNormal: "普通", ficheCaught: "已捕捉", catRaids: "團體戰", catEggs: "蛋", catResearch: "調查", hRaidTier: "{n}星團體戰", hRaidMega: "超級團體戰", hRaidShadow: "暗影團體戰", hEggKm: "{km}蛋", raidShadow: "暗影團體戰",
+    catAll: "全部", bulkOn: "已勾選 {n}", bulkOff: "已取消 {n}", onlyIn: "限定: {z}", fHow: "取得方式", fForms: "樣子", fNormal: "普通", ficheCaught: "已捕捉", catRaids: "團體戰", catEggs: "蛋", catResearch: "調查", hRaidTier: "{n}星團體戰", hRaidMega: "超級團體戰", hRaidShadow: "暗影團體戰", hEggKm: "{km}蛋", raidShadow: "暗影團體戰",
     nowTitle: "目前", nowTab: "現在", soonTab: "即將", hRaids: "團體戰", hEggs: "蛋", hResearch: "田野調查", hSpotlight: "聚光燈時刻", hCday: "社群日", hMore: "更多", raidN: "{n}星團體戰", raidMega: "超級團體戰", mega: "超級", eggKm: "{km}蛋", fieldResearch: "田野調查", spotlightOne: "聚光燈時刻", cdayOne: "社群日", fromDay: "{d}起", notNow: "目前沒有", nowNothing: "目前沒有。", nowOffline: "離線時無法顯示清單。",
     install: "安裝 App", stepMore: "點選", stepShare: "分享", stepShowMore: "更多", stepHome: "加入主畫面",
     signIn: "登入", signOut: "登出", google: "使用 Google 繼續", email: "電子郵件地址", sendLink: "取得連結", linkSent: "已寄出連結", linkSentText: "開啟寄到 {email} 的郵件，然後點選連結。", syncFail: "線上備份失敗", syncFailText: "你的勾選會保留在此裝置上，恢復連線後送出。", confirmEmail: "確認你的電子郵件地址", loginFail: "無法登入：",

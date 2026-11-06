@@ -393,6 +393,8 @@ function undoToast(e, card) {
 els.grid.addEventListener("click", ev => {
   const card = ev.target.closest(".card");
   if (!card) return;
+  // Le nom ouvre la fiche (events.js), le reste de la carte coche
+  if (ev.target.closest(".name") && window.openFiche) { openFiche(card.dataset.key); return; }
   const e = byKey.get(card.dataset.key);
   if (can(e)) toggle(e.key, card);
 });

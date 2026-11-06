@@ -284,3 +284,50 @@ for (const id of ["nowTabs", "nowCats"]) document.getElementById(id).addEventLis
 
 document.getElementById("nowDay").textContent = new Date().getDate();
 loadDuck();
+
+// --- Fiche d'un Pokémon (fiche-pokemon v1 : A3 toucher le nom, B1 feuille en bas) ---
+const ficheDialog = document.getElementById("ficheDialog");
+let ficheKey = null;
+function renderFiche() {
+  const e = byKey.get(ficheKey);
+  if (!e) return;
+  const sp = spriteOf(e);
+  const how = (howMap && howMap.get(e.key)) || [];
+  const forms = entries.filter(x => x.id === e.id);
+  const own = caught.has(e.key), shiny = shinyCaught.has(e.key);
+  const wiki = LANG === "fr" ? "https://www.pokepedia.fr/" + encodeURIComponent(nameOf(e.id, "", "fr"))
+    : "https://bulbapedia.bulbagarden.net/wiki/" + encodeURIComponent(nameOf(e.id, "", "en") + "_(Pokémon)");
+  ficheDialog.innerHTML =
+    `<form method="dialog"><button class="now-x fiche-x" aria-label="${t("close")}">✕</button></form>` +
+    `<div class="fiche-hero"><img src="${shiny ? SPRITE_SMALL_SHINY(sp) : SPRITE_SMALL(sp)}" alt="" data-sprite="${sp}" data-shiny="${shiny ? 1 : 0}" onerror="imgFallback(this)">` +
+    `<div><div class="dex">${String(e.id).padStart(4, "0")}</div><h2>${e.name}</h2><div class="fiche-types">` +
+    e.types.map(ty => `<span style="color:${TYPE_COLOR[ty] || "#aaa"}">${typeName(ty)}</span>`).join(" ") + `</div></div></div>` +
+    `<h3>${t("fHow")}</h3><div class="fiche-how">` +
+    (how.length ? how.map(h => `<div>${howLabel({ ...h, start: null })}<b>${h.start ? t("fromDay", { d: fmtDay(h.start) }) : ""}</b></div>`).join("")
+      : `<div class="off">${e.available ? t("notNow") : t("unavailable")}</div>`) + `</div>` +
+    (forms.length > 1 ? `<h3>${t("fForms")}</h3><div class="fiche-forms">` + forms.map(f => {
+      const fh = (howMap && howMap.get(f.key)) || [];
+      return `<button data-k="${f.key}" class="${f.key === e.key ? "on" : ""}${caught.has(f.key) ? "" : " miss"}"><img src="${SPRITE_TINY(spriteOf(f))}" alt="" data-sprite="${spriteOf(f)}" data-shiny="0" onerror="imgFallback(this)">` +
+        `${f.formLabel || t("fNormal")}${f.key !== e.key && !fh.length ? `<small>${t("notNow")}</small>` : ""}</button>`;
+    }).join("") + `</div>` : "") +
+    `<div class="fiche-btns">` +
+    (e.available ? `<button data-t="c" class="${own ? "on" : ""}">${t("ficheCaught")}${own ? " ✓" : ""}</button>` : "") +
+    (e.shinyOut ? `<button data-t="s" class="gold${shiny ? " on" : ""}">${t("shiny")}${shiny ? " ✓" : ""}</button>` : "") + `</div>` +
+    `<a class="now-more" href="${wiki}" target="_blank" rel="noopener">${LANG === "fr" ? "Poképédia" : "Bulbapedia"} ↗</a>`;
+}
+window.openFiche = key => { ficheKey = key; renderFiche(); ficheDialog.showModal(); };
+ficheDialog.addEventListener("click", ev => {
+  if (ev.target === ficheDialog) { ficheDialog.close(); return; } // toucher le fond ferme
+  const f = ev.target.closest("[data-k]");
+  if (f) { ficheKey = f.dataset.k; renderFiche(); return; }
+  const b = ev.target.closest("[data-t]");
+  if (!b) return;
+  const set = b.dataset.t === "c" ? caught : shinyCaught;
+  set.has(ficheKey) ? set.delete(ficheKey) : set.add(ficheKey);
+  saveCaught();
+  // La carte suit si elle montre la même coche (mode Normal ou Shiny)
+  const card = [...els.grid.children].find(c => c.dataset.key === ficheKey);
+  if (card && set === marks()) { card.classList.toggle("caught", set.has(ficheKey)); card.querySelector(".types").innerHTML = typesHtml(byKey.get(ficheKey)); }
+  updateStats();
+  renderFiche();
+});

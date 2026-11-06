@@ -483,3 +483,27 @@ dialog button:focus:not(:focus-visible) { outline: none; }
 @media (min-width: 601px) {
   dialog.now, dialog.sheet { margin: auto; border-radius: 14px; border-bottom: 1px solid var(--line); }
 }
+
+/* Fiche d'un Pokémon : le nom de la carte l'ouvre */
+.card .name { cursor: pointer; text-decoration: underline; text-decoration-color: rgba(27,143,176,.35); text-underline-offset: 3px; }
+dialog.fiche { padding: 16px; max-height: 88vh; overflow-y: auto; }
+dialog.fiche > form { position: absolute; top: 8px; right: 8px; }
+.fiche-hero { display: flex; align-items: center; gap: 14px; }
+.fiche-hero img { width: 96px; height: 96px; object-fit: contain; }
+.fiche-hero h2 { margin: 0; }
+.fiche-hero .dex { color: var(--muted); font-weight: 700; font-size: .85rem; }
+.fiche-types { font-weight: 700; font-size: .9rem; margin-top: 2px; }
+dialog.fiche h3 { margin: 16px 0 6px; font-size: .8rem; text-transform: uppercase; color: var(--muted); }
+.fiche-how div { display: flex; padding: 6px 0; border-bottom: 1px solid var(--soft); }
+.fiche-how b { margin-left: auto; padding-left: 8px; font-size: .8rem; color: #b7791f; white-space: nowrap; }
+.fiche-how .off { color: var(--muted); }
+.fiche-forms { display: flex; gap: 10px; flex-wrap: wrap; }
+dialog .fiche-forms button { background: none; border: 0; padding: 0; width: 76px; font-size: .78rem; color: var(--text); display: flex; flex-direction: column; align-items: center; }
+.fiche-forms img { width: 56px; height: 56px; object-fit: contain; }
+.fiche-forms .miss img { filter: grayscale(1) opacity(.45); }
+.fiche-forms .on { font-weight: 700; color: var(--strong); }
+.fiche-forms small { color: var(--muted); font-size: .72rem; }
+.fiche-btns { display: flex; gap: 8px; margin: 18px 0 12px; }
+dialog .fiche-btns button { flex: 1; padding: 11px; font-weight: 700; border-radius: 10px; }
+dialog .fiche-btns button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+dialog .fiche-btns button.gold.on { background: var(--gold); border-color: var(--gold); }

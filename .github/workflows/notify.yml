@@ -3,6 +3,11 @@ on:
   schedule:
     - cron: "0 7 * * *"   # 8 h (heure de Paris, hiver)
   workflow_dispatch:
+    inputs:
+      test:
+        description: "Test: send now, even what was already announced"
+        type: boolean
+        default: false
 jobs:
   notify:
     runs-on: ubuntu-latest
@@ -13,3 +18,4 @@ jobs:
         env:
           FIREBASE_SA: ${{ secrets.FIREBASE_SA }}
           VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
+          TEST: ${{ inputs.test }}

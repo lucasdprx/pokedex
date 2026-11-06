@@ -106,10 +106,11 @@ for snap in db.collection("users").stream():
     caught = d.get("caught") or []
     missing = {f"{dex}_{reg or ''}": (dex, reg, how) for (dex, reg), how in avail.items() if not has(caught, dex, reg)}
     sent = set(d.get("pushSent") or [])
-    fresh = [v for k, v in missing.items() if k not in sent]
+    test = os.environ.get("TEST") == "true"  # lancé à la main avec « test » : tout annoncer, sans rien noter
+    fresh = [v for k, v in missing.items() if test or k not in sent]
     upd = {"pushSent": sorted(missing)}  # repartis : annoncés à nouveau s'ils reviennent
     # Premier matin après l'abonnement : on note ce qui est déjà là, sans tout annoncer
-    if fresh and "pushSent" in d:
+    if fresh and ("pushSent" in d or test):
         lang = "fr" if d.get("pushLang") == "fr" else "en"
         one, many, et = TEXT[lang]
         hows = HOW_FR if lang == "fr" else HOW_EN
@@ -127,4 +128,7 @@ for snap in db.collection("users").stream():
             if e.response is not None and e.response.status_code in (404, 410):
                 upd["pushSub"] = None  # appareil désabonné
             print(snap.id, "échec", e)
-    snap.reference.update(upd)
+    if test:
+        upd.pop("pushSent")
+    if upd:
+        snap.reference.update(upd)

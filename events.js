@@ -246,11 +246,11 @@ function renderNow() {
   }
   // Vignettes sans nom, six par rangée (calendrier-allege v1 : A1) ; le nom au survol
   body.innerHTML = groups.map(g =>
-    `<div class="now-sub">${g.icon}${g.title}</div><div class="now-grid">` + g.list.map(({ e, missing }) => {
+    `<div class="now-sub">${g.icon}${g.title}</div><div class="now-grid">` + g.list.map(({ e, h, missing }) => {
       const sp = spriteOf(e);
       return `<div class="now-cell${missing ? " missing" : ""}" title="${e.name}"><img loading="lazy" src="${shinyMode ? SPRITE_TINY_SHINY(sp) : SPRITE_TINY(sp)}" alt="${e.name}" ` +
         `data-sprite="${sp}" data-shiny="${shinyMode ? 1 : 0}" onerror="imgFallback(this)">` +
-        (missing && nowFresh.has((shinyMode ? "s:" : "") + e.key) ? `<i class="now-dot"></i>` : "") + `</div>`;
+        (missing && nowFresh.has((shinyMode ? "s:" : "") + e.key) ? `<i class="now-dot"></i>` : "") + (h.start ? `<b>${fmtDay(h.start)}</b>` : "") + `</div>`;
     }).join("") + `</div>`).join("");
 }
 

@@ -64,6 +64,7 @@ header {
 .now-cell { position: relative; }
 .now-cell img { display: block; width: 100%; aspect-ratio: 1; object-fit: contain; }
 .now-cell.missing img { filter: grayscale(1) opacity(.45); }
+.now-cell b { display: block; text-align: center; font-size: .68rem; color: #b7791f; white-space: nowrap; }
 .now-cell .now-dot { position: absolute; top: 2px; right: 2px; }
 #langMenu { min-width: 160px; }
 #acctMenu { min-width: 200px; }

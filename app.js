@@ -309,6 +309,8 @@ function typesHtml(e) {
   // Manquant : comment l'avoir (events.js), une fois la liste Leek Duck reçue
   const how = window.howToGet && howToGet(e);
   if (how) return how;
+  // Pas encore attrapé : pas de types (ligne gardée vide pour la hauteur de la carte)
+  if (!marks().has(e.key)) return "&nbsp;";
   return e.types.map(ty =>
     `<span style="color:${TYPE_COLOR[ty] || "#aaa"}">${typeName(ty)}</span>`
   ).join("");

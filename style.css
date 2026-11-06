@@ -571,3 +571,24 @@ html[data-theme="dark"] .menu, html[data-theme="dark"] dialog { background: var(
 html[data-theme="dark"] dialog .danger { background: var(--deep); border-color: #6b2a2a; }
 html[data-theme="dark"] .pseudo input:focus { background: var(--deep); }
 html[data-theme="dark"] .now-row b.later, html[data-theme="dark"] .now-cell b, html[data-theme="dark"] .fiche-how b, html[data-theme="dark"] .types .zone { color: #e0a84a; }
+
+/* Écran de lancement : Poké Ball qui tremble puis s'ouvre en deux */
+#splash { position: fixed; inset: 0; z-index: 1000; pointer-events: none; --sp: #9fe3ec; }
+html[data-theme="dark"] #splash { --sp: #0a1c28; }
+#splash .sp-half { position: absolute; left: 0; right: 0; height: 50%; background: var(--sp);
+  animation: var(--open) .45s cubic-bezier(.5,0,.75,0) .6s forwards; }
+#splash .sp-t { top: 0; --open: sp-up; }
+#splash .sp-b { bottom: 0; --open: sp-down; }
+#splash .sp-half::after { content: ""; position: absolute; left: 50%; width: 96px; height: 48px; margin-left: -48px;
+  border: 5px solid #222; box-sizing: border-box; animation: sp-shake .5s ease-in-out .1s; }
+#splash .sp-t::after { bottom: 0; background: #e94560; border-radius: 48px 48px 0 0; border-bottom-width: 3px; }
+#splash .sp-b::after { top: 0; background: #fff; border-radius: 0 0 48px 48px; border-top-width: 3px; }
+#splash .sp-b::before { content: ""; position: absolute; top: -15px; left: 50%; margin-left: -15px; width: 30px; height: 30px;
+  border-radius: 50%; background: #fff; border: 5px solid #222; box-sizing: border-box; z-index: 1;
+  animation: sp-fade .1s linear .6s forwards; }
+@keyframes sp-shake { 0%,50%,100% { transform: none; } 15%,65% { transform: rotate(-8deg); } 35%,85% { transform: rotate(8deg); } }
+#splash .sp-t::after { transform-origin: 50% 100%; } #splash .sp-b::after { transform-origin: 50% 0; }
+@keyframes sp-up { to { transform: translateY(-100%); } }
+@keyframes sp-down { to { transform: translateY(100%); } }
+@keyframes sp-fade { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { #splash { display: none; } }

@@ -22,6 +22,11 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div id="splash" aria-hidden="true"><div class="sp-half sp-t"></div><div class="sp-half sp-b"></div></div>
+<script>
+// Écran de lancement (splash v2 : L1, Q1) : la Poké Ball tremble puis s'ouvre, ~1 s
+setTimeout(function () { var s = document.getElementById("splash"); if (s) s.remove(); }, 1300);
+</script>
 <header>
   <div class="top">
     <span class="ball"></span>

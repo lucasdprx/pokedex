@@ -175,7 +175,7 @@ function preloadNow() {
   const { now, soon } = sheetRows();
   const urls = new Set([...now, ...soon].map(({ e }) => (shinyMode ? SPRITE_TINY_SHINY : SPRITE_TINY)(spriteOf(e))));
   // Téléchargées et décodées, puis gardées en mémoire : la feuille les affiche sans travail
-  setTimeout(() => urls.forEach(u => { const img = new Image(); img.src = u; img.decode().then(() => nowImgs.push(img), () => {}); }), 2000);
+  setTimeout(() => urls.forEach(u => { const img = new Image(); img.crossOrigin = "anonymous"; img.src = u; img.decode().then(() => nowImgs.push(img), () => {}); }), 2000);
 }
 window.updateNowDot = () => {
   preloadNow();
@@ -253,7 +253,7 @@ function renderNow() {
   body.innerHTML = groups.map(g =>
     `<div class="now-sub ${g.kind}">${g.icon}${g.title}</div><div class="now-grid ${g.kind}">` + g.list.map(({ e, h, missing }) => {
       const sp = spriteOf(e), fresh = missing && nowFresh.has((shinyMode ? "s:" : "") + e.key);
-      return `<div class="now-cell${missing ? " missing" : ""}${fresh ? " fresh" : ""}" title="${e.name}" data-key="${e.key}" role="button" tabindex="0"><img decoding="async" src="${shinyMode ? SPRITE_TINY_SHINY(sp) : SPRITE_TINY(sp)}" alt="${e.name}" ` +
+      return `<div class="now-cell${missing ? " missing" : ""}${fresh ? " fresh" : ""}" title="${e.name}" data-key="${e.key}" role="button" tabindex="0"><img decoding="async" crossorigin="anonymous" src="${shinyMode ? SPRITE_TINY_SHINY(sp) : SPRITE_TINY(sp)}" alt="${e.name}" ` +
         `data-sprite="${sp}" data-shiny="${shinyMode ? 1 : 0}" onerror="imgFallback(this)">` +
         (fresh ? `<i class="now-dot"></i>` : "") + (h.start ? `<b>${fmtDay(h.start)}</b>` : "") + `</div>`;
     }).join("") + `</div>`).join("");

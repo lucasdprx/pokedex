@@ -519,4 +519,5 @@ dialog .fiche-btns button.gold.on { background: var(--gold); border-color: var(-
 /* Comparaison avec un ami */
 .friend-band { display: flex; align-items: center; margin: 8px 0 0; background: var(--accent); color: #fff; border-radius: 10px; padding: 8px 12px; font-size: .88rem; }
 .friend-band b { flex: 1; }
-.friend-band button { background: none; border: 0; color: #fff; font-size: 1rem; cursor: pointer; padding: 0 4px; }
+.friend-band[hidden] { display: none; }
+.friend-band button { background: none !important; border: 0 !important; box-shadow: none !important; color: #fff; font-size: 1rem; cursor: pointer; padding: 0 4px; }

@@ -521,3 +521,8 @@ dialog .fiche-btns button.gold.on { background: var(--gold); border-color: var(-
 .friend-band b { flex: 1; }
 .friend-band[hidden] { display: none; }
 .friend-band button { background: none !important; border: 0 !important; box-shadow: none !important; color: #fff; font-size: 1rem; cursor: pointer; padding: 0 4px; }
+
+/* Pseudo, dans la fenêtre du compte */
+.pseudo { display: block; margin: 0 0 14px; font-size: .8rem; font-weight: 700; color: var(--muted); text-transform: uppercase; }
+.pseudo[hidden] { display: none; }
+.pseudo input { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; padding: 10px; border: 2px solid var(--line); border-radius: 10px; font: inherit; font-size: 1rem; text-transform: none; color: var(--text); background: #fff; }

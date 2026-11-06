@@ -59,7 +59,15 @@ window.syncPush = push;
 
 // --- Partage (ami v1 : A1 menu, B1 bandeau) : shared/<uid> = prénom + coches, lisible par tous ---
 const SHARE_KEY = "pokedex-go-shared";
-const firstName = () => ((user.displayName || user.email || "").split(/[ @]/)[0] || "?");
+let pseudo = "";
+const firstName = () => pseudo || ((user.displayName || user.email || "").split(/[ @]/)[0] || "?");
+// Pseudo (nom-partage v1 : A2, champ du compte) : gardé sur le compte, montré à l'ami
+$("pseudo").addEventListener("change", () => {
+  if (!ready) return;
+  pseudo = $("pseudo").value.trim().slice(0, 24);
+  track(setDoc(ref, { pseudo }, { merge: true }));
+  if (localStorage.getItem(SHARE_KEY) === user.uid) pushShared();
+});
 const pushShared = () => setDoc(doc(db, "shared", user.uid), { name: firstName(), caught: marksApi.get().caught, updated: serverTimestamp() });
 window.shareLink = async () => {
   if (!ready) return null;
@@ -103,6 +111,8 @@ async function start(u) {
   unsub = onSnapshot(ref, snap => {
     if (snap.metadata.hasPendingWrites || !snap.exists()) return;
     const d = snap.data();
+    pseudo = d.pseudo || "";
+    if (document.activeElement !== $("pseudo")) $("pseudo").value = firstName();
     const c = d.caught || [], s = d.shiny || [];
     const m = marksApi.sets();
     if (!same(c, m.caught) || !same(s, m.shiny)) marksApi.set(c, s);
@@ -116,6 +126,7 @@ function showAccount(u) {
   $("signIn").hidden = !!u;
   $("signOut").hidden = !u;
   $("acctWho").hidden = !u;
+  $("pseudoBox").hidden = !u;
   $("acctWho").textContent = u ? (u.email || u.displayName || "") : "";
   const initial = u && (u.displayName || u.email || "?").trim()[0].toUpperCase();
   acct.innerHTML = u ? `<span class="av">${initial}</span>` : userIcon;

@@ -105,6 +105,19 @@ let shinyMode = false;          // bascule Normal / Shiny
 const FORM_KEYS = { mega: "pokedex-go-mega", shadow: "pokedex-go-shadow", purified: "pokedex-go-purified" };
 let formSets = Object.fromEntries(Object.entries(FORM_KEYS).map(([k, key]) => [k, loadCaught(key)]));
 let coll = "dex";               // collection affichée
+let megaEntries = [];           // cartes de la collection Méga
+const pool = () => coll === "mega" ? megaEntries : entries;
+// Illustration de chaque Méga (n° PokeAPI)
+const MEGA_SPRITES = { 3: 10033, "6 X": 10034, "6 Y": 10035, 9: 10036, 15: 10090, 18: 10073, 65: 10037, 80: 10071, 94: 10038,
+  115: 10039, 127: 10040, 130: 10041, 142: 10042, 181: 10045, 208: 10072, 212: 10046, 214: 10047, 229: 10048, 248: 10049,
+  254: 10065, 257: 10050, 260: 10064, 282: 10051, 302: 10066, 303: 10052, 306: 10053, 308: 10054, 310: 10055, 319: 10070,
+  323: 10087, 334: 10067, 354: 10056, 359: 10057, 362: 10074, 373: 10089, 376: 10076, 380: 10062, 381: 10063, 382: 10077,
+  383: 10078, 384: 10079, 428: 10088, 445: 10058, 448: 10059, 460: 10060, 475: 10068, 531: 10069, 719: 10075 };
+// Coches Méga d'avant (une par espèce, « 3_Normal ») → clés des cartes Méga
+for (const k of [...formSets.mega]) if (/_Normal$/.test(k)) {
+  formSets.mega.delete(k);
+  formSets.mega.add(k.replace(/_Normal$/, k === "6_Normal" ? "_MEGA_X" : "_MEGA"));
+}
 
 function loadCaught(key = STORE_KEY) {
   try { return new Set(JSON.parse(localStorage.getItem(key)) || []); }
@@ -170,7 +183,7 @@ async function init() {
     catch { localStorage.removeItem(CACHE_KEY); return init(); } // copie abîmée : on retélécharge
     els.status.style.display = "none";
     render();
-    if (Date.now() - cached.time < CACHE_MAX_AGE && cached.mega) return; // sans liste Méga : copie d'avant, on relit
+    if (Date.now() - cached.time < CACHE_MAX_AGE && cached.mega && typeof cached.mega[0] === "object") return; // sans liste Méga : copie d'avant, on relit
     // Données de plus d'un jour : mise à jour en fond, sans bloquer l'affichage
     try {
       const fresh = await fetchSources();
@@ -210,7 +223,9 @@ async function fetchSources() {
   const ids = (url, pick) => fetch(url).then(r => r.ok ? r.json() : null)
     .then(d => d ? [...new Set(pick(d))].sort((a, b) => a - b) : []).catch(() => []);
   const [mega, shadow] = await Promise.all([
-    ids("https://pogoapi.net/api/v1/mega_pokemon.json", d => d.map(m => m.pokemon_id)),
+    fetch("https://pogoapi.net/api/v1/mega_pokemon.json").then(r => r.ok ? r.json() : [])
+      .then(d => d.map(m => ({ id: m.pokemon_id, form: m.form, primal: /^Primal/.test(m.mega_name) }))
+        .sort((a, b) => a.id - b.id || a.form.localeCompare(b.form))).catch(() => []),
     ids("https://pogoapi.net/api/v1/shadow_pokemon.json", d => Object.keys(d).map(Number)),
   ]);
   if (!resTypes.ok) throw new Error("HTTP " + resTypes.status);
@@ -253,7 +268,8 @@ function buildEntries(src) {
   const { data, released: releasedList, shiny: shinyList = [] } = src;
   const released = new Set(releasedList);
   const shinyOut = new Set(shinyList);
-  const megaOut = new Set(src.mega || []), shadowOut = new Set(src.shadow || []);
+  const megaList = (src.mega || []).filter(m => typeof m === "object"); // ancienne copie : simples n°
+  const megaOut = new Set(megaList.map(m => m.id)), shadowOut = new Set(src.shadow || []);
   // Espèces dont la forme de base est présente dans les données.
   // Certaines espèces (Palarticho, M. Glaquette…) n'existent QUE sous un nom "régional"
   // (Galarian) sans forme de base : c'est alors leur forme normale, à compter.
@@ -299,7 +315,15 @@ function buildEntries(src) {
       shadowOut: shadowOut.has(e.pokemon_id), // existe en Obscur (et donc Purifié) ?
     };
   }).sort((a, b) => a.id - b.id || a.regional - b.regional || a.form.localeCompare(b.form));
-  byKey = new Map(entries.map(e => [e.key, e]));
+  // Collection Méga : une carte par Méga (Dracaufeu X et Y à part), avec son image
+  megaEntries = megaList.map(m => {
+    const base = entries.find(e => e.id === m.id && !e.regional);
+    if (!base) return null;
+    const x = m.form === "Normal" ? "" : " " + m.form;
+    return { ...base, key: m.id + "_MEGA" + (x ? "_" + m.form : ""), form: "MEGA" + (x ? "_" + m.form : ""),
+      name: t(m.primal ? "primalName" : "megaName", { n: base.name }) + x, sprite: MEGA_SPRITES[m.id + x] || base.id, regional: false };
+  }).filter(Boolean);
+  byKey = new Map(entries.concat(megaEntries).map(e => [e.key, e]));
   if (typeof buildHow === "function") buildHow();
 }
 
@@ -308,7 +332,7 @@ function filtered() {
   // Recherche multi-mots : chaque mot doit correspondre (nom, forme, région, type, n°)
   const terms = normalize(els.search.value).split(/\s+/).filter(Boolean);
   const mode = els.filter.value;
-  return entries.filter(e => {
+  return pool().filter(e => {
     if (mode === "caught" && !marks().has(e.key)) return false;
     if (mode === "missing" && (marks().has(e.key) || !can(e))) return false;
     if (mode === "unavailable" && can(e)) return false;
@@ -323,7 +347,7 @@ function filtered() {
   });
 }
 
-const spriteOf = e => REGIONAL_SPRITES[e.id + "_" + e.form.toUpperCase()] || e.id;
+const spriteOf = e => e.sprite || REGIONAL_SPRITES[e.id + "_" + e.form.toUpperCase()] || e.id;
 
 function typesHtml(e) {
   if (!e.available) return `<span class="na">${t("unavailable")}</span>`;
@@ -333,7 +357,7 @@ function typesHtml(e) {
   if (how) return how;
   // Pas encore attrapé : pas de types (ligne gardée vide pour la hauteur de la carte)
   if (!marks().has(e.key)) {
-    const zone = window.zoneOf && zoneOf(e); // régional : où le trouver (regionaux v1 : A2)
+    const zone = coll === "dex" && window.zoneOf && zoneOf(e); // régional : où le trouver (regionaux v1 : A2)
     return zone ? `<span class="zone">${zone}</span>` : "&nbsp;";
   }
   return e.types.map(ty =>
@@ -387,7 +411,7 @@ function toggle(key, card) {
   card.classList.toggle("caught");
   card.querySelector(".types").innerHTML = typesHtml(byKey.get(key));
   const e = byKey.get(key), now = set.has(key);
-  const done = r => entries.every(x => x.regional || !can(x) || x.region !== r || marks().has(x.key));
+  const done = r => pool().every(x => x.regional || !can(x) || x.region !== r || marks().has(x.key));
   const finished = now && done(e.region);
   card.classList.remove("pop", "shake");
   restartAnim(card, now ? "pop" : "shake");
@@ -444,7 +468,7 @@ els.grid.addEventListener("contextmenu", ev => {
 
 function updateStats() {
   // On ne compte que les formes de base disponibles (régionales et indisponibles exclues)
-  const base = entries.filter(e => !e.regional && can(e));
+  const base = pool().filter(e => !e.regional && can(e));
   const total = base.length;
   const got = base.filter(e => marks().has(e.key)).length;
   const pct = total ? Math.round((got / total) * 100) : 0;
@@ -458,7 +482,7 @@ var nowDotTimer = null; // var : utilisable avant cette ligne
 function renderGens() {
   const tot = {}, cau = {};
   let totAll = 0, cauAll = 0;
-  for (const e of entries) {
+  for (const e of pool()) {
     if (e.regional || !can(e)) continue;   // régionales et indisponibles non comptées
     tot[e.region] = (tot[e.region] || 0) + 1;
     totAll++;

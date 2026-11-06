@@ -537,3 +537,10 @@ dialog .fiche-btns button.gold.on { background: var(--gold); border-color: var(-
 body[data-coll="shadow"] .card.caught img { filter: drop-shadow(0 0 6px #7b3fb8); }
 body[data-coll="purified"] .card.caught img { filter: drop-shadow(0 0 6px #f6e27a); }
 body[data-coll="mega"] .card.caught img { filter: drop-shadow(0 0 6px #e0731f); }
+
+/* Téléphone : la recherche sur sa ligne, les deux choix dessous */
+@media (max-width: 600px) {
+  .controls { flex-wrap: wrap; }
+  .controls input[type="search"] { flex: 1 1 100%; order: -1; }
+  .controls select { flex: 1 1 0; }
+}

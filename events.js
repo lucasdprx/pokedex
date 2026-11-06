@@ -264,9 +264,14 @@ document.getElementById("nowBtn").addEventListener("click", () => {
   renderNow();
   nowDialog.showModal();
   // Ouverture (calendrier-effets v1 : A2) : la feuille monte, puis les vignettes arrivent rangée par rangée
-  [...document.querySelectorAll("#nowBody .now-cell")].slice(0, 48).forEach((c, i) => { c.style.animationDelay = 0.25 + Math.floor(i / 6) * 0.06 + (i % 6) * 0.02 + "s"; });
-  restartAnim(nowDialog, "opening");
-  setTimeout(() => nowDialog.classList.remove("opening"), 1500);
+  // Départ deux images plus tard : la feuille est déjà construite, aucune image de l'animation n'est sautée
+  [...document.querySelectorAll("#nowBody .now-cell")].slice(0, 48).forEach((c, i) => { c.style.animationDelay = 0.35 + Math.floor(i / 6) * 0.06 + (i % 6) * 0.02 + "s"; });
+  nowDialog.classList.add("before-open");
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    nowDialog.classList.remove("before-open");
+    restartAnim(nowDialog, "opening");
+    setTimeout(() => nowDialog.classList.remove("opening"), 1800);
+  }));
   loadDuck().then(() => { if (nowDialog.open) { markNowSeen(); renderNow(); } });
 });
 // Toucher une vignette : fermer la feuille et aller au Pokémon dans le Pokédex

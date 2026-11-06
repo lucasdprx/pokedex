@@ -1,4 +1,4 @@
-// « En ce moment » : ce qui te manque et qu'on peut avoir maintenant ou bientôt
+// « En ce moment » : les Pokémon (manquants d'abord) qu'on peut avoir maintenant ou bientôt
 // (raids, œufs, études de terrain, Heures vedettes, Journées Communauté).
 // Données : ScrapedDuck, copie automatique de Leek Duck (https://github.com/bigfoott/ScrapedDuck).
 // Les Pokémon sauvages des événements n'y sont pas : Leek Duck ne les liste pas.
@@ -74,6 +74,7 @@ function buildHow() {
   }
   for (const list of map.values()) list.sort((a, b) => (a.start || 0) - (b.start || 0));
   howMap = map;
+  updateNowCount();
   if (typeof render === "function" && els.grid.children.length) render();
 }
 
@@ -101,7 +102,7 @@ window.howToGet = e => {
   return `<span class="how">${howLabel(list[0])}</span>`;
 };
 
-// --- La feuille « En ce moment » (menu ⋯) ---
+// --- La feuille « En ce moment » (icône du haut) ---
 // Onglets Maintenant / Bientôt, puis Tout / Raids / Œufs / Études ; sous-titres par niveau.
 const nowDialog = document.getElementById("nowDialog");
 let nowPane = "now", nowCat = "all";
@@ -117,18 +118,31 @@ const EGG_COLORS = { 1: ["#59a9e0", "#7fc8f8"], 2: ["#5ba83a", "#8fd36b"], 5: ["
   7: ["#d9b62e", "#f4d35e"], 10: ["#8a5ccf", "#a77fe0"], 12: ["#c43c3c", "#e05252"] };
 const RAID_COLORS = { 1: "#f29bb6", 3: "#f4c430", 5: "#8a8fa3", mega: "#c0392b", shadow: "#6b3fa0" };
 
+// Tous les Pokémon disponibles (ceux que tu as aussi), dans le mode affiché
 function sheetRows() {
   const now = [], soon = [];
+  if (!howMap) return { now, soon };
   for (const e of entries) {
-    for (const h of howFor(e) || []) (h.start ? soon : now).push({ e, h });
+    if (!can(e)) continue;
+    const missing = !marks().has(e.key);
+    for (const h of (howMap.get(e.key) || []).filter(h => !shinyMode || h.shiny)) (h.start ? soon : now).push({ e, h, missing });
   }
   return { now, soon };
 }
 
+// Icône du haut : le jour, et combien de Pokémon qui te manquent sont disponibles maintenant
+window.updateNowCount = () => {
+  document.getElementById("nowDay").textContent = new Date().getDate();
+  const n = new Set(sheetRows().now.filter(r => r.missing).map(r => r.e.key)).size;
+  const el = document.getElementById("nowCount");
+  el.textContent = n;
+  el.hidden = !n;
+};
+
 // Groupes d'une liste : [{icon, title, rows, showTier}] dans l'ordre d'affichage
 function sheetGroups(rows) {
   const groups = [];
-  const push = (icon, title, list, showTier = false) => { if (list.length) groups.push({ icon, title, list, showTier }); };
+  const push = (icon, title, list, showTier = false) => { if (list.length) groups.push({ icon, title, list: list.sort((a, b) => b.missing - a.missing), showTier }); };
   const byStart = (a, b) => (a.h.start || 0) - (b.h.start || 0) || a.e.id - b.e.id;
   if (nowCat === "all" || nowCat === "raid") {
     const raids = rows.filter(r => r.h.src === "raid");
@@ -178,12 +192,12 @@ function renderNow() {
     return;
   }
   body.innerHTML = groups.map(g =>
-    `<div class="now-sub">${g.icon}${g.title}</div>` + g.list.map(({ e, h }) => {
+    `<div class="now-sub">${g.icon}${g.title}</div>` + g.list.map(({ e, h, missing }) => {
       const sp = spriteOf(e);
       const right = [g.showTier && h.detail ? (h.detail === "mega" ? t("mega") : h.detail + "★") : "",
         h.start ? t("fromDay", { d: fmtDay(h.start) }) : ""].filter(Boolean).join(" ");
-      return `<div class="now-row"><img loading="lazy" src="${shinyMode ? SPRITE_SMALL_SHINY(sp) : SPRITE_SMALL(sp)}" alt="" ` +
-        `data-sprite="${sp}" data-shiny="${shinyMode ? 1 : 0}" onerror="imgFallback(this)"><span>${e.name}</span>` +
+      return `<div class="now-row${missing ? " missing" : ""}"><img loading="lazy" src="${shinyMode ? SPRITE_SMALL_SHINY(sp) : SPRITE_SMALL(sp)}" alt="" ` +
+        `data-sprite="${sp}" data-shiny="${shinyMode ? 1 : 0}" onerror="imgFallback(this)"><span>${e.name}</span>` + (missing && !h.start ? `<i class="now-dot"></i>` : "") +
         `<b${h.start ? ' class="later"' : ""}>${right}</b></div>`;
     }).join("")).join("");
 }
@@ -204,4 +218,5 @@ for (const id of ["nowTabs", "nowCats"]) document.getElementById(id).addEventLis
   renderNow();
 });
 
+document.getElementById("nowDay").textContent = new Date().getDate();
 loadDuck();

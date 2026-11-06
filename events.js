@@ -246,6 +246,15 @@ function renderNow() {
     }).join("") + `</div>`).join("");
 }
 
+// Fermer (✕, Échap ou retour) : la feuille descend avant de disparaître
+function closeNow(then) {
+  if (nowDialog.classList.contains("closing")) return;
+  nowDialog.classList.add("closing");
+  setTimeout(() => { nowDialog.close(); nowDialog.classList.remove("closing"); then && then(); }, 250);
+}
+nowDialog.querySelector(".now-x").addEventListener("click", ev => { ev.preventDefault(); closeNow(); });
+nowDialog.addEventListener("cancel", ev => { ev.preventDefault(); closeNow(); });
+
 document.getElementById("nowBtn").addEventListener("click", () => {
   setMenu(false);
   nowPane = "now";
@@ -265,8 +274,7 @@ document.getElementById("nowBody").addEventListener("click", ev => {
   const cell = ev.target.closest(".now-cell");
   if (!cell) return;
   // calendrier-effets v1 : G2, la feuille descend puis la carte s'allume
-  nowDialog.classList.add("closing");
-  setTimeout(() => { nowDialog.close(); nowDialog.classList.remove("closing"); goToEntry(cell.dataset.key); }, 250);
+  closeNow(() => goToEntry(cell.dataset.key));
 });
 document.getElementById("nowBody").addEventListener("keydown", ev => {
   if ((ev.key === "Enter" || ev.key === " ") && ev.target.closest(".now-cell")) { ev.preventDefault(); ev.target.click(); }

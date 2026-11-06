@@ -1027,9 +1027,14 @@ function flash(msg) {
   clearTimeout(undoTimer);
   undoTimer = setTimeout(() => { el.hidden = true; }, 4000);
 }
-document.getElementById("notifBtn").addEventListener("click", async () => {
+document.getElementById("notifBtn").addEventListener("click", () => notifToggle().catch(err => flash(String(err && err.message || err))));
+async function notifToggle() {
+  // iPhone : la demande doit partir tout de suite après le toucher, avant toute attente
+  const turningOn = !notifSw.classList.contains("on");
+  if (turningOn && !(window.pushAccount && pushAccount())) { flash(t("notifLogin")); return; }
+  const perm = turningOn ? await Notification.requestPermission() : null;
   const reg = await navigator.serviceWorker.ready;
-  if (notifSw.classList.contains("on")) {
+  if (!turningOn) {
     const sub = await reg.pushManager.getSubscription();
     if (sub) await sub.unsubscribe();
     localStorage.setItem(NOTIF_KEY, "off");
@@ -1037,14 +1042,13 @@ document.getElementById("notifBtn").addEventListener("click", async () => {
     showNotif();
     return;
   }
-  if (!(window.pushAccount && pushAccount())) { flash(t("notifLogin")); return; }
-  if (await Notification.requestPermission() !== "granted") { flash(t("notifBlocked")); return; }
+  if (perm !== "granted") { flash(t("notifBlocked")); return; }
   const key = Uint8Array.from(atob(VAPID_PUBLIC.replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0));
   const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
   await savePushSub(sub.toJSON());
   localStorage.setItem(NOTIF_KEY, "on");
   showNotif();
-});
+}
 // Toucher la notification ouvre le site avec ?now : on ouvre le calendrier
 if (new URLSearchParams(location.search).has("now")) {
   history.replaceState(null, "", location.pathname);

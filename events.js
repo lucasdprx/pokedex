@@ -1,7 +1,6 @@
 // « En ce moment » : les Pokémon (manquants d'abord) qu'on peut avoir maintenant ou bientôt
-// (raids, œufs, études de terrain, sauvages des événements, Heures vedettes, Journées Communauté).
+// (raids, œufs, études de terrain, Heures vedettes, Journées Communauté).
 // Données : ScrapedDuck, copie automatique de Leek Duck (https://github.com/bigfoott/ScrapedDuck).
-// Les sauvages des événements n'y sont pas : wild.json, lu chaque jour sur Leek Duck (tools/wild.py).
 
 const DUCK = "https://raw.githubusercontent.com/bigfoott/ScrapedDuck/data/";
 const DUCK_KEY = "pokedex-go-events2";
@@ -19,8 +18,7 @@ async function loadDuck() {
   try {
     const get = f => fetch(DUCK + f + ".json").then(r => { if (!r.ok) throw r.status; return r.json(); });
     const [raids, eggs, research, events] = await Promise.all(["raids", "eggs", "research", "events"].map(get));
-    const wild = await fetch("wild.json").then(r => r.ok ? r.json() : []).catch(() => []);
-    duck = { time: Date.now(), raids, eggs, research, events, wild };
+    duck = { time: Date.now(), raids, eggs, research, events };
     try { localStorage.setItem(DUCK_KEY, JSON.stringify(duck)); } catch {}
     buildHow();
   } catch { /* hors ligne : la dernière liste reçue, ou rien */ }
@@ -64,10 +62,6 @@ function buildHow() {
   for (const task of duck.research || [])
     for (const r of task.rewards || []) add(r.name, r.image, "research", (task.text || "").replace(/<[^>]+>/g, "").trim(), r.canBeShiny);
   const now = Date.now();
-  for (const w of duck.wild || []) {
-    const start = parseDate(w.start), end = parseDate(w.end);
-    if (!(end && end < now)) add(w.name, w.image, "wild", "", w.canBeShiny, start && start > now ? start : null, end);
-  }
   for (const ev of duck.events || []) {
     const start = parseDate(ev.start), end = parseDate(ev.end);
     if (end && end < now) continue;
@@ -96,7 +90,6 @@ function howLabel(h) {
       : h.detail === "mega" ? t("raidMega") : t("raidN", { n: h.detail }))
     : h.src === "egg" ? t("eggKm", { km: h.detail })
     : h.src === "research" ? t("fieldResearch")
-    : h.src === "wild" ? t("wildOne")
     : h.src === "spotlight" ? t("spotlightOne") : t("cdayOne");
   return h.start ? base + " " + t("fromDay", { d: fmtDay(h.start) }) : base;
 }
@@ -217,7 +210,6 @@ function sheetGroups(rows) {
     const order = (duck.research || []).map(x => (x.text || "").replace(/<[^>]+>/g, "").trim());
     for (const task of [...new Set(research.map(r => r.h.detail))].sort((x, y) => order.indexOf(x) - order.indexOf(y))) push("", taskLabel(task), research.filter(r => r.h.detail === task).sort(byStart));
   }
-  if (nowCat === "all" || nowCat === "wild") push("", t("hWild"), rows.filter(r => r.h.src === "wild").sort(byStart));
   if (nowCat === "all") {
     push("", t("hSpotlight"), rows.filter(r => r.h.src === "spotlight").sort(byStart));
     push("", t("hCday"), rows.filter(r => r.h.src === "cday").sort(byStart));
@@ -233,7 +225,7 @@ function renderNow() {
     tab("p", "now", nowPane === "now", `${t("nowTab")} <span>${now.length}</span>`) +
     tab("p", "soon", nowPane === "soon", `${t("soonTab")} <span>${soon.length}</span>`);
   document.getElementById("nowCats").innerHTML =
-    [["all", "catAll"], ["raid", "catRaids"], ["egg", "catEggs"], ["research", "catResearch"], ["wild", "catWild"]]
+    [["all", "catAll"], ["raid", "catRaids"], ["egg", "catEggs"], ["research", "catResearch"]]
       .map(([k, key]) => tab("c", k, nowCat === k, t(key))).join("");
   const body = document.getElementById("nowBody");
   if (!howMap) { body.innerHTML = `<p class="now-empty">${t("nowOffline")}</p>`; return; }

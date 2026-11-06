@@ -531,3 +531,9 @@ dialog .fiche-btns button.gold.on { background: var(--gold); border-color: var(-
   font: inherit; font-size: .92rem; color: var(--text); outline: none;
 }
 .pseudo input:focus { border-color: var(--accent); background: #fff; }
+
+/* Collections Méga / Obscurs / Purifiés : choix à gauche du filtre ; un halo de couleur sur les cochés */
+#coll { flex: none; }
+body[data-coll="shadow"] .card.caught img { filter: drop-shadow(0 0 6px #7b3fb8); }
+body[data-coll="purified"] .card.caught img { filter: drop-shadow(0 0 6px #f6e27a); }
+body[data-coll="mega"] .card.caught img { filter: drop-shadow(0 0 6px #e0731f); }

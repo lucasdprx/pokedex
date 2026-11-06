@@ -101,6 +101,10 @@ let byKey = new Map();          // key → entrée, pour retrouver la carte cliq
 let caught = loadCaught();      // Set of keys (id + form)
 let shinyCaught = loadCaught(SHINY_KEY); // shiny cochés, mêmes clés
 let shinyMode = false;          // bascule Normal / Shiny
+// Collections Méga / Obscurs / Purifiés (formes v1 : A1, choix à gauche du filtre) : mêmes clés que le Pokédex
+const FORM_KEYS = { mega: "pokedex-go-mega", shadow: "pokedex-go-shadow", purified: "pokedex-go-purified" };
+let formSets = Object.fromEntries(Object.entries(FORM_KEYS).map(([k, key]) => [k, loadCaught(key)]));
+let coll = "dex";               // collection affichée
 
 function loadCaught(key = STORE_KEY) {
   try { return new Set(JSON.parse(localStorage.getItem(key)) || []); }
@@ -109,6 +113,7 @@ function loadCaught(key = STORE_KEY) {
 function saveLocal() {
   localStorage.setItem(STORE_KEY, JSON.stringify([...caught]));
   localStorage.setItem(SHINY_KEY, JSON.stringify([...shinyCaught]));
+  for (const [k, key] of Object.entries(FORM_KEYS)) localStorage.setItem(key, JSON.stringify([...formSets[k]]));
 }
 // Coche changée ici : gardée sur l'appareil, puis envoyée au compte (sync.js) s'il y en a un
 const SYNC_KEY = "pokedex-go-sync";
@@ -119,19 +124,21 @@ function saveCaught() {
 }
 // Pour sync.js : lire et remplacer les coches
 window.marksApi = {
-  get: () => ({ caught: [...caught], shiny: [...shinyCaught] }),
-  sets: () => ({ caught, shiny: shinyCaught }),
-  set(c, s) {
+  get: () => ({ caught: [...caught], shiny: [...shinyCaught], ...Object.fromEntries(Object.entries(formSets).map(([k, v]) => [k, [...v]])) }),
+  sets: () => ({ caught, shiny: shinyCaught, ...formSets }),
+  set(c, s, forms = null) {
     caught = new Set(c);
     shinyCaught = new Set(s);
+    if (forms) for (const k in FORM_KEYS) formSets[k] = new Set(forms[k] || []);
     saveLocal();
     if (entries.length) render();
   },
 };
 // Collection affichée : normale ou shiny
-const marks = () => shinyMode ? shinyCaught : caught;
+const marks = () => coll !== "dex" ? formSets[coll] : shinyMode ? shinyCaught : caught;
 // Cochable dans la collection affichée : sorti dans GO (et son shiny aussi, en mode Shiny)
-const can = e => e.available && (!shinyMode || e.shinyOut);
+const can = e => coll !== "dex" ? e.available && !e.regional && (coll === "mega" ? e.megaOut : e.shadowOut)
+  : e.available && (!shinyMode || e.shinyOut);
 function prettyForm(f) {
   return (f || "").replace(/_/g, " ").trim();
 }
@@ -163,14 +170,16 @@ async function init() {
     catch { localStorage.removeItem(CACHE_KEY); return init(); } // copie abîmée : on retélécharge
     els.status.style.display = "none";
     render();
-    if (Date.now() - cached.time < CACHE_MAX_AGE) return;
+    if (Date.now() - cached.time < CACHE_MAX_AGE && cached.mega) return; // sans liste Méga : copie d'avant, on relit
     // Données de plus d'un jour : mise à jour en fond, sans bloquer l'affichage
     try {
       const fresh = await fetchSources();
       writeCache(fresh);
       const changed = JSON.stringify(fresh.data) !== JSON.stringify(cached.data) ||
                       JSON.stringify(fresh.released) !== JSON.stringify(cached.released) ||
-                      JSON.stringify(fresh.shiny) !== JSON.stringify(cached.shiny);
+                      JSON.stringify(fresh.shiny) !== JSON.stringify(cached.shiny) ||
+                      JSON.stringify(fresh.mega) !== JSON.stringify(cached.mega) ||
+                      JSON.stringify(fresh.shadow) !== JSON.stringify(cached.shadow);
       if (changed) { buildEntries(fresh); render(); }
     } catch { /* hors ligne : on garde la copie */ }
     return;
@@ -196,6 +205,13 @@ async function fetchSources() {
   const [resTypes, resRel, resPvp, resShiny] = await Promise.all([
     fetch(TYPES_URL), fetch(RELEASED_URL), fetch(PVP_URL).catch(() => null),
     fetch(SHINY_URL).catch(() => null),
+  ]);
+  // Méga et Obscurs sortis (n° de Pokédex) ; vides si pogoapi ne répond pas
+  const ids = (url, pick) => fetch(url).then(r => r.ok ? r.json() : null)
+    .then(d => d ? [...new Set(pick(d))].sort((a, b) => a - b) : []).catch(() => []);
+  const [mega, shadow] = await Promise.all([
+    ids("https://pogoapi.net/api/v1/mega_pokemon.json", d => d.map(m => m.pokemon_id)),
+    ids("https://pogoapi.net/api/v1/shadow_pokemon.json", d => Object.keys(d).map(Number)),
   ]);
   if (!resTypes.ok) throw new Error("HTTP " + resTypes.status);
   if (!resRel.ok) throw new Error("HTTP " + resRel.status);
@@ -228,7 +244,7 @@ async function fetchSources() {
   if (resShiny && resShiny.ok) {
     try { shiny = Object.keys(await resShiny.json()).map(Number).sort((a, b) => a - b); } catch {}
   }
-  return { data, released: [...released].sort((a, b) => a - b), shiny };
+  return { data, released: [...released].sort((a, b) => a - b), shiny, mega, shadow };
 }
 
 // Données brutes → cartes (une par forme de base ou régionale)
@@ -237,6 +253,7 @@ function buildEntries(src) {
   const { data, released: releasedList, shiny: shinyList = [] } = src;
   const released = new Set(releasedList);
   const shinyOut = new Set(shinyList);
+  const megaOut = new Set(src.mega || []), shadowOut = new Set(src.shadow || []);
   // Espèces dont la forme de base est présente dans les données.
   // Certaines espèces (Palarticho, M. Glaquette…) n'existent QUE sous un nom "régional"
   // (Galarian) sans forme de base : c'est alors leur forme normale, à compter.
@@ -278,6 +295,8 @@ function buildEntries(src) {
       regional: !isBase,           // formes régionales : non comptées dans le Pokédex
       available: released.has(e.pokemon_id), // disponible dans Pokémon GO ?
       shinyOut: shinyOut.has(e.pokemon_id),   // son shiny est sorti ?
+      megaOut: megaOut.has(e.pokemon_id),     // a une Méga dans GO ?
+      shadowOut: shadowOut.has(e.pokemon_id), // existe en Obscur (et donc Purifié) ?
     };
   }).sort((a, b) => a.id - b.id || a.regional - b.regional || a.form.localeCompare(b.form));
   byKey = new Map(entries.map(e => [e.key, e]));
@@ -296,6 +315,7 @@ function filtered() {
     // Manquant et disponible maintenant (raid, œuf, étude, sauvage… sans date de début) : events.js
     if (mode === "now" && !(window.howToGet && (howFor(e) || []).some(h => !h.start))) return false;
     if (regionFilter && e.region !== regionFilter) return false;
+    if (coll !== "dex" && !can(e)) return false; // Méga / Obscurs / Purifiés : seulement ceux qui existent
     // Comparaison avec un ami : ce qu'il a et pas toi, ou l'inverse (formes de base)
     if (friend && (e.regional || !e.available || (friend.tab === 0 ? !friend.set.has(e.key) || caught.has(e.key) : !caught.has(e.key) || friend.set.has(e.key)))) return false;
     if (terms.length && !terms.every(t => e.search.includes(t))) return false;
@@ -1093,4 +1113,13 @@ document.getElementById("friendX").addEventListener("click", () => {
   document.getElementById("friendBand").hidden = true;
   history.replaceState(null, "", location.pathname);
   renderGens(); render();
+});
+
+// Choix de la collection : Pokédex / Méga / Obscurs / Purifiés
+document.getElementById("coll").addEventListener("change", ev => {
+  coll = ev.target.value;
+  document.body.dataset.coll = coll;
+  if (coll !== "dex" && shinyMode) setShiny(false); // le Shiny ne vaut que pour le Pokédex
+  updateStats();
+  render();
 });

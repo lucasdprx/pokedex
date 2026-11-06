@@ -51,7 +51,8 @@ function push() {
   if (!ready) return;
   const m = marksApi.get();
   // merge : garde l'abonnement aux notifications (pushSub) et ce qui a déjà été annoncé (pushSent)
-  track(setDoc(ref, { caught: m.caught, shiny: m.shiny, updated: serverTimestamp() }, { merge: true }));
+  track(setDoc(ref, { caught: m.caught, shiny: m.shiny, mega: m.mega, shadow: m.shadow, purified: m.purified,
+    updated: serverTimestamp() }, { merge: true }));
   localStorage.setItem(SYNC_KEY, "clean:" + user.uid);
   if (localStorage.getItem(SHARE_KEY) === user.uid) pushShared();
 }
@@ -84,6 +85,7 @@ if (window.onSyncReady) onSyncReady();
 window.pushAccount = () => ready;
 window.savePushSub = sub => setDoc(ref, { pushSub: sub ? JSON.stringify(sub) : null, pushLang: LANG }, { merge: true });
 
+const FORMS = ["mega", "shadow", "purified"]; // collections Méga / Obscurs / Purifiés
 const union = (a = [], b = []) => [...new Set([...a, ...b])];
 const same = (a, b) => a.length === b.size && a.every(k => b.has(k));
 
@@ -102,7 +104,8 @@ async function start(u) {
     }
     if (user !== u) return;
     const m = marksApi.get();
-    marksApi.set(union(m.caught, remote.caught), union(m.shiny, remote.shiny));
+    marksApi.set(union(m.caught, remote.caught), union(m.shiny, remote.shiny),
+      Object.fromEntries(FORMS.map(k => [k, union(m[k], remote[k])])));
     showToast(false);
   }
   ready = true;
@@ -115,7 +118,8 @@ async function start(u) {
     if (document.activeElement !== $("pseudo")) $("pseudo").value = firstName();
     const c = d.caught || [], s = d.shiny || [];
     const m = marksApi.sets();
-    if (!same(c, m.caught) || !same(s, m.shiny)) marksApi.set(c, s);
+    if (!same(c, m.caught) || !same(s, m.shiny) || FORMS.some(k => !same(d[k] || [], m[k])))
+      marksApi.set(c, s, Object.fromEntries(FORMS.map(k => [k, d[k] || []])));
   });
 }
 

@@ -310,7 +310,10 @@ function typesHtml(e) {
   const how = window.howToGet && howToGet(e);
   if (how) return how;
   // Pas encore attrapé : pas de types (ligne gardée vide pour la hauteur de la carte)
-  if (!marks().has(e.key)) return "&nbsp;";
+  if (!marks().has(e.key)) {
+    const zone = window.zoneOf && zoneOf(e); // régional : où le trouver (regionaux v1 : A2)
+    return zone ? `<span class="zone">${zone}</span>` : "&nbsp;";
+  }
   return e.types.map(ty =>
     `<span style="color:${TYPE_COLOR[ty] || "#aaa"}">${typeName(ty)}</span>`
   ).join("");

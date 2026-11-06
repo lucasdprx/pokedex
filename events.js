@@ -302,7 +302,8 @@ function renderFiche() {
     `<div class="fiche-hero"><img src="${shiny ? SPRITE_SMALL_SHINY(sp) : SPRITE_SMALL(sp)}" alt="" data-sprite="${sp}" data-shiny="${shiny ? 1 : 0}" onerror="imgFallback(this)">` +
     `<div><div class="dex">${String(e.id).padStart(4, "0")}</div><h2>${e.name}</h2><div class="fiche-types">` +
     e.types.map(ty => `<span style="color:${TYPE_COLOR[ty] || "#aaa"}">${typeName(ty)}</span>`).join(" ") + `</div></div></div>` +
-    (how.length ? `<h3>${t("fHow")}</h3><div class="fiche-how">` +
+    (how.length || zoneOf(e) ? `<h3>${t("fHow")}</h3><div class="fiche-how">` +
+      (zoneOf(e) ? `<div>${t("onlyIn", { z: zoneOf(e) })}</div>` : "") +
       how.map(h => `<div>${howLabel({ ...h, start: null })}<b>${h.start ? t("fromDay", { d: fmtDay(h.start) }) : ""}</b></div>`).join("") + `</div>` : "") +
     (forms.length > 1 ? `<h3>${t("fForms")}</h3><div class="fiche-forms">` + forms.map(f => {
       return `<button data-k="${f.key}" class="${f.key === e.key ? "on" : ""}${caught.has(f.key) ? "" : " miss"}"><img src="${SPRITE_TINY(spriteOf(f))}" alt="" data-sprite="${spriteOf(f)}" data-shiny="0" onerror="imgFallback(this)">` +
@@ -329,3 +330,28 @@ ficheDialog.addEventListener("click", ev => {
   updateStats();
   renderFiche();
 });
+
+// --- Pokémon régionaux : la zone du monde où on les trouve (d'après Leek Duck, regional-pokemon) ---
+// [fr, en] ; les autres langues prennent l'anglais
+const Z = {
+  asia: ["Asie", "Asia"], aus: ["Australie", "Australia"], eu: ["Europe", "Europe"], na: ["Amérique du Nord", "North America"],
+  latam: ["Amérique latine", "Latin America"], tropics: ["Tropiques", "Tropics"], americas: ["Amériques", "Americas"],
+  east: ["Europe, Afrique, Asie", "Europe, Africa, Asia"], africa: ["Afrique et Méditerranée", "Africa and Mediterranean"],
+  nz: ["Nouvelle-Zélande", "New Zealand"], south: ["Hémisphère sud", "Southern Hemisphere"], usse: ["Sud-est des États-Unis", "Southeastern US"],
+  north: ["Alaska, Canada, Russie", "Alaska, Canada, Russia"], apac: ["Asie-Pacifique", "Asia-Pacific"],
+  emea: ["Europe, Moyen-Orient, Afrique, Inde", "Europe, Middle East, Africa, India"], egypt: ["Égypte et Grèce", "Egypt and Greece"],
+  nyc: ["New York", "New York"], fr: ["France", "France"], mx: ["Mexique", "Mexico"], hi: ["Hawaï", "Hawaii"], uk: ["Royaume-Uni", "United Kingdom"],
+  ssasia: ["Asie du Sud et du Sud-Est", "South and Southeast Asia"], split: ["Une moitié du monde", "Half of the world"],
+};
+const REGIONAL_ZONE = {
+  83: "asia", 115: "aus", 122: "eu", 128: "na", 214: "latam", 222: "tropics", 313: "split", 314: "split", 324: "ssasia",
+  335: "split", 336: "split", 337: "americas", 338: "east", 357: "africa", 369: "nz", 417: "north", 441: "south", 455: "usse",
+  480: "apac", 481: "emea", 482: "americas", 511: "apac", 513: "emea", 515: "americas", 538: "split", 539: "split",
+  556: "americas", 561: "egypt", 626: "nyc", 631: "split", 632: "split", 701: "mx", 707: "fr", 764: "hi",
+  765: "split", 766: "split", 874: "uk",
+};
+// Zone d'un Pokémon régional (forme de base seulement : les formes d'Alola, Galar… sont partout)
+window.zoneOf = e => {
+  const z = !e.regional && Z[REGIONAL_ZONE[e.id]];
+  return z ? (LANG === "fr" ? z[0] : z[1]) : null;
+};

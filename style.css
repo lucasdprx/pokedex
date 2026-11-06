@@ -507,3 +507,4 @@ dialog .fiche-forms button { background: none; border: 0; padding: 0; width: 76p
 dialog .fiche-btns button { flex: 1; padding: 11px; font-weight: 700; border-radius: 10px; }
 dialog .fiche-btns button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 dialog .fiche-btns button.gold.on { background: var(--gold); border-color: var(--gold); }
+.types .zone { color: #b7791f; }

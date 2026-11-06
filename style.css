@@ -617,8 +617,8 @@ body[data-coll="shadow"] .card::before, body[data-coll="purified"] .card::before
   content: ""; position: absolute; top: 12px; left: 50%; width: 64px; height: 64px; margin-left: -32px; border-radius: 50%;
   pointer-events: none; animation: aura 1.6s ease-in-out infinite alternate;
 }
-body[data-coll="shadow"] .card::before { background: radial-gradient(#a35ce0, #6a2fb0 60%, transparent 70%); filter: blur(6px); }
-body[data-coll="purified"] .card::before { background: radial-gradient(#fff6c8, rgba(246,226,122,.6) 45%, transparent 70%); filter: blur(5px); }
+body[data-coll="shadow"] .card::before { background: radial-gradient(#a35ce0, rgba(106,47,176,.7) 50%, transparent 75%); }
+body[data-coll="purified"] .card::before { background: radial-gradient(#fff6c8, rgba(246,226,122,.5) 45%, transparent 75%); }
 body[data-coll="shadow"] .card img, body[data-coll="purified"] .card img { position: relative; }
 @keyframes aura { from { transform: scale(.9) translateY(2px); opacity: .6; } to { transform: scale(1.15, 1.25) translateY(-4px); opacity: .95; } }
 /* H1 : le soleil descend, la lune monte ; l'écran passe en fondu */
@@ -639,6 +639,8 @@ html[data-theme="dark"] .sky i + i { transform: none; }
 
 /* --- Effets du calendrier (calendrier-effets v1 : A2, B1, B2, C1, D1, E1, E2, F2, G2) --- */
 dialog.now.before-open { transform: translateY(100%); }
+dialog.now.opening, dialog.now.closing { will-change: transform; }
+.now-scroll { contain: content; }
 dialog.now.opening { animation: now-up .45s cubic-bezier(.3,.6,.35,1) both; }
 dialog.now.before-open .now-cell, dialog.now.opening .now-cell { animation: now-casc .3s ease-out both; }
 @keyframes now-up { from { transform: translateY(100%); } }
@@ -659,7 +661,7 @@ dialog.now.closing { animation: now-down .25s ease-in forwards; }
 @keyframes now-wob { 0%, 70%, 100% { transform: none; } 75% { transform: rotate(-14deg); } 80% { transform: rotate(12deg); } 85% { transform: rotate(-8deg); } 90% { transform: rotate(4deg); } }
 /* D1 : flammes violettes des raids obscurs */
 .now-grid.shadow .now-cell::before { content: ""; position: absolute; inset: 12% 14% 4%; border-radius: 50% 50% 45% 45%;
-  background: radial-gradient(ellipse at 50% 70%, #a35ce0, #6a2fb0 55%, transparent 72%); filter: blur(3px);
+  background: radial-gradient(ellipse at 50% 70%, #a35ce0, rgba(106,47,176,.7) 50%, transparent 75%);
   animation: aura 1.4s ease-in-out infinite alternate; }
 .now-grid.shadow .now-cell img { position: relative; }
 /* E1 : les nouveaux sautillent à l'ouverture ; E2 : leur point pulse */

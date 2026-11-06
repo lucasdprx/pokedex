@@ -251,7 +251,7 @@ function renderNow() {
   body.innerHTML = groups.map(g =>
     `<div class="now-sub ${g.kind}">${g.icon}${g.title}</div><div class="now-grid ${g.kind}">` + g.list.map(({ e, h, missing }) => {
       const sp = spriteOf(e), fresh = missing && nowFresh.has((shinyMode ? "s:" : "") + e.key);
-      return `<div class="now-cell${missing ? " missing" : ""}${fresh ? " fresh" : ""}" title="${e.name}" data-key="${e.key}" role="button" tabindex="0"><img loading="lazy" src="${shinyMode ? SPRITE_TINY_SHINY(sp) : SPRITE_TINY(sp)}" alt="${e.name}" ` +
+      return `<div class="now-cell${missing ? " missing" : ""}${fresh ? " fresh" : ""}" title="${e.name}" data-key="${e.key}" role="button" tabindex="0"><img decoding="async" src="${shinyMode ? SPRITE_TINY_SHINY(sp) : SPRITE_TINY(sp)}" alt="${e.name}" ` +
         `data-sprite="${sp}" data-shiny="${shinyMode ? 1 : 0}" onerror="imgFallback(this)">` +
         (fresh ? `<i class="now-dot"></i>` : "") + (h.start ? `<b>${fmtDay(h.start)}</b>` : "") + `</div>`;
     }).join("") + `</div>`).join("");
@@ -278,7 +278,8 @@ document.getElementById("nowBtn").addEventListener("click", () => {
   [...document.querySelectorAll("#nowBody .now-cell")].slice(0, 48).forEach((c, i) => { c.style.animationDelay = 0.3 + Math.floor(i / 6) * 0.06 + (i % 6) * 0.02 + "s"; });
   restartAnim(nowDialog, "opening");
   setTimeout(() => nowDialog.classList.remove("opening"), 1800);
-  loadDuck().then(() => { if (nowDialog.open) { markNowSeen(); renderNow(); } });
+  // Mise à jour de la liste après la montée : rien de lourd pendant l'animation
+  setTimeout(() => loadDuck().then(() => { if (nowDialog.open) { markNowSeen(); renderNow(); } }), 600);
 });
 // Toucher une vignette : fermer la feuille et aller au Pokémon dans le Pokédex
 document.getElementById("nowBody").addEventListener("click", ev => {

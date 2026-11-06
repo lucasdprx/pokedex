@@ -50,8 +50,12 @@ def add(name, img, how):
     dex = dex_of(img)
     if not dex:
         return
-    reg = next((f for w, f in REGIONAL.items() if w in (name or "")), None)
-    avail.setdefault((dex, reg), how)
+    name = name or ""
+    reg = next((f for w, f in REGIONAL.items() if w in name), None)
+    # Méga et Obscurs : comparés à leur collection (mega, shadow), pas au Pokédex normal
+    kind = "mega" if re.match(r"(Mega|Primal) ", name) else "shadow" if name.startswith("Shadow ") else None
+    mform = (re.search(r" ([XY])$", name) or [None, ""])[1] if kind == "mega" else ""
+    avail.setdefault((dex, None if kind else reg, kind, mform), how)
 
 
 for r in get(DUCK + "raids.json"):
@@ -89,9 +93,23 @@ def has(caught, dex, reg):
     return False
 
 
-def label(dex, reg, lang):
+def has_form(d, dex, kind, mform):
+    """La Méga (clé « 6_MEGA_X ») ou l'Obscur (clé « 9_Normal ») est-il coché dans sa collection ?"""
+    if kind == "mega":
+        keys = {f"{dex}_MEGA" + (f"_{mform}" if mform else "")}
+        if not mform:
+            keys.add(f"{dex}_Normal")  # anciennes coches Méga
+        return bool(keys & set(d.get("mega") or []))
+    return any(k.partition("_")[0] == str(dex) for k in d.get("shadow") or [])
+
+
+def label(dex, reg, lang, kind=None, mform=""):
     lst = names.get(lang) or names.get("en") or []
     n = lst[dex - 1] if 0 < dex <= len(lst) else str(dex)
+    if kind == "mega":
+        return (f"Méga-{n}" if lang == "fr" else f"Mega {n}") + (f" {mform}" if mform else "")
+    if kind == "shadow":
+        return f"{n} obscur" if lang == "fr" else f"Shadow {n}"
     if not reg:
         return n
     fr = {"Alola": "d'Alola", "Galarian": "de Galar", "Hisuian": "de Hisui", "Paldea": "de Paldea"}
@@ -110,7 +128,12 @@ for snap in db.collection("users").stream():
         print(snap.id, ": pas abonné")
         continue
     caught = d.get("caught") or []
-    missing = {f"{dex}_{reg or ''}": (dex, reg, how) for (dex, reg), how in avail.items() if not has(caught, dex, reg)}
+    missing = {}
+    for (dex, reg, kind, mform), how in avail.items():
+        got = has_form(d, dex, kind, mform) if kind else has(caught, dex, reg)
+        if not got:
+            k = f"{dex}_{reg or ''}" + (f"_{kind}{mform}" if kind else "")
+            missing[k] = (dex, reg, how, kind, mform)
     sent = set(d.get("pushSent") or [])
     test = os.environ.get("TEST") == "true"  # lancé à la main avec « test » : tout annoncer, sans rien noter
     fresh = [v for k, v in missing.items() if test or k not in sent]
@@ -121,7 +144,7 @@ for snap in db.collection("users").stream():
         lang = "fr" if d.get("pushLang") == "fr" else "en"
         one, many, et = TEXT[lang]
         hows = HOW_FR if lang == "fr" else HOW_EN
-        parts = [f"{label(dex, reg, lang)} {hows[how[0]]}" for dex, reg, how in fresh[:4]]
+        parts = [f"{label(dex, reg, lang, kind, mform)} {hows[how[0]]}" for dex, reg, how, kind, mform in fresh[:4]]
         body = (", ".join(parts[:-1]) + et + parts[-1]) if len(parts) > 1 else parts[0]
         if len(fresh) > 4:
             body += "…"

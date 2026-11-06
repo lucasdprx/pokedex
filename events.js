@@ -45,12 +45,12 @@ const parseDate = s => s ? new Date(s).getTime() : null;
 function buildHow() {
   if (!duck || !entries.length) return;
   const map = new Map();
-  const add = (name, img, src, detail, shiny, start = null, end = null) => {
+  const add = (name, img, src, detail, shiny, start = null, end = null, shadow = false) => {
     const e = entryOf(name, img);
     if (!e) return;
     const list = map.get(e.key) || [];
     // Même source et même début déjà notés (raid listé deux fois) : on garde le premier
-    if (!list.some(h => h.src === src && h.start === start)) list.push({ src, detail, start, end, shiny: shiny !== false });
+    if (!list.some(h => h.src === src && h.start === start && h.shadow === shadow)) list.push({ src, detail, start, end, shadow, shiny: shiny !== false });
     map.set(e.key, list);
   };
   const tier = s => {
@@ -58,7 +58,7 @@ function buildHow() {
     const n = (s.match(/(\d)-star/i) || [])[1];
     return n ? +n : "";
   };
-  for (const r of duck.raids || []) add(r.name, r.image, "raid", tier(r.tier), r.canBeShiny);
+  for (const r of duck.raids || []) add(r.name, r.image, "raid", tier(r.tier), r.canBeShiny, null, null, /^Shadow /.test(r.name));
   for (const g of duck.eggs || []) add(g.name, g.image, "egg", g.eggType, g.canBeShiny);
   for (const task of duck.research || [])
     for (const r of task.rewards || []) add(r.name, r.image, "research", "", r.canBeShiny);
@@ -70,7 +70,7 @@ function buildHow() {
     const when = start && start > now ? start : null; // à venir : sa date ; en cours : maintenant
     if (x.spotlight) for (const p of x.spotlight.list || []) add(p.name, p.image, "spotlight", "", p.canBeShiny, when, end);
     if (x.communityday) for (const p of x.communityday.spawns || []) add(p.name, p.image, "cday", "", true, when, end);
-    if (x.raidbattles && when) for (const p of x.raidbattles.bosses || []) add(p.name, p.image, "raid", tier(ev.name), p.canBeShiny, when, end);
+    if (x.raidbattles && when) for (const p of x.raidbattles.bosses || []) add(p.name, p.image, "raid", tier(ev.name), p.canBeShiny, when, end, /shadow/i.test(ev.name));
   }
   for (const list of map.values()) list.sort((a, b) => (a.start || 0) - (b.start || 0));
   howMap = map;
@@ -85,7 +85,8 @@ function howFor(e) {
 
 const fmtDay = ms => new Date(ms).toLocaleDateString(LANG, { day: "numeric", month: "short" });
 function howLabel(h) {
-  const base = h.src === "raid" ? (h.detail === "mega" ? t("raidMega") : t("raidN", { n: h.detail }))
+  const base = h.src === "raid" ? (h.shadow ? t("raidShadow") + (h.detail ? " " + h.detail + "★" : "")
+      : h.detail === "mega" ? t("raidMega") : t("raidN", { n: h.detail }))
     : h.src === "egg" ? t("eggKm", { km: h.detail })
     : h.src === "research" ? t("fieldResearch")
     : h.src === "spotlight" ? t("spotlightOne") : t("cdayOne");
@@ -101,10 +102,20 @@ window.howToGet = e => {
 };
 
 // --- La feuille « En ce moment » (menu ⋯) ---
+// Onglets Maintenant / Bientôt, puis Tout / Raids / Œufs / Études ; sous-titres par niveau.
 const nowDialog = document.getElementById("nowDialog");
-let nowPane = "now";
-const SRC_ORDER = ["raid", "egg", "research", "spotlight", "cday"];
-const SRC_HEAD = { raid: "hRaids", egg: "hEggs", research: "hResearch", spotlight: "hSpotlight", cday: "hCday" };
+let nowPane = "now", nowCat = "all";
+
+// Icônes dessinées pour le site, aux couleurs des œufs et des raids du jeu
+const EGG_SHAPE = "M12 2.5c4.2 0 7.5 6.6 7.5 11.3A7.5 7.5 0 0 1 4.5 13.8C4.5 9.1 7.8 2.5 12 2.5z";
+const eggIcon = (band, spot) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${EGG_SHAPE}" fill="#fff" stroke="#9bbcc8"/>` +
+  `<circle cx="9" cy="9" r="2.2" fill="${spot}"/><circle cx="15" cy="12.5" r="2.6" fill="${spot}"/><circle cx="9.5" cy="16" r="1.8" fill="${spot}"/>` +
+  `<path d="M5 15.5c2 1.6 12 1.6 14 0" stroke="${band}" stroke-width="2.2" fill="none"/></svg>`;
+const raidIcon = fill => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${EGG_SHAPE}" fill="${fill}" stroke="rgba(0,0,0,.25)"/>` +
+  `<path d="M12 9l1.3 2.7 2.9.3-2.2 2 .7 2.9L12 15.4 9.3 16.9l.7-2.9-2.2-2 2.9-.3z" fill="#fff"/></svg>`;
+const EGG_COLORS = { 1: ["#59a9e0", "#7fc8f8"], 2: ["#5ba83a", "#8fd36b"], 5: ["#e08a24", "#f5a142"],
+  7: ["#d9b62e", "#f4d35e"], 10: ["#8a5ccf", "#a77fe0"], 12: ["#c43c3c", "#e05252"] };
+const RAID_COLORS = { 1: "#f29bb6", 3: "#f4c430", 5: "#8a8fa3", mega: "#c0392b", shadow: "#6b3fa0" };
 
 function sheetRows() {
   const now = [], soon = [];
@@ -114,41 +125,77 @@ function sheetRows() {
   return { now, soon };
 }
 
+// Groupes d'une liste : [{icon, title, rows, showTier}] dans l'ordre d'affichage
+function sheetGroups(rows) {
+  const groups = [];
+  const push = (icon, title, list, showTier = false) => { if (list.length) groups.push({ icon, title, list, showTier }); };
+  const byStart = (a, b) => (a.h.start || 0) - (b.h.start || 0) || a.e.id - b.e.id;
+  if (nowCat === "all" || nowCat === "raid") {
+    const raids = rows.filter(r => r.h.src === "raid");
+    const plain = raids.filter(r => !r.h.shadow);
+    // 5★ (et plus), Méga, puis les autres niveaux du plus haut au plus bas
+    const tiers = [...new Set(plain.map(r => r.h.detail))].sort((a, b) =>
+      (a === "mega" ? 4.5 : +a || 0) > (b === "mega" ? 4.5 : +b || 0) ? -1 : 1);
+    for (const tr of tiers) push(raidIcon(RAID_COLORS[tr] || RAID_COLORS[5]),
+      tr === "mega" ? t("hRaidMega") : tr ? t("hRaidTier", { n: tr }) : t("hRaids"),
+      plain.filter(r => r.h.detail === tr).sort(byStart));
+    push(raidIcon(RAID_COLORS.shadow), t("hRaidShadow"),
+      raids.filter(r => r.h.shadow).sort((a, b) => (+b.h.detail || 0) - (+a.h.detail || 0) || byStart(a, b)), true);
+  }
+  if (nowCat === "all" || nowCat === "egg") {
+    const eggs = rows.filter(r => r.h.src === "egg");
+    const kms = [...new Set(eggs.map(r => r.h.detail))].sort((a, b) => parseFloat(a) - parseFloat(b));
+    for (const km of kms) {
+      const c = EGG_COLORS[parseFloat(km)] || EGG_COLORS[5];
+      push(eggIcon(c[0], c[1]), t("hEggKm", { km }), eggs.filter(r => r.h.detail === km).sort(byStart));
+    }
+  }
+  if (nowCat === "all" || nowCat === "research") push("", t("hResearch"), rows.filter(r => r.h.src === "research").sort(byStart));
+  if (nowCat === "all") {
+    push("", t("hSpotlight"), rows.filter(r => r.h.src === "spotlight").sort(byStart));
+    push("", t("hCday"), rows.filter(r => r.h.src === "cday").sort(byStart));
+  }
+  return groups;
+}
+
 function renderNow() {
   const { now, soon } = sheetRows();
   document.getElementById("nowTitle").textContent = t("nowTitle") + (shinyMode ? " ✦" : "");
+  const tab = (attr, key, on, label) => `<button data-${attr}="${key}"${on ? ' class="on"' : ""}>${label}</button>`;
   document.getElementById("nowTabs").innerHTML =
-    `<button data-p="now"${nowPane === "now" ? ' class="on"' : ""}>${t("nowTab")} <span>${now.length}</span></button>` +
-    `<button data-p="soon"${nowPane === "soon" ? ' class="on"' : ""}>${t("soonTab")} <span>${soon.length}</span></button>`;
-  const rows = nowPane === "now" ? now : soon;
+    tab("p", "now", nowPane === "now", `${t("nowTab")} <span>${now.length}</span>`) +
+    tab("p", "soon", nowPane === "soon", `${t("soonTab")} <span>${soon.length}</span>`);
+  document.getElementById("nowCats").innerHTML =
+    [["all", "catAll"], ["raid", "catRaids"], ["egg", "catEggs"], ["research", "catResearch"]]
+      .map(([k, key]) => tab("c", k, nowCat === k, t(key))).join("");
   const body = document.getElementById("nowBody");
   if (!howMap) { body.innerHTML = `<p class="now-empty">${t("nowOffline")}</p>`; return; }
-  if (!rows.length) { body.innerHTML = `<p class="now-empty">${t("nowNothing")}</p>`; return; }
-  body.innerHTML = SRC_ORDER.map(src => {
-    const list = rows.filter(r => r.h.src === src).sort((a, b) => (a.h.start || 0) - (b.h.start || 0) || a.e.id - b.e.id);
-    if (!list.length) return "";
-    return `<h3>${t(SRC_HEAD[src])}</h3>` + list.map(({ e, h }) => {
+  const groups = sheetGroups(nowPane === "now" ? now : soon);
+  if (!groups.length) { body.innerHTML = `<p class="now-empty">${t("nowNothing")}</p>`; return; }
+  body.innerHTML = groups.map(g =>
+    `<div class="now-sub">${g.icon}${g.title}</div>` + g.list.map(({ e, h }) => {
       const sp = spriteOf(e);
-      const detail = h.src === "raid" ? (h.detail === "mega" ? t("mega") : h.detail + "★") : h.src === "egg" ? h.detail : "";
-      const when = h.start ? t("fromDay", { d: fmtDay(h.start) }) : "";
+      const right = [g.showTier && h.detail ? (h.detail === "mega" ? t("mega") : h.detail + "★") : "",
+        h.start ? t("fromDay", { d: fmtDay(h.start) }) : ""].filter(Boolean).join(" ");
       return `<div class="now-row"><img loading="lazy" src="${shinyMode ? SPRITE_SMALL_SHINY(sp) : SPRITE_SMALL(sp)}" alt="" ` +
         `data-sprite="${sp}" data-shiny="${shinyMode ? 1 : 0}" onerror="imgFallback(this)"><span>${e.name}</span>` +
-        `<b${h.start ? ' class="later"' : ""}>${[detail, when].filter(Boolean).join(" ")}</b></div>`;
-    }).join("");
-  }).join("");
+        `<b${h.start ? ' class="later"' : ""}>${right}</b></div>`;
+    }).join("")).join("");
 }
 
 document.getElementById("nowBtn").addEventListener("click", () => {
   setMenu(false);
   nowPane = "now";
+  nowCat = "all";
   renderNow();
   nowDialog.showModal();
   loadDuck().then(() => { if (nowDialog.open) renderNow(); });
 });
-document.getElementById("nowTabs").addEventListener("click", ev => {
-  const b = ev.target.closest("button[data-p]");
+for (const id of ["nowTabs", "nowCats"]) document.getElementById(id).addEventListener("click", ev => {
+  const b = ev.target.closest("button[data-p],button[data-c]");
   if (!b) return;
-  nowPane = b.dataset.p;
+  if (b.dataset.p) nowPane = b.dataset.p;
+  if (b.dataset.c) nowCat = b.dataset.c;
   renderNow();
 });
 

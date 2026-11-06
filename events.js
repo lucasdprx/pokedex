@@ -74,7 +74,8 @@ function buildHow() {
   }
   for (const list of map.values()) list.sort((a, b) => (a.start || 0) - (b.start || 0));
   howMap = map;
-  updateNowCount();
+  updateNowDot();
+  if (nowDialog.open) markNowSeen();
   if (typeof render === "function" && els.grid.children.length) render();
 }
 
@@ -130,14 +131,21 @@ function sheetRows() {
   return { now, soon };
 }
 
-// Icône du haut : le jour, et combien de Pokémon qui te manquent sont disponibles maintenant
-window.updateNowCount = () => {
-  document.getElementById("nowDay").textContent = new Date().getDate();
-  const n = new Set(sheetRows().now.filter(r => r.missing).map(r => r.e.key)).size;
-  const el = document.getElementById("nowCount");
-  el.textContent = n;
-  el.hidden = !n;
+// Icône du haut : le jour, et un point quand un Pokémon qui te manque est disponible
+// et pas encore vu dans la feuille (il part à l'ouverture, revient avec du neuf)
+const SEEN_KEY = "pokedex-go-now-seen";
+const missingNow = () => [...new Set(sheetRows().now.filter(r => r.missing).map(r => (shinyMode ? "s:" : "") + r.e.key))];
+const seenNow = () => { try { return new Set(JSON.parse(localStorage.getItem(SEEN_KEY)) || []); } catch { return new Set(); } };
+window.updateNowDot = () => {
+  const seen = seenNow();
+  document.getElementById("nowDot").hidden = !missingNow().some(k => !seen.has(k));
 };
+function markNowSeen() {
+  const seen = seenNow();
+  for (const k of missingNow()) seen.add(k);
+  try { localStorage.setItem(SEEN_KEY, JSON.stringify([...seen])); } catch {}
+  updateNowDot();
+}
 
 // Groupes d'une liste : [{icon, title, rows, showTier}] dans l'ordre d'affichage
 function sheetGroups(rows) {
@@ -208,7 +216,8 @@ document.getElementById("nowBtn").addEventListener("click", () => {
   nowCat = "all";
   renderNow();
   nowDialog.showModal();
-  loadDuck().then(() => { if (nowDialog.open) renderNow(); });
+  markNowSeen();
+  loadDuck().then(() => { if (nowDialog.open) { renderNow(); markNowSeen(); } });
 });
 for (const id of ["nowTabs", "nowCats"]) document.getElementById(id).addEventListener("click", ev => {
   const b = ev.target.closest("button[data-p],button[data-c]");

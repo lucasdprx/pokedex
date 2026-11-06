@@ -69,11 +69,8 @@
     .globe { padding: 2px; }
   }
   #nowBtn { margin-left: auto; position: relative; }
-  /* Nombre de Pokémon manquants disponibles maintenant */
-  #nowCount {
-    position: absolute; top: -5px; right: -4px; min-width: 15px; height: 15px; padding: 0 3px; box-sizing: border-box;
-    border-radius: 8px; background: var(--warn); color: #fff; font: 700 .62rem/15px system-ui, sans-serif; font-style: normal; text-align: center;
-  } /* slop-ok : badge de compte */
+  /* Point : un Pokémon qui te manque est disponible, et tu ne l'as pas encore vu dans la feuille */
+  #nowDot { position: absolute; top: 0; right: 1px; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); border: 1.5px solid var(--deep); }
   .now-row.missing img { filter: grayscale(1) opacity(.45); }
   .now-row.missing span { color: var(--muted); }
   .now-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); flex: none; }
@@ -496,7 +493,7 @@
   <div class="top">
     <span class="ball"></span>
     <h1>Pokédex</h1>
-    <button class="globe" id="nowBtn" data-i18n-aria="nowTitle" aria-label="En ce moment"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="4.5" width="14" height="12.5" rx="1.5"/><path d="M3 8.5h14M7 2.5v4M13 2.5v4"/><text id="nowDay" x="10" y="15.4" text-anchor="middle" font-size="6.5" font-weight="700" fill="currentColor" stroke="none"></text></svg><i id="nowCount" hidden></i></button>
+    <button class="globe" id="nowBtn" data-i18n-aria="nowTitle" aria-label="En ce moment"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="4.5" width="14" height="12.5" rx="1.5"/><path d="M3 8.5h14M7 2.5v4M13 2.5v4"/><text id="nowDay" x="10" y="15.4" text-anchor="middle" font-size="6.5" font-weight="700" fill="currentColor" stroke="none"></text></svg><i id="nowDot" hidden></i></button>
     <button class="globe" id="acct" data-i18n-aria="account" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10" cy="7" r="3.5"/><path d="M3 18c1-4 4-5.5 7-5.5s6 1.5 7 5.5"/></svg></button>
     <div class="menu" id="acctMenu" hidden>
       <div class="who" id="acctWho" hidden></div>
@@ -1021,7 +1018,7 @@ function updateStats() {
   els.count.textContent = `${got} / ${total}`;
   els.progress.style.width = pct + "%";
   renderGens();
-  if (window.updateNowCount) updateNowCount();
+  if (window.updateNowDot) updateNowDot();
 }
 
 function renderGens() {

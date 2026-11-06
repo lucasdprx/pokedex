@@ -8,7 +8,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
 import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
-  doc, getDocFromServer, setDoc, onSnapshot, serverTimestamp,
+  doc, getDoc, getDocFromServer, setDoc, onSnapshot, serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
 
 const app = initializeApp({
@@ -53,8 +53,25 @@ function push() {
   // merge : garde l'abonnement aux notifications (pushSub) et ce qui a déjà été annoncé (pushSent)
   track(setDoc(ref, { caught: m.caught, shiny: m.shiny, updated: serverTimestamp() }, { merge: true }));
   localStorage.setItem(SYNC_KEY, "clean:" + user.uid);
+  if (localStorage.getItem(SHARE_KEY) === user.uid) pushShared();
 }
 window.syncPush = push;
+
+// --- Partage (ami v1 : A1 menu, B1 bandeau) : shared/<uid> = prénom + coches, lisible par tous ---
+const SHARE_KEY = "pokedex-go-shared";
+const firstName = () => ((user.displayName || user.email || "").split(/[ @]/)[0] || "?");
+const pushShared = () => setDoc(doc(db, "shared", user.uid), { name: firstName(), caught: marksApi.get().caught, updated: serverTimestamp() });
+window.shareLink = async () => {
+  if (!ready) return null;
+  await pushShared();
+  localStorage.setItem(SHARE_KEY, user.uid);
+  return location.origin + location.pathname + "?ami=" + user.uid;
+};
+window.loadFriend = async uid => {
+  const snap = await getDoc(doc(db, "shared", uid));
+  return snap.exists() ? snap.data() : null;
+};
+if (window.onSyncReady) onSyncReady();
 // Notifications : l'abonnement de cet appareil est gardé sur le compte, lu chaque matin par tools/notify.py
 window.pushAccount = () => ready;
 window.savePushSub = sub => setDoc(ref, { pushSub: sub ? JSON.stringify(sub) : null, pushLang: LANG }, { merge: true });

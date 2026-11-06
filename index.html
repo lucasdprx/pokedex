@@ -36,6 +36,7 @@
       <hr>
       <button id="export" data-i18n="export">Exporter</button>
       <button id="import" data-i18n="import">Importer</button>
+      <button id="shareBtn" data-i18n="share">Partager mon Pokédex</button>
     </div>
     <input type="file" id="importFile" accept="application/json,.json" hidden>
     <input type="file" id="genieFile" accept="text/csv,.csv" hidden>
@@ -52,6 +53,7 @@
       <option value="unavailable" data-i18n="fUnavailable">Indisponibles</option>
     </select>
   </div>
+  <div class="friend-band" id="friendBand" hidden><b id="friendName"></b><button id="friendX" aria-label="Fermer">✕</button></div>
   <div class="stats">
     <div class="bar"><div id="progress"></div></div>
     <span id="count">0 / 0</span>

@@ -296,6 +296,8 @@ function filtered() {
     // Manquant et disponible maintenant (raid, œuf, étude, sauvage… sans date de début) : events.js
     if (mode === "now" && !(window.howToGet && (howFor(e) || []).some(h => !h.start))) return false;
     if (regionFilter && e.region !== regionFilter) return false;
+    // Comparaison avec un ami : ce qu'il a et pas toi, ou l'inverse (formes de base)
+    if (friend && (e.regional || !e.available || (friend.tab === 0 ? !friend.set.has(e.key) || caught.has(e.key) : !caught.has(e.key) || friend.set.has(e.key)))) return false;
     if (terms.length && !terms.every(t => e.search.includes(t))) return false;
     return true;
   });
@@ -445,6 +447,17 @@ function renderGens() {
   // Les onglets sont reconstruits à chaque capture : garder la position de défilement
   const scroll = els.gens.scrollLeft;
   els.gens.innerHTML = "";
+  if (friend) {
+    const n = tab => entries.filter(e => !e.regional && e.available && (tab === 0 ? friend.set.has(e.key) && !caught.has(e.key) : caught.has(e.key) && !friend.set.has(e.key))).length;
+    for (const tab of [0, 1]) {
+      const b = document.createElement("button");
+      b.className = "tab" + (friend.tab === tab ? " active" : "");
+      b.innerHTML = `${t(tab ? "cmpMe" : "cmpHe", { n: friend.name })}<span>${n(tab)}</span>`;
+      b.addEventListener("click", () => { friend.tab = tab; renderGens(); render(); window.scrollTo(0, 0); });
+      els.gens.appendChild(b);
+    }
+    return;
+  }
   const addTab = (label, c, t, region) => {
     const tab = document.createElement("button");
     tab.className = "tab" + (regionFilter === region ? " active" : "") + (c === t ? " done" : "") + (c === t && region ? " gold" : "");
@@ -1054,3 +1067,30 @@ if (new URLSearchParams(location.search).has("now")) {
   history.replaceState(null, "", location.pathname);
   addEventListener("load", () => setTimeout(() => document.getElementById("nowBtn").click(), 300));
 }
+
+// --- Comparer avec un ami (ami v1 : A1 menu ⋯, B1 bandeau et deux onglets) ---
+var friend = null; // {name, set, tab} — var : lu par filtered() défini plus haut
+document.getElementById("shareBtn").addEventListener("click", async () => {
+  setMenu(false);
+  const url = window.shareLink && await shareLink().catch(() => null);
+  if (!url) { flash(t("shareLogin")); return; }
+  if (navigator.share && matchMedia("(pointer: coarse)").matches) navigator.share({ url }).catch(() => {});
+  else { await navigator.clipboard.writeText(url).catch(() => {}); flash(t("linkCopied")); }
+});
+const friendId = new URLSearchParams(location.search).get("ami");
+window.onSyncReady = async () => {
+  if (!friendId || friend) return;
+  const d = await loadFriend(friendId).catch(() => null);
+  if (!d) { flash(t("cmpMissing")); return; }
+  friend = { name: d.name || "?", set: new Set(d.caught || []), tab: 0 };
+  document.getElementById("friendName").textContent = t("cmpWith", { n: friend.name });
+  document.getElementById("friendBand").hidden = false;
+  renderGens(); render();
+};
+if (window.loadFriend) onSyncReady();
+document.getElementById("friendX").addEventListener("click", () => {
+  friend = null;
+  document.getElementById("friendBand").hidden = true;
+  history.replaceState(null, "", location.pathname);
+  renderGens(); render();
+});

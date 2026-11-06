@@ -140,8 +140,11 @@ window.updateNowDot = () => {
   const seen = seenNow();
   document.getElementById("nowDot").hidden = !missingNow().some(k => !seen.has(k));
 };
+// Pokémon pas encore vus à l'ouverture de la feuille : leur point reste jusqu'à la fermeture
+let nowFresh = new Set();
 function markNowSeen() {
   const seen = seenNow();
+  for (const k of missingNow()) if (!seen.has(k)) nowFresh.add(k);
   for (const k of missingNow()) seen.add(k);
   try { localStorage.setItem(SEEN_KEY, JSON.stringify([...seen])); } catch {}
   updateNowDot();
@@ -205,7 +208,7 @@ function renderNow() {
       const right = [g.showTier && h.detail ? (h.detail === "mega" ? t("mega") : h.detail + "★") : "",
         h.start ? t("fromDay", { d: fmtDay(h.start) }) : ""].filter(Boolean).join(" ");
       return `<div class="now-row${missing ? " missing" : ""}"><img loading="lazy" src="${shinyMode ? SPRITE_SMALL_SHINY(sp) : SPRITE_SMALL(sp)}" alt="" ` +
-        `data-sprite="${sp}" data-shiny="${shinyMode ? 1 : 0}" onerror="imgFallback(this)"><span>${e.name}</span>` + (missing && !h.start ? `<i class="now-dot"></i>` : "") +
+        `data-sprite="${sp}" data-shiny="${shinyMode ? 1 : 0}" onerror="imgFallback(this)"><span>${e.name}</span>` + (missing && !h.start && nowFresh.has((shinyMode ? "s:" : "") + e.key) ? `<i class="now-dot"></i>` : "") +
         `<b${h.start ? ' class="later"' : ""}>${right}</b></div>`;
     }).join("")).join("");
 }
@@ -214,10 +217,11 @@ document.getElementById("nowBtn").addEventListener("click", () => {
   setMenu(false);
   nowPane = "now";
   nowCat = "all";
+  nowFresh = new Set();
+  markNowSeen();
   renderNow();
   nowDialog.showModal();
-  markNowSeen();
-  loadDuck().then(() => { if (nowDialog.open) { renderNow(); markNowSeen(); } });
+  loadDuck().then(() => { if (nowDialog.open) { markNowSeen(); renderNow(); } });
 });
 for (const id of ["nowTabs", "nowCats"]) document.getElementById(id).addEventListener("click", ev => {
   const b = ev.target.closest("button[data-p],button[data-c]");

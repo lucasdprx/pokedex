@@ -168,12 +168,14 @@ const missingNow = () => [...new Set(sheetRows().now.filter(r => r.missing).map(
 const seenNow = () => { try { return new Set(JSON.parse(localStorage.getItem(SEEN_KEY)) || []); } catch { return new Set(); } };
 // Images du calendrier téléchargées en fond après le lancement : la feuille s'ouvre sans attendre
 let nowPreloaded = false;
+const nowImgs = [];
 function preloadNow() {
   if (nowPreloaded || !howMap) return;
   nowPreloaded = true;
   const { now, soon } = sheetRows();
   const urls = new Set([...now, ...soon].map(({ e }) => (shinyMode ? SPRITE_TINY_SHINY : SPRITE_TINY)(spriteOf(e))));
-  setTimeout(() => urls.forEach(u => { const img = new Image(); img.decoding = "async"; img.src = u; }), 2000);
+  // Téléchargées et décodées, puis gardées en mémoire : la feuille les affiche sans travail
+  setTimeout(() => urls.forEach(u => { const img = new Image(); img.src = u; img.decode().then(() => nowImgs.push(img), () => {}); }), 2000);
 }
 window.updateNowDot = () => {
   preloadNow();

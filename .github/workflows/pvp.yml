@@ -1,4 +1,4 @@
-name: Update PvPoke list
+name: Update PvPoke and wild lists
 on:
   schedule:
     - cron: "17 5 * * *"
@@ -11,10 +11,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: python tools/pvp.py
+      - run: python tools/wild.py
       - run: |
-          git diff --quiet pvp.json && exit 0
+          git diff --quiet pvp.json wild.json && exit 0
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
-          git add pvp.json
-          git commit -m "Update PvPoke list"
+          git add pvp.json wild.json
+          git commit -m "Update PvPoke and wild lists"
           git push

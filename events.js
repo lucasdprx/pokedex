@@ -1,10 +1,10 @@
 // « En ce moment » : les Pokémon (manquants d'abord) qu'on peut avoir maintenant ou bientôt
-// (raids, œufs, études de terrain, Heures vedettes, Journées Communauté).
+// (raids, œufs, études de terrain, sauvages des événements, Heures vedettes, Journées Communauté).
 // Données : ScrapedDuck, copie automatique de Leek Duck (https://github.com/bigfoott/ScrapedDuck).
-// Les Pokémon sauvages des événements n'y sont pas : Leek Duck ne les liste pas.
+// Les sauvages des événements n'y sont pas : wild.json, lu chaque jour sur Leek Duck (tools/wild.py).
 
 const DUCK = "https://raw.githubusercontent.com/bigfoott/ScrapedDuck/data/";
-const DUCK_KEY = "pokedex-go-events";
+const DUCK_KEY = "pokedex-go-events2";
 const DUCK_AGE = 3 * 3600e3; // relu toutes les 3 h
 
 let duck = null;      // données brutes reçues
@@ -19,7 +19,8 @@ async function loadDuck() {
   try {
     const get = f => fetch(DUCK + f + ".json").then(r => { if (!r.ok) throw r.status; return r.json(); });
     const [raids, eggs, research, events] = await Promise.all(["raids", "eggs", "research", "events"].map(get));
-    duck = { time: Date.now(), raids, eggs, research, events };
+    const wild = await fetch("wild.json").then(r => r.ok ? r.json() : []).catch(() => []);
+    duck = { time: Date.now(), raids, eggs, research, events, wild };
     try { localStorage.setItem(DUCK_KEY, JSON.stringify(duck)); } catch {}
     buildHow();
   } catch { /* hors ligne : la dernière liste reçue, ou rien */ }
@@ -63,6 +64,10 @@ function buildHow() {
   for (const task of duck.research || [])
     for (const r of task.rewards || []) add(r.name, r.image, "research", "", r.canBeShiny);
   const now = Date.now();
+  for (const w of duck.wild || []) {
+    const start = parseDate(w.start), end = parseDate(w.end);
+    if (!(end && end < now)) add(w.name, w.image, "wild", "", w.canBeShiny, start && start > now ? start : null, end);
+  }
   for (const ev of duck.events || []) {
     const start = parseDate(ev.start), end = parseDate(ev.end);
     if (end && end < now) continue;
@@ -91,6 +96,7 @@ function howLabel(h) {
       : h.detail === "mega" ? t("raidMega") : t("raidN", { n: h.detail }))
     : h.src === "egg" ? t("eggKm", { km: h.detail })
     : h.src === "research" ? t("fieldResearch")
+    : h.src === "wild" ? t("wildOne")
     : h.src === "spotlight" ? t("spotlightOne") : t("cdayOne");
   return h.start ? base + " " + t("fromDay", { d: fmtDay(h.start) }) : base;
 }
@@ -176,6 +182,7 @@ function sheetGroups(rows) {
     }
   }
   if (nowCat === "all" || nowCat === "research") push("", t("hResearch"), rows.filter(r => r.h.src === "research").sort(byStart));
+  if (nowCat === "all" || nowCat === "wild") push("", t("hWild"), rows.filter(r => r.h.src === "wild").sort(byStart));
   if (nowCat === "all") {
     push("", t("hSpotlight"), rows.filter(r => r.h.src === "spotlight").sort(byStart));
     push("", t("hCday"), rows.filter(r => r.h.src === "cday").sort(byStart));
@@ -191,7 +198,7 @@ function renderNow() {
     tab("p", "now", nowPane === "now", `${t("nowTab")} <span>${now.length}</span>`) +
     tab("p", "soon", nowPane === "soon", `${t("soonTab")} <span>${soon.length}</span>`);
   document.getElementById("nowCats").innerHTML =
-    [["all", "catAll"], ["raid", "catRaids"], ["egg", "catEggs"], ["research", "catResearch"]]
+    [["all", "catAll"], ["raid", "catRaids"], ["egg", "catEggs"], ["research", "catResearch"], ["wild", "catWild"]]
       .map(([k, key]) => tab("c", k, nowCat === k, t(key))).join("");
   const body = document.getElementById("nowBody");
   if (!howMap) { body.innerHTML = `<p class="now-empty">${t("nowOffline")}</p>`; return; }
@@ -206,7 +213,7 @@ function renderNow() {
     `<div class="now-sub">${g.icon}${g.title}</div>` + g.list.map(({ e, h, missing }) => {
       const sp = spriteOf(e);
       const right = [g.showTier && h.detail ? (h.detail === "mega" ? t("mega") : h.detail + "★") : "",
-        h.start ? t("fromDay", { d: fmtDay(h.start) }) : ""].filter(Boolean).join(" ");
+        h.start ? t("fromDay", { d: fmtDay(h.start) }) : h.src === "wild" && h.end ? t("untilDay", { d: fmtDay(h.end) }) : ""].filter(Boolean).join(" ");
       return `<div class="now-row${missing ? " missing" : ""}"><img loading="lazy" src="${shinyMode ? SPRITE_TINY_SHINY(sp) : SPRITE_TINY(sp)}" alt="" ` +
         `data-sprite="${sp}" data-shiny="${shinyMode ? 1 : 0}" onerror="imgFallback(this)"><span>${e.name}</span>` + (missing && !h.start && nowFresh.has((shinyMode ? "s:" : "") + e.key) ? `<i class="now-dot"></i>` : "") +
         `<b${h.start ? ' class="later"' : ""}>${right}</b></div>`;

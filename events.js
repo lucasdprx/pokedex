@@ -51,7 +51,7 @@ function buildHow() {
     if (!e) return;
     const list = map.get(e.key) || [];
     // Même source et même début déjà notés (raid listé deux fois) : on garde le premier
-    if (!list.some(h => h.src === src && h.start === start && h.shadow === shadow)) list.push({ src, detail, start, end, shadow, shiny: shiny !== false });
+    if (!list.some(h => h.src === src && h.start === start && h.shadow === shadow && (src !== "research" || h.detail === detail))) list.push({ src, detail, start, end, shadow, shiny: shiny !== false });
     map.set(e.key, list);
   };
   const tier = s => {
@@ -62,7 +62,7 @@ function buildHow() {
   for (const r of duck.raids || []) add(r.name, r.image, "raid", tier(r.tier), r.canBeShiny, null, null, /^Shadow /.test(r.name));
   for (const g of duck.eggs || []) add(g.name, g.image, "egg", g.eggType, g.canBeShiny);
   for (const task of duck.research || [])
-    for (const r of task.rewards || []) add(r.name, r.image, "research", "", r.canBeShiny);
+    for (const r of task.rewards || []) add(r.name, r.image, "research", (task.text || "").replace(/<[^>]+>/g, "").trim(), r.canBeShiny);
   const now = Date.now();
   for (const w of duck.wild || []) {
     const start = parseDate(w.start), end = parseDate(w.end);
@@ -113,6 +113,36 @@ window.howToGet = e => {
 // Onglets Maintenant / Bientôt, puis Tout / Raids / Œufs / Études ; sous-titres par niveau.
 const nowDialog = document.getElementById("nowDialog");
 let nowPane = "now", nowCat = "all";
+
+// Tâche d'étude de terrain (en anglais chez Leek Duck), traduite en français par modèles ;
+// une tâche inconnue reste en anglais
+const TASK_FR = [
+  [/^Catch (a|\d+) (\w+)-type Pokémon$/, (n, ty) => `Attraper ${n === "a" ? "un" : n} Pokémon de type ${typeName(ty)}`],
+  [/^Catch (\d+) different species of Pokémon$/, n => `Attraper ${n} espèces de Pokémon différentes`],
+  [/^Catch (\d+) Pokémon with Weather Boost$/, n => `Attraper ${n} Pokémon boostés par la météo`],
+  [/^Catch (a|\d+) Pokémon$/, n => `Attraper ${n === "a" ? "un" : n} Pokémon`],
+  [/^Make (a|\d+) (Nice|Great|Excellent) (Curveball )?Throws?( in a row)?$/, (n, q, c, row) =>
+    `Faire ${n === "a" ? "un" : n} ${{ Nice: "Joli", Great: "Super", Excellent: "Excellent" }[q]}${n === "a" || n === "1" || q === "Great" ? "" : "s"} Lancer${n === "a" || n === "1" ? "" : "s"}${c ? " en courbe" : ""}${row ? " d'affilée" : ""}`],
+  [/^Make (a|\d+) Curveball Throws?$/, n => `Faire ${n === "a" ? "un" : n} lancer${n === "a" || n === "1" ? "" : "s"} en courbe`],
+  [/^Win a three-star raid or higher$/, () => "Gagner un raid 3★ ou plus"],
+  [/^Win (a|\d+) raids?$/, n => n === "a" ? "Gagner un raid" : `Gagner ${n} raids`],
+  [/^Explore (\d+) km$/, n => `Parcourir ${n} km`],
+  [/^Hatch (an|\d+) Eggs?$/, n => n === "an" ? "Faire éclore un Œuf" : `Faire éclore ${n} Œufs`],
+  [/^Spin (\d+) PokéStops or Gyms$/, n => `Faire tourner ${n} PokéStops ou Arènes`],
+  [/^Spin (\d+) PokéStops$/, n => `Faire tourner ${n} PokéStops`],
+  [/^Take a snapshot of a wild Pokémon$/, () => "Photographier un Pokémon sauvage"],
+  [/^Evolve (a|\d+) Pokémon$/, n => `Faire évoluer ${n === "a" ? "un" : n} Pokémon`],
+  [/^Power up Pokémon (\d+) times$/, n => `Améliorer des Pokémon ${n} fois`],
+  [/^Earn (\d+) Candies walking with your buddy$/, n => `Gagner ${n} Bonbons avec ton copain`],
+  [/^Send (\d+) Gifts and add a sticker to each$/, n => `Envoyer ${n} Cadeaux avec un autocollant`],
+  [/^Trade (a|\d+) Pokémon$/, n => `Échanger ${n === "a" ? "un" : n} Pokémon`],
+  [/^Defeat (a|\d+) Team GO Rocket Grunts?$/, n => n === "a" ? "Vaincre un Sbire de la Team GO Rocket" : `Vaincre ${n} Sbires de la Team GO Rocket`],
+];
+function taskLabel(text) {
+  if (LANG !== "fr") return text || t("hResearch");
+  for (const [re, fr] of TASK_FR) { const m = (text || "").match(re); if (m) return fr(...m.slice(1)); }
+  return text || t("hResearch");
+}
 
 // Icônes dessinées pour le site, aux couleurs des œufs et des raids du jeu
 const EGG_SHAPE = "M12 2.5c4.2 0 7.5 6.6 7.5 11.3A7.5 7.5 0 0 1 4.5 13.8C4.5 9.1 7.8 2.5 12 2.5z";
@@ -181,7 +211,12 @@ function sheetGroups(rows) {
       push(eggIcon(c[0], c[1]), t("hEggKm", { km }), eggs.filter(r => r.h.detail === km).sort(byStart));
     }
   }
-  if (nowCat === "all" || nowCat === "research") push("", t("hResearch"), rows.filter(r => r.h.src === "research").sort(byStart));
+  if (nowCat === "all" || nowCat === "research") {
+    const research = rows.filter(r => r.h.src === "research");
+    // Dans l'ordre de Leek Duck (captures, lancers, combats…)
+    const order = (duck.research || []).map(x => (x.text || "").replace(/<[^>]+>/g, "").trim());
+    for (const task of [...new Set(research.map(r => r.h.detail))].sort((x, y) => order.indexOf(x) - order.indexOf(y))) push("", taskLabel(task), research.filter(r => r.h.detail === task).sort(byStart));
+  }
   if (nowCat === "all" || nowCat === "wild") push("", t("hWild"), rows.filter(r => r.h.src === "wild").sort(byStart));
   if (nowCat === "all") {
     push("", t("hSpotlight"), rows.filter(r => r.h.src === "spotlight").sort(byStart));

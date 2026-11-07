@@ -330,6 +330,8 @@ let ficheKey = null;
 // Toutes les formes du Pokémon (fiche-formes v1 : F3 grille, B1 sans boutons) : touchée, elle passe en grand
 let ficheSel = 0;
 function ficheForms(e) {
+  if (e.icon) return [{ k: e.key, label: e.costume, img: e.icon, got: formSets.costume.has(e.key) }]
+    .concat(e.iconShiny ? [{ k: e.key, label: "Shiny", img: e.iconShiny, shiny: 1, got: formSets.costumeShiny.has(e.key) }] : []);
   const out = [];
   for (const b of entries.filter(x => x.id === e.id)) {
     const pre = b.formLabel ? b.formLabel + " " : "";
@@ -348,10 +350,10 @@ function ficheForms(e) {
 // Forme montrée à l'ouverture : celle de la collection d'où l'on vient
 function ficheStart(forms, key) {
   const want = coll === "shadow" ? "shadow" : coll === "purified" ? "purified" : null;
-  const i = forms.findIndex(f => f.k === key && (want ? f.cls === want : !f.cls && !!f.shiny === !!(shinyMode && coll === "dex")));
+  const i = forms.findIndex(f => f.k === key && (want ? f.cls === want : !f.cls && !!f.shiny === !!((shinyMode && coll === "dex") || coll === "costumeShiny")));
   return i < 0 ? 0 : i;
 }
-const formImg = (f, small) => `<img crossorigin="anonymous" src="${(f.shiny ? (small ? SPRITE_TINY_SHINY : SPRITE_SMALL_SHINY) : (small ? SPRITE_TINY : SPRITE_SMALL))(f.sp)}" alt="" data-sprite="${f.sp}" data-shiny="${f.shiny ? 1 : 0}" onerror="imgFallback(this)">`;
+const formImg = (f, small) => `<img crossorigin="anonymous" src="${f.img ? f.img : (f.shiny ? (small ? SPRITE_TINY_SHINY : SPRITE_SMALL_SHINY) : (small ? SPRITE_TINY : SPRITE_SMALL))(f.sp)}" alt="" data-sprite="${f.sp}" data-shiny="${f.shiny ? 1 : 0}" onerror="imgFallback(this)">`;
 
 // Évolutions (pogoapi) : la famille, avec les bonbons ; chargées à la première fiche
 let evoKids = null, evoParent = null, evoLoad = null;
@@ -430,7 +432,7 @@ function renderFiche() {
     `<form method="dialog"><button class="now-x fiche-x" aria-label="${t("close")}">✕</button></form>` +
     `<div class="fiche-hero"><div class="fiche-big ${f.cls || ""}">${formImg(f)}</div>` +
     `<div><div class="dex">${String(e.id).padStart(4, "0")}</div><h2>${nameOf(e.id, e.name)}</h2>` +
-    `<div class="fiche-form">${f.label === t("fNormal") ? "" : f.label}</div><div class="fiche-types">` +
+    `<div class="fiche-form">${f.label === t("fNormal") ? "" : f.label === "Shiny" && e.costume ? e.costume + " shiny" : f.label}</div><div class="fiche-types">` +
     e.types.map(ty => `<span style="color:${TYPE_COLOR[ty] || "#aaa"}">${typeName(ty)}</span>`).join(" ") + `</div></div></div>` +
     (forms.length > 1 ? `<h3>${t("fForms")}</h3><div class="fiche-forms">` + forms.map((x, i) =>
       `<button data-f="${i}" class="${i === ficheSel ? "on" : ""}${x.got ? "" : " miss"}${x.shiny ? " gold" : ""}${x.cls ? " " + x.cls : ""}">${formImg(x, true)}<span>${x.label}</span>${x.got ? `<i class="ok">✓</i>` : ""}</button>`).join("") + `</div>` : "") +

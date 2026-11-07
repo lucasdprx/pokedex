@@ -756,3 +756,11 @@ body[data-coll="shadow"] .card.caught img, .fiche-big.shadow img, .fiche-forms .
 }
 @keyframes shadow-glow { to { filter: saturate(.75) brightness(.85) drop-shadow(0 0 3px #d29bff) drop-shadow(0 0 9px #7b3fb8); } }
 @media (prefers-reduced-motion: reduce) { body[data-coll="shadow"] .card.caught img, .fiche-big.shadow img, .fiche-forms .shadow img { animation: none; } }
+
+/* Costumés : le nom du costume sous le nom (costumes v1 : E1) */
+.card .costume { font-size: .72rem; color: var(--accent); line-height: 1.15; margin-top: 2px; }
+/* Les icônes du jeu ont beaucoup de vide autour : on les agrandit pour égaler les illustrations */
+img[src*="pogo_assets"] { transform: scale(1.6); }
+.fiche-forms img[src*="pogo_assets"], .fiche-big img[src*="pogo_assets"] { transform: scale(1.5); }
+/* « Costumes shiny » est long : le choix de collection garde sa largeur, le filtre reste à côté */
+#coll { width: 8.6em; flex: none; text-overflow: ellipsis; }

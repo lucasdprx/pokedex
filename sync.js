@@ -52,6 +52,7 @@ function push() {
   const m = marksApi.get();
   // merge : garde l'abonnement aux notifications (pushSub) et ce qui a déjà été annoncé (pushSent)
   track(setDoc(ref, { caught: m.caught, shiny: m.shiny, mega: m.mega, shadow: m.shadow, purified: m.purified,
+    costume: m.costume, costumeShiny: m.costumeShiny,
     updated: serverTimestamp() }, { merge: true }));
   localStorage.setItem(SYNC_KEY, "clean:" + user.uid);
   if (localStorage.getItem(SHARE_KEY) === user.uid) pushShared();
@@ -94,7 +95,7 @@ window.sendReport = text => {
 };
 window.savePushSub = sub => setDoc(ref, { pushSub: sub ? JSON.stringify(sub) : null, pushLang: LANG }, { merge: true });
 
-const FORMS = ["mega", "shadow", "purified"]; // collections Méga / Obscurs / Purifiés
+const FORMS = ["mega", "shadow", "purified", "costume", "costumeShiny"]; // collections Méga / Obscurs / Purifiés
 const union = (a = [], b = []) => [...new Set([...a, ...b])];
 const same = (a, b) => a.length === b.size && a.every(k => b.has(k));
 

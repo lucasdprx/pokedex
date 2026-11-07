@@ -53,6 +53,8 @@ const SPRITE_TINY = id => `https://wsrv.nl/?url=${ARTWORK_PATH(id)}&w=80&h=80&ou
 const SPRITE_TINY_SHINY = id => `https://wsrv.nl/?url=${ARTWORK_SHINY(id)}&w=80&h=80&output=webp`;
 const SPRITE_SMALL_SHINY = id => `https://wsrv.nl/?url=${ARTWORK_SHINY(id)}&w=208&h=208&output=webp`;
 const SPRITE_SHINY = id => `https://${ARTWORK_SHINY(id)}`;
+// Icônes des costumés (images du jeu, dépôt PokeMiners)
+const COSTUME_ICON = f => "https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Pokemon%20-%20256x256/Addressable%20Assets/" + f;
 const SPRITE_2D_SHINY = id => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${id}.png`;
 
 const STORE_KEY = "pokedex-go-caught";
@@ -102,11 +104,14 @@ let caught = loadCaught();      // Set of keys (id + form)
 let shinyCaught = loadCaught(SHINY_KEY); // shiny cochés, mêmes clés
 let shinyMode = false;          // bascule Normal / Shiny
 // Collections Méga / Obscurs / Purifiés (formes v1 : A1, choix à gauche du filtre) : mêmes clés que le Pokédex
-const FORM_KEYS = { mega: "pokedex-go-mega", shadow: "pokedex-go-shadow", purified: "pokedex-go-purified" };
+const FORM_KEYS = { mega: "pokedex-go-mega", shadow: "pokedex-go-shadow", purified: "pokedex-go-purified",
+  costume: "pokedex-go-costume", costumeShiny: "pokedex-go-costume-shiny" }; // costumes v1 : E1, K1
 let formSets = Object.fromEntries(Object.entries(FORM_KEYS).map(([k, key]) => [k, loadCaught(key)]));
 let coll = "dex";               // collection affichée
 let megaEntries = [];           // cartes de la collection Méga
-const pool = () => coll === "mega" ? megaEntries : entries;
+let costumeEntries = [];        // cartes des Pokémon costumés (tools/costumes.py)
+const isCostume = () => coll === "costume" || coll === "costumeShiny";
+const pool = () => coll === "mega" ? megaEntries : isCostume() ? costumeEntries : entries;
 // Illustration de chaque Méga (n° PokeAPI)
 const MEGA_SPRITES = { 3: 10033, "6 X": 10034, "6 Y": 10035, 9: 10036, 15: 10090, 18: 10073, 65: 10037, 80: 10071, 94: 10038,
   115: 10039, 127: 10040, 130: 10041, 142: 10042, 181: 10045, 208: 10072, 212: 10046, 214: 10047, 229: 10048, 248: 10049,
@@ -150,7 +155,8 @@ window.marksApi = {
 // Collection affichée : normale ou shiny
 const marks = () => coll !== "dex" ? formSets[coll] : shinyMode ? shinyCaught : caught;
 // Cochable dans la collection affichée : sorti dans GO (et son shiny aussi, en mode Shiny)
-const can = e => coll !== "dex" ? e.available && !e.regional && (coll === "mega" ? e.megaOut : e.shadowOut)
+const can = e => isCostume() ? e.available && (coll === "costume" || !!e.iconShiny)
+  : coll !== "dex" ? e.available && !e.regional && (coll === "mega" ? e.megaOut : e.shadowOut)
   : e.available && (!shinyMode || e.shinyOut);
 function prettyForm(f) {
   return (f || "").replace(/_/g, " ").trim();
@@ -183,7 +189,7 @@ async function init() {
     catch { localStorage.removeItem(CACHE_KEY); return init(); } // copie abîmée : on retélécharge
     els.status.style.display = "none";
     render();
-    if (Date.now() - cached.time < CACHE_MAX_AGE && cached.mega && typeof cached.mega[0] === "object") return; // sans liste Méga : copie d'avant, on relit
+    if (Date.now() - cached.time < CACHE_MAX_AGE && cached.mega && typeof cached.mega[0] === "object" && cached.costumes) return; // sans costumes : copie d'avant // sans liste Méga : copie d'avant, on relit
     // Données de plus d'un jour : mise à jour en fond, sans bloquer l'affichage
     try {
       const fresh = await fetchSources();
@@ -192,7 +198,8 @@ async function init() {
                       JSON.stringify(fresh.released) !== JSON.stringify(cached.released) ||
                       JSON.stringify(fresh.shiny) !== JSON.stringify(cached.shiny) ||
                       JSON.stringify(fresh.mega) !== JSON.stringify(cached.mega) ||
-                      JSON.stringify(fresh.shadow) !== JSON.stringify(cached.shadow);
+                      JSON.stringify(fresh.shadow) !== JSON.stringify(cached.shadow) ||
+                      JSON.stringify(fresh.costumes) !== JSON.stringify(cached.costumes);
       if (changed) { buildEntries(fresh); render(); }
     } catch { /* hors ligne : on garde la copie */ }
     return;
@@ -259,7 +266,8 @@ async function fetchSources() {
   if (resShiny && resShiny.ok) {
     try { shiny = Object.keys(await resShiny.json()).map(Number).sort((a, b) => a - b); } catch {}
   }
-  return { data, released: [...released].sort((a, b) => a - b), shiny, mega, shadow };
+  const costumes = await fetch("costumes.json").then(r => r.ok ? r.json() : []).catch(() => []);
+  return { data, released: [...released].sort((a, b) => a - b), shiny, mega, shadow, costumes };
 }
 
 // Données brutes → cartes (une par forme de base ou régionale)
@@ -323,7 +331,16 @@ function buildEntries(src) {
     return { ...base, key: m.id + "_MEGA" + (x ? "_" + m.form : ""), form: "MEGA" + (x ? "_" + m.form : ""),
       name: t(m.primal ? "primalName" : "megaName", { n: base.name }) + x, sprite: MEGA_SPRITES[m.id + x] || base.id, regional: false };
   }).filter(Boolean);
-  byKey = new Map(entries.concat(megaEntries).map(e => [e.key, e]));
+  // Costumés : une carte par costume, sur la base de l'espèce, avec l'icône du jeu
+  costumeEntries = (src.costumes || []).map(c => {
+    const base = entries.find(e => e.id === c.id && !e.regional);
+    if (!base) return null;
+    const label = LANG === "fr" ? c.fr : c.en;
+    return { ...base, key: c.id + "_C_" + c.code, form: "C_" + c.code, costume: label, regional: false,
+      icon: COSTUME_ICON(c.icon), iconShiny: c.shiny ? COSTUME_ICON(c.shiny) : null,
+      search: base.search + " " + normalize(c.fr + " " + c.en + " costume") };
+  }).filter(Boolean);
+  byKey = new Map(entries.concat(megaEntries, costumeEntries).map(e => [e.key, e]));
   if (typeof buildHow === "function") buildHow();
 }
 
@@ -389,11 +406,11 @@ function render() {
     card.tabIndex = 0;
     card.innerHTML =
       `<i class="ball-mark"></i>` +
-      `<img loading="lazy" decoding="async" crossorigin="anonymous" src="${shinyMode ? SPRITE_SMALL_SHINY(spriteId) : SPRITE_SMALL(spriteId)}" alt="" draggable="false" ` +
+      `<img loading="lazy" decoding="async" crossorigin="anonymous" src="${e.icon ? (coll === "costumeShiny" ? e.iconShiny : e.icon) : shinyMode ? SPRITE_SMALL_SHINY(spriteId) : SPRITE_SMALL(spriteId)}" alt="" draggable="false" ` +
         `data-sprite="${spriteId}" data-shiny="${shinyMode ? 1 : 0}" onerror="imgFallback(this)">` +
       `<div class="dex">${String(e.id).padStart(4, "0")}</div>` +
       `<div class="name">${e.name}</div>` +
-      `<div class="types">${typesHtml(e)}</div>`;
+      (e.costume ? `<div class="costume">${e.costume}</div>` : `<div class="types">${typesHtml(e)}</div>`);
     frag.appendChild(card);
   }
   els.grid.replaceChildren(frag);
@@ -409,7 +426,7 @@ function toggle(key, card) {
   // La fiche reste en place, même si elle ne correspond plus au filtre :
   // la liste ne se refait qu'au changement de filtre, de région ou de recherche
   card.classList.toggle("caught");
-  card.querySelector(".types").innerHTML = typesHtml(byKey.get(key));
+  const tp = card.querySelector(".types"); if (tp) tp.innerHTML = typesHtml(byKey.get(key));
   const e = byKey.get(key), now = set.has(key);
   const done = r => pool().every(x => x.regional || !can(x) || x.region !== r || marks().has(x.key));
   const finished = now && done(e.region);
@@ -1032,7 +1049,7 @@ function bulkSet(card) {
   bulk.before.set(key, set.has(key));
   bulk.on ? set.add(key) : set.delete(key);
   card.classList.toggle("caught", bulk.on);
-  card.querySelector(".types").innerHTML = typesHtml(e);
+  const tp = card.querySelector(".types"); if (tp) tp.innerHTML = typesHtml(e);
   restartAnim(card, "found");
 }
 els.grid.addEventListener("pointerdown", ev => {

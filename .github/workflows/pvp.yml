@@ -11,10 +11,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: python tools/pvp.py
+      - run: python tools/costumes.py
       - run: |
-          git diff --quiet pvp.json && exit 0
+          git diff --quiet pvp.json costumes.json && exit 0
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
-          git add pvp.json
-          git commit -m "Update PvPoke list"
+          git add pvp.json costumes.json
+          git commit -m "Update PvPoke and costume lists"
           git push

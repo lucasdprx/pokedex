@@ -323,47 +323,137 @@ loadDuck();
 // --- Fiche d'un Pokémon (fiche-pokemon v1 : A3 toucher le nom, B1 feuille en bas) ---
 const ficheDialog = document.getElementById("ficheDialog");
 let ficheKey = null;
+// Toutes les formes du Pokémon (fiche-formes v1 : F3 grille, B1 sans boutons) : touchée, elle passe en grand
+let ficheSel = 0;
+function ficheForms(e) {
+  const out = [];
+  for (const b of entries.filter(x => x.id === e.id)) {
+    const pre = b.formLabel ? b.formLabel + " " : "";
+    out.push({ k: b.key, label: b.formLabel || t("fNormal"), sp: spriteOf(b), got: caught.has(b.key) });
+    if (b.shinyOut) out.push({ k: b.key, label: pre + "Shiny", sp: spriteOf(b), shiny: 1, got: shinyCaught.has(b.key) });
+  }
+  for (const m of megaEntries.filter(x => x.id === e.id))
+    out.push({ k: m.key, label: m.name.replace(nameOf(e.id, ""), "").replace(/-\s*/, " ").replace(/\s+/g, " ").trim() || t("mega"), sp: spriteOf(m), got: formSets.mega.has(m.key) });
+  const base = entries.find(x => x.id === e.id && !x.regional) || e;
+  if (base.shadowOut) {
+    out.push({ k: base.key, label: t("cShadow").replace(/s$/, ""), sp: spriteOf(base), cls: "shadow", got: formSets.shadow.has(base.key) });
+    out.push({ k: base.key, label: t("cPurified").replace(/s$/, ""), sp: spriteOf(base), cls: "purified", got: formSets.purified.has(base.key) });
+  }
+  return out;
+}
+// Forme montrée à l'ouverture : celle de la collection d'où l'on vient
+function ficheStart(forms, key) {
+  const want = coll === "shadow" ? "shadow" : coll === "purified" ? "purified" : null;
+  const i = forms.findIndex(f => f.k === key && (want ? f.cls === want : !f.cls && !!f.shiny === !!(shinyMode && coll === "dex")));
+  return i < 0 ? 0 : i;
+}
+const formImg = (f, small) => `<img crossorigin="anonymous" src="${(f.shiny ? (small ? SPRITE_TINY_SHINY : SPRITE_SMALL_SHINY) : (small ? SPRITE_TINY : SPRITE_SMALL))(f.sp)}" alt="" data-sprite="${f.sp}" data-shiny="${f.shiny ? 1 : 0}" onerror="imgFallback(this)">`;
+
+// Évolutions (pogoapi) : la famille, avec les bonbons ; chargées à la première fiche
+let evoKids = null, evoParent = null, evoLoad = null;
+function loadEvos() {
+  return evoLoad || (evoLoad = fetch("https://pogoapi.net/api/v1/pokemon_evolutions.json").then(r => r.json()).then(list => {
+    evoKids = new Map(); evoParent = new Map();
+    for (const p of list) for (const ev of p.evolutions || []) {
+      const kids = evoKids.get(p.pokemon_id) || [];
+      if (!kids.some(k => k.id === ev.pokemon_id)) kids.push({ id: ev.pokemon_id, candy: ev.candy_required || 0 });
+      evoKids.set(p.pokemon_id, kids);
+      if (!evoParent.has(ev.pokemon_id)) evoParent.set(ev.pokemon_id, p.pokemon_id);
+    }
+  }).catch(() => { evoLoad = null; }));
+}
+// Bonbon façon GO aux deux couleurs de la famille, lues dans l'image du premier de la famille
+const candyCol = new Map();
+function candySvg(root) {
+  const c = candyCol.get(root) || ["#b7b7b7", "#e6e6e6"];
+  return `<svg class="candy" viewBox="0 0 24 16" aria-hidden="true"><path d="M1 3l5 5-5 5zM23 3l-5 5 5 5z" fill="${c[0]}"/><ellipse cx="12" cy="8" rx="7.5" ry="6" fill="${c[0]}"/><path d="M8 3.2c3 2 3 7.6 0 9.6M13 2.2c3 2.6 3 9 0 11.6" stroke="${c[1]}" stroke-width="2.6" fill="none"/></svg>`;
+}
+function readCandy(root) {
+  if (candyCol.has(root)) return Promise.resolve();
+  return new Promise(ok => {
+    const img = new Image(); img.crossOrigin = "anonymous"; img.src = SPRITE_TINY(root);
+    img.onload = () => {
+      try {
+        const cv = document.createElement("canvas"); cv.width = cv.height = 40;
+        const g = cv.getContext("2d"); g.drawImage(img, 0, 0, 40, 40);
+        const d = g.getImageData(0, 0, 40, 40).data, n = new Map();
+        for (let i = 0; i < d.length; i += 4) {
+          const r = d[i], gg = d[i + 1], b = d[i + 2], a = d[i + 3];
+          const hi = Math.max(r, gg, b), lo = Math.min(r, gg, b);
+          if (a < 200 || hi < 50 || lo > 225) continue; // fond, contours, reflets
+          const q = (r >> 5) << 6 | (gg >> 5) << 3 | (b >> 5);
+          const v = n.get(q) || [0, 0, 0, 0]; v[0]++; v[1] += r; v[2] += gg; v[3] += b; n.set(q, v);
+        }
+        const top = [...n.values()].sort((x, y) => y[0] - x[0]);
+        const avg = v => [v[1] / v[0], v[2] / v[0], v[3] / v[0]];
+        const col = v => `rgb(${avg(v).map(x => x | 0).join(",")})`;
+        if (top[0]) {
+          const m = avg(top[0]);
+          const far = top.find(v => avg(v).reduce((s, x, i) => s + Math.abs(x - m[i]), 0) > 90) || top[1] || top[0];
+          candyCol.set(root, [col(top[0]), col(far)]);
+        }
+      } catch {}
+      ok();
+    };
+    img.onerror = () => ok();
+  });
+}
+function evoHtml(id) {
+  if (!evoKids) return "";
+  let root = id; while (evoParent.has(root)) root = evoParent.get(root);
+  if (!evoKids.has(root)) return "";
+  const node = n => {
+    const b = entries.find(x => x.id === n && !x.regional);
+    if (!b) return "";
+    const kids = (evoKids.get(n) || []).filter(k => entries.some(x => x.id === k.id));
+    return `<div class="evo-step${kids.length > 3 ? " many" : ""}"><button class="evo-mon${n === id ? " on" : ""}${caught.has(b.key) ? "" : " miss"}" data-evo="${b.key}">` +
+      `<img crossorigin="anonymous" src="${SPRITE_TINY(spriteOf(b))}" alt="" data-sprite="${spriteOf(b)}" data-shiny="0" onerror="imgFallback(this)">${b.name}</button>` +
+      (kids.length ? `<div class="evo-next">` + kids.map(k => `<div class="evo-branch"><b>${k.candy}${candySvg(root)}→</b>${node(k.id)}</div>`).join("") + `</div>` : "") + `</div>`;
+  };
+  return `<h3>${t("fEvo")}</h3><div class="fiche-evo">${node(root)}</div>`;
+}
+
 function renderFiche() {
   const e = byKey.get(ficheKey);
   if (!e) return;
-  const sp = spriteOf(e);
   const how = (howMap && howMap.get(e.key)) || [];
-  const forms = entries.filter(x => x.id === e.id);
-  const own = caught.has(e.key), shiny = shinyCaught.has(e.key);
+  const forms = ficheForms(e);
+  const f = forms[ficheSel] || forms[0] || { label: "", sp: spriteOf(e) };
   const wiki = LANG === "fr" ? "https://www.pokepedia.fr/" + encodeURIComponent(nameOf(e.id, "", "fr"))
     : "https://bulbapedia.bulbagarden.net/wiki/" + encodeURIComponent(nameOf(e.id, "", "en") + "_(Pokémon)");
   ficheDialog.innerHTML =
     `<form method="dialog"><button class="now-x fiche-x" aria-label="${t("close")}">✕</button></form>` +
-    `<div class="fiche-hero"><img crossorigin="anonymous" src="${shiny ? SPRITE_SMALL_SHINY(sp) : SPRITE_SMALL(sp)}" alt="" data-sprite="${sp}" data-shiny="${shiny ? 1 : 0}" onerror="imgFallback(this)">` +
-    `<div><div class="dex">${String(e.id).padStart(4, "0")}</div><h2>${e.name}</h2><div class="fiche-types">` +
+    `<div class="fiche-hero"><div class="fiche-big ${f.cls || ""}">${formImg(f)}</div>` +
+    `<div><div class="dex">${String(e.id).padStart(4, "0")}</div><h2>${nameOf(e.id, e.name)}</h2>` +
+    `<div class="fiche-form">${f.label === t("fNormal") ? "" : f.label}</div><div class="fiche-types">` +
     e.types.map(ty => `<span style="color:${TYPE_COLOR[ty] || "#aaa"}">${typeName(ty)}</span>`).join(" ") + `</div></div></div>` +
+    (forms.length > 1 ? `<h3>${t("fForms")}</h3><div class="fiche-forms">` + forms.map((x, i) =>
+      `<button data-f="${i}" class="${i === ficheSel ? "on" : ""}${x.got ? "" : " miss"}${x.shiny ? " gold" : ""}${x.cls ? " " + x.cls : ""}">${formImg(x, true)}<span>${x.label}</span>${x.got ? `<i class="ok">✓</i>` : ""}</button>`).join("") + `</div>` : "") +
+    evoHtml(e.id) +
     (how.length || zoneOf(e) ? `<h3>${t("fHow")}</h3><div class="fiche-how">` +
       (zoneOf(e) ? `<div>${t("onlyIn", { z: zoneOf(e) })}</div>` : "") +
       how.map(h => `<div>${howLabel({ ...h, start: null })}<b>${h.start ? t("fromDay", { d: fmtDay(h.start) }) : ""}</b></div>`).join("") + `</div>` : "") +
-    (forms.length > 1 ? `<h3>${t("fForms")}</h3><div class="fiche-forms">` + forms.map(f => {
-      return `<button data-k="${f.key}" class="${f.key === e.key ? "on" : ""}${caught.has(f.key) ? "" : " miss"}"><img crossorigin="anonymous" src="${SPRITE_TINY(spriteOf(f))}" alt="" data-sprite="${spriteOf(f)}" data-shiny="0" onerror="imgFallback(this)">` +
-        `${f.formLabel || t("fNormal")}</button>`;
-    }).join("") + `</div>` : "") +
-    `<div class="fiche-btns">` +
-    (e.available ? `<button data-t="c" class="${own ? "on" : ""}">${t("ficheCaught")}${own ? " ✓" : ""}</button>` : "") +
-    (e.shinyOut ? `<button data-t="s" class="gold${shiny ? " on" : ""}">${t("shiny")}${shiny ? " ✓" : ""}</button>` : "") + `</div>` +
     `<a class="now-more" href="${wiki}" target="_blank" rel="noopener">${LANG === "fr" ? "Poképédia" : "Bulbapedia"} ↗</a>`;
 }
-window.openFiche = key => { ficheKey = key; renderFiche(); ficheDialog.showModal(); };
+window.openFiche = key => {
+  ficheKey = key;
+  const e = byKey.get(key);
+  ficheSel = e ? ficheStart(ficheForms(e), key) : 0;
+  renderFiche();
+  if (!ficheDialog.open) ficheDialog.showModal();
+  // Évolutions et couleur du bonbon arrivent après : la fiche se complète
+  loadEvos().then(() => {
+    if (!evoParent || !e) return;
+    let root = e.id; while (evoParent.has(root)) root = evoParent.get(root);
+    return readCandy(root);
+  }).then(() => { if (ficheDialog.open && ficheKey === key) renderFiche(); });
+};
 ficheDialog.addEventListener("click", ev => {
   if (ev.target === ficheDialog) { ficheDialog.close(); return; } // toucher le fond ferme
-  const f = ev.target.closest("[data-k]");
-  if (f) { ficheKey = f.dataset.k; renderFiche(); return; }
-  const b = ev.target.closest("[data-t]");
-  if (!b) return;
-  const set = b.dataset.t === "c" ? caught : shinyCaught;
-  set.has(ficheKey) ? set.delete(ficheKey) : set.add(ficheKey);
-  saveCaught();
-  // La carte suit si elle montre la même coche (mode Normal ou Shiny)
-  const card = [...els.grid.children].find(c => c.dataset.key === ficheKey);
-  if (card && set === marks()) { card.classList.toggle("caught", set.has(ficheKey)); card.querySelector(".types").innerHTML = typesHtml(byKey.get(ficheKey)); }
-  updateStats();
-  renderFiche();
+  const f = ev.target.closest("[data-f]");
+  if (f) { ficheSel = +f.dataset.f; renderFiche(); return; }
+  const m = ev.target.closest("[data-evo]");
+  if (m && m.dataset.evo !== ficheKey) openFiche(m.dataset.evo);
 });
 
 // --- Pokémon régionaux : la zone du monde où on les trouve (d'après Leek Duck, regional-pokemon) ---

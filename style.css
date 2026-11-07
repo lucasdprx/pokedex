@@ -722,3 +722,31 @@ html[data-theme="dark"] #reportDialog textarea { background: var(--bg, #0f2734);
 .now-stale { margin: 4px 0 6px; font-size: .85rem; color: var(--warn); display: inline-block; }
 .now-retry { margin: 0 0 10px 8px; background: var(--soft); color: var(--strong); border: 1px solid var(--line); border-radius: 8px; padding: 4px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
 .now-empty + .now-retry { margin-left: 0; }
+
+/* Fiche : grille de toutes les formes (fiche-formes v1 : F3, B1) et évolutions (I1) */
+.fiche-big { width: 96px; height: 96px; flex: none; position: relative; }
+.fiche-big img { width: 100%; height: 100%; object-fit: contain; position: relative; }
+.fiche-big.shadow::before, .fiche-big.purified::before, .fiche-forms .shadow::before, .fiche-forms .purified::before {
+  content: ""; position: absolute; inset: 10% 14% 4%; border-radius: 50%; pointer-events: none; animation: aura 1.6s ease-in-out infinite alternate; }
+.fiche-big.shadow::before, .fiche-forms .shadow::before { background: radial-gradient(#a35ce0, rgba(106,47,176,.7) 50%, transparent 75%); }
+.fiche-big.purified::before, .fiche-forms .purified::before { background: radial-gradient(#fff6c8, rgba(246,226,122,.5) 45%, transparent 75%); }
+.fiche-form { color: var(--accent); font-weight: 700; font-size: .9rem; min-height: 1.2em; }
+.fiche-forms { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+dialog .fiche-forms button { width: auto; position: relative; padding: 4px 2px; border-radius: 10px; line-height: 1.1; text-align: center; }
+.fiche-forms button img { position: relative; }
+dialog .fiche-forms button.on { background: var(--soft); }
+.fiche-forms .ok { position: absolute; top: 2px; right: 4px; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 10px; font-style: normal; display: grid; place-items: center; }
+.fiche-forms .gold .ok { background: var(--gold); }
+.fiche-evo { overflow-x: auto; padding-bottom: 4px; }
+.evo-step { display: flex; align-items: center; }
+.evo-next { display: flex; flex-direction: column; gap: 2px; }
+.evo-branch { display: flex; align-items: center; }
+.evo-branch > b { display: flex; align-items: center; gap: 2px; font-size: .78rem; color: #b7791f; white-space: nowrap; padding: 0 2px; }
+.candy { width: 18px; height: 12px; }
+dialog .evo-mon { background: none; border: 0; padding: 2px; width: 70px; display: flex; flex-direction: column; align-items: center; font-size: .74rem; color: var(--text); line-height: 1.1; }
+.evo-mon img { width: 46px; height: 46px; object-fit: contain; }
+.evo-mon.miss img { filter: grayscale(1) opacity(.45); }
+dialog .evo-mon.on { font-weight: 700; color: var(--strong); }
+/* Beaucoup d'évolutions (Évoli) : en grille sous le Pokémon de base */
+.evo-step.many { flex-direction: column; align-items: flex-start; }
+.evo-step.many > .evo-next { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); width: 100%; }

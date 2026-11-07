@@ -564,28 +564,13 @@ function applyLang() {
 
 // Compte : son menu (connexion, langue), puis la liste des langues
 const langMenu = document.getElementById("langMenu");
-const acctBtn = document.getElementById("acct");
-const acctMenu = document.getElementById("acctMenu");
-function setAcctMenu(open) {
-  acctMenu.hidden = !open;
-  acctBtn.setAttribute("aria-expanded", open);
-}
+function setAcctMenu() {}
 function setLangMenu(open) {
   langMenu.hidden = !open;
 }
-acctBtn.addEventListener("click", ev => {
-  ev.stopPropagation();
-  setMenu(false);
-  setLangMenu(false);
-  setAcctMenu(acctMenu.hidden);
-});
 document.getElementById("langBtn").addEventListener("click", ev => {
   ev.stopPropagation();
-  setAcctMenu(false);
   setLangMenu(true);
-});
-document.addEventListener("click", ev => {
-  if (!acctMenu.hidden && !acctMenu.contains(ev.target)) setAcctMenu(false);
 });
 langMenu.addEventListener("click", ev => {
   const b = ev.target.closest("button[data-lang]");
@@ -655,21 +640,36 @@ els.filter.addEventListener("change", render);
 // --- Menu ⋯ ---
 const menu = document.getElementById("menu");
 const moreBtn = document.getElementById("more");
+const menuVeil = document.getElementById("menuVeil");
+let menuTimer = null;
+// Hors de l'en-tête : son flou ferait du tiroir un enfant coincé dans l'en-tête
+document.body.append(menuVeil, menu, langMenu);
+// Tiroir du bord droit : il glisse à l'ouverture comme à la fermeture
 function setMenu(open) {
-  menu.hidden = !open;
+  if (open === !menu.hidden && open === menu.classList.contains("open")) return;
+  clearTimeout(menuTimer);
   moreBtn.setAttribute("aria-expanded", open);
+  if (open) {
+    menu.hidden = menuVeil.hidden = false;
+    menu.offsetWidth;
+    menu.classList.add("open"); menuVeil.classList.add("open");
+  } else {
+    menu.classList.remove("open"); menuVeil.classList.remove("open");
+    setLangMenu(false);
+    menuTimer = setTimeout(() => { menu.hidden = menuVeil.hidden = true; }, 250);
+  }
 }
 moreBtn.addEventListener("click", ev => {
   ev.stopPropagation();
   setAcctMenu(false);
   setLangMenu(false);
-  setMenu(menu.hidden);
+  setMenu(!menu.classList.contains("open"));
 });
 menu.addEventListener("click", ev => {
-  if (ev.target.closest("button, a")) setMenu(false);
+  if (ev.target.closest("button, a") && !ev.target.closest("#langBtn")) setMenu(false);
 });
 document.addEventListener("click", ev => {
-  if (!menu.hidden && !menu.contains(ev.target)) setMenu(false);
+  if (!menu.hidden && !menu.contains(ev.target) && !langMenu.contains(ev.target)) setMenu(false);
 });
 document.addEventListener("keydown", ev => {
   if (ev.key === "Escape") setMenu(false);

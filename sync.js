@@ -156,12 +156,9 @@ function showToast(on) {
 // --- Connexion ---
 const loginDialog = $("loginDialog");
 $("signIn").addEventListener("click", () => {
-  $("acctMenu").hidden = true;
-  $("acct").setAttribute("aria-expanded", false);
   loginDialog.showModal();
 });
 $("signOut").addEventListener("click", async () => {
-  $("acctMenu").hidden = true;
   await signOut(auth);
   localStorage.removeItem(SYNC_KEY); // les coches restent sur l'appareil ; à fusionner à la reconnexion
 });

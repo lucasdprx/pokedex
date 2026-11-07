@@ -32,19 +32,18 @@ setTimeout(function () { var s = document.getElementById("splash"); if (s) s.rem
     <span class="ball"></span>
     <h1>Pokédex</h1>
     <button class="globe" id="nowBtn" data-i18n-aria="nowTitle" aria-label="En ce moment"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="4.5" width="14" height="12.5" rx="1.5"/><path d="M3 8.5h14M7 2.5v4M13 2.5v4"/><text id="nowDay" x="10" y="15.4" text-anchor="middle" font-size="6.5" font-weight="700" fill="currentColor" stroke="none"></text></svg><i id="nowDot" hidden></i></button>
-    <button class="globe" id="acct" data-i18n-aria="account" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10" cy="7" r="3.5"/><path d="M3 18c1-4 4-5.5 7-5.5s6 1.5 7 5.5"/></svg></button>
-    <div class="menu" id="acctMenu" hidden>
+    <div class="menu" id="langMenu" hidden></div>
+    <button class="more" id="more" data-i18n-aria="menu" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 5.5h14M3 10h14M3 14.5h14"/></svg></button>
+    <div class="menu-veil" id="menuVeil" hidden></div>
+    <div class="menu drawer" id="menu" hidden>
+      <div id="acctMenu">
+      <div class="acct-head"><span id="acct" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10" cy="7" r="3.5"/><path d="M3 18c1-4 4-5.5 7-5.5s6 1.5 7 5.5"/></svg></span><span data-i18n="account">Mon compte</span></div>
       <div class="who" id="acctWho" hidden></div>
       <label class="pseudo" id="pseudoBox" hidden><span data-i18n="pseudo">Ton pseudo</span><input id="pseudo" maxlength="24" autocomplete="nickname"></label>
       <button id="signIn" data-i18n="signIn" hidden>Se connecter</button>
       <button id="signOut" data-i18n="signOut" hidden>Se déconnecter</button>
-      <hr>
-      <button id="installBtn" data-i18n="install" hidden>Installer l'appli</button>
-      <button id="langBtn"><span data-i18n="language">Langue</span><b id="langCur"></b></button>
     </div>
-    <div class="menu" id="langMenu" hidden></div>
-    <button class="more" id="more" data-i18n-aria="menu" aria-haspopup="true" aria-expanded="false">⋯</button>
-    <div class="menu" id="menu" hidden>
+      <hr>
       <button id="shinyBtn"><span id="shinyCheck"></span><span data-i18n="shinyMode">Mode Shiny</span></button>
       <button id="themeBtn"><span data-i18n="theme">Thème</span><b><span class="sky" aria-hidden="true"><i>☀️</i><i>🌙</i></span><span id="themeCur"></span></b></button>
       <button id="notifBtn"><span data-i18n="notifs">Notifications</span><span class="sw" id="notifSw"></span></button>
@@ -52,6 +51,8 @@ setTimeout(function () { var s = document.getElementById("splash"); if (s) s.rem
       <button id="export" data-i18n="export">Exporter</button>
       <button id="import" data-i18n="import">Importer</button>
       <button id="shareBtn" data-i18n="share">Partager mon Pokédex</button>
+      <button id="installBtn" data-i18n="install" hidden>Installer l'appli</button>
+      <button id="langBtn"><span data-i18n="language">Langue</span><b id="langCur"></b></button>
     </div>
     <input type="file" id="importFile" accept="application/json,.json" hidden>
     <input type="file" id="genieFile" accept="text/csv,.csv" hidden>

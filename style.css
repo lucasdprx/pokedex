@@ -615,11 +615,10 @@ html[data-theme="dark"] #splash { --sp: #0a1c28; }
 .card.arrive { animation: arrive .35s ease-out both; }
 @keyframes arrive { from { opacity: 0; transform: translateY(14px); } }
 /* G1 : aura violette des Obscurs, lueur blanche des Purifiés */
-body[data-coll="shadow"] .card::before, body[data-coll="purified"] .card::before {
+body[data-coll="purified"] .card::before {
   content: ""; position: absolute; top: 12px; left: 50%; width: 64px; height: 64px; margin-left: -32px; border-radius: 50%;
   pointer-events: none; animation: aura 1.6s ease-in-out infinite alternate;
 }
-body[data-coll="shadow"] .card::before { background: radial-gradient(#a35ce0, rgba(106,47,176,.7) 50%, transparent 75%); }
 body[data-coll="purified"] .card::before { background: radial-gradient(#fff6c8, rgba(246,226,122,.5) 45%, transparent 75%); }
 body[data-coll="shadow"] .card img, body[data-coll="purified"] .card img { position: relative; }
 @keyframes aura { from { transform: scale(.9) translateY(2px); opacity: .6; } to { transform: scale(1.15, 1.25) translateY(-4px); opacity: .95; } }
@@ -726,9 +725,8 @@ html[data-theme="dark"] #reportDialog textarea { background: var(--bg, #0f2734);
 /* Fiche : grille de toutes les formes (fiche-formes v1 : F3, B1) et évolutions (I1) */
 .fiche-big { width: 96px; height: 96px; flex: none; position: relative; }
 .fiche-big img { width: 100%; height: 100%; object-fit: contain; position: relative; }
-.fiche-big.shadow::before, .fiche-big.purified::before, .fiche-forms .shadow::before, .fiche-forms .purified::before {
+.fiche-big.purified::before, .fiche-forms .purified::before {
   content: ""; position: absolute; inset: 10% 14% 4%; border-radius: 50%; pointer-events: none; animation: aura 1.6s ease-in-out infinite alternate; }
-.fiche-big.shadow::before, .fiche-forms .shadow::before { background: radial-gradient(#a35ce0, rgba(106,47,176,.7) 50%, transparent 75%); }
 .fiche-big.purified::before, .fiche-forms .purified::before { background: radial-gradient(#fff6c8, rgba(246,226,122,.5) 45%, transparent 75%); }
 .fiche-form { color: var(--accent); font-weight: 700; font-size: .9rem; min-height: 1.2em; }
 .fiche-forms { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
@@ -750,3 +748,11 @@ dialog .evo-mon.on { font-weight: 700; color: var(--strong); }
 /* Beaucoup d'évolutions (Évoli) : en grille sous le Pokémon de base */
 .evo-step.many { flex-direction: column; align-items: flex-start; }
 .evo-step.many > .evo-next { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); width: 100%; }
+
+/* Obscurs : Pokémon un peu assombri, contour violet qui pulse (maquettes/obscurs/v1, S2) */
+body[data-coll="shadow"] .card.caught img, .fiche-big.shadow img, .fiche-forms .shadow:not(.miss) img {
+  filter: saturate(.75) brightness(.85) drop-shadow(0 0 1px #b46cff) drop-shadow(0 0 3px #7b3fb8);
+  animation: shadow-glow 1.6s ease-in-out infinite alternate;
+}
+@keyframes shadow-glow { to { filter: saturate(.75) brightness(.85) drop-shadow(0 0 3px #d29bff) drop-shadow(0 0 9px #7b3fb8); } }
+@media (prefers-reduced-motion: reduce) { body[data-coll="shadow"] .card.caught img, .fiche-big.shadow img, .fiche-forms .shadow img { animation: none; } }

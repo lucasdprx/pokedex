@@ -15,7 +15,7 @@ from firebase_admin import credentials, firestore
 from pywebpush import webpush, WebPushException
 
 DUCK = "https://raw.githubusercontent.com/bigfoott/ScrapedDuck/data/"
-SITE = "https://lucasdprx.github.io/pokedex/"
+SITE = "https://pokedex-go.pages.dev/"
 REGIONAL = {"Alolan": "Alola", "Galarian": "Galarian", "Hisuian": "Hisuian", "Paldean": "Paldea"}
 REG_PREFIX = tuple(REGIONAL.values())
 TEXT = {

@@ -378,7 +378,7 @@ dialog.review p { padding: 0 18px; margin: 0 0 8px; }
 dialog.review form { padding: 12px 18px 18px; }
 /* ---------- Style « Pokémon GO » (maquettes/design/v1, D1) ---------- */
 body {
-  font-family: "Rubik", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: "Baloo 2", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   background: linear-gradient(180deg, #9fe3ec, #5cc6db) fixed;
   min-height: 100vh;
 }
@@ -397,7 +397,9 @@ header::before {
   content: ""; position: absolute; left: -10px; right: -10px; bottom: 100%; height: 200px;
   background: #9fe3ec; pointer-events: none;
 }
-h1 { font-weight: 800; color: var(--strong); text-transform: uppercase; letter-spacing: .02em; font-size: 1.05rem; }
+button, input, select, textarea { font-family: inherit; }
+/* Titre en Rubik, tout le reste en Baloo 2 (maquettes/polices/v1, P5) */
+h1 { font-family: "Rubik", system-ui, sans-serif; font-weight: 800; color: var(--strong); text-transform: uppercase; letter-spacing: .02em; font-size: 1.05rem; }
 .mode { border: 0; background: var(--soft); border-radius: 10px; }
 .mode button { color: var(--muted); font-weight: 500; }
 .mode button.on { background: var(--accent); color: #fff; }

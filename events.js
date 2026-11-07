@@ -50,9 +50,12 @@ function buildHow() {
   const add = (name, img, src, detail, shiny, start = null, end = null, shadow = false, hours = "") => {
     const e = entryOf(name, img);
     if (!e) return;
+    // Raid Méga : l'image de la Méga (X ou Y selon le nom), pas celle de l'espèce
+    const xy = (/ ([XY])$/.exec(name || "") || [, ""])[1];
+    const sp = /^(Mega|Primal) /.test(name || "") ? MEGA_SPRITES[e.id + (xy ? " " + xy : "")] || null : null;
     const list = map.get(e.key) || [];
     // Même source et même début déjà notés (raid listé deux fois) : on garde le premier
-    if (!list.some(h => h.src === src && h.start === start && h.shadow === shadow && (src !== "research" || h.detail === detail))) list.push({ src, detail, start, end, shadow, hours, shiny: shiny !== false });
+    if (!list.some(h => h.src === src && h.start === start && h.shadow === shadow && h.sp === sp && (src !== "research" || h.detail === detail))) list.push({ src, detail, start, end, shadow, hours, sp, shiny: shiny !== false });
     map.set(e.key, list);
   };
   const tier = s => {
@@ -288,7 +291,7 @@ function renderNow() {
   // Vignettes sans nom, six par rangée (calendrier-allege v1 : A1) ; le nom au survol
   body.innerHTML = old + groups.map(g =>
     `<div class="now-sub ${g.kind}">${g.icon}${g.title}</div><div class="now-grid ${g.kind}">` + g.list.map(({ e, h, missing }) => {
-      const sp = spriteOf(e), fresh = missing && nowFresh.has((shinyMode ? "s:" : "") + e.key);
+      const sp = h.sp || spriteOf(e), fresh = missing && nowFresh.has((shinyMode ? "s:" : "") + e.key);
       return `<div class="now-cell${missing ? " missing" : ""}${fresh ? " fresh" : ""}" title="${e.name}" data-key="${e.key}" role="button" tabindex="0"><img crossorigin="anonymous" src="${shinyMode ? SPRITE_TINY_SHINY(sp) : SPRITE_TINY(sp)}" alt="${e.name}" ` +
         `data-sprite="${sp}" data-shiny="${shinyMode ? 1 : 0}" onerror="imgFallback(this)">` +
         (fresh ? `<i class="now-dot"></i>` : "") + (h.start || h.hours ? `<b>${[h.start && fmtDay(h.start), h.hours].filter(Boolean).join("<br>")}</b>` : "") + `</div>`;

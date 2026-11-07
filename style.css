@@ -742,7 +742,7 @@ dialog .fiche-forms button.on { background: var(--soft); }
 .evo-next { display: flex; flex-direction: column; gap: 2px; }
 .evo-branch { display: flex; align-items: center; }
 .evo-branch > b { display: flex; align-items: center; gap: 2px; font-size: .78rem; color: #b7791f; white-space: nowrap; padding: 0 2px; }
-.candy { width: 18px; height: 12px; }
+.candy { width: 15px; height: 15px; }
 dialog .evo-mon { background: none; border: 0; padding: 2px; width: 70px; display: flex; flex-direction: column; align-items: center; font-size: .74rem; color: var(--text); line-height: 1.1; }
 .evo-mon img { width: 46px; height: 46px; object-fit: contain; }
 .evo-mon.miss img { filter: grayscale(1) opacity(.45); }

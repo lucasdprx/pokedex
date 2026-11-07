@@ -366,7 +366,8 @@ function loadEvos() {
 const candyCol = new Map();
 function candySvg(root) {
   const c = candyCol.get(root) || ["#b7b7b7", "#e6e6e6"];
-  return `<svg class="candy" viewBox="0 0 24 16" aria-hidden="true"><path d="M1 3l5 5-5 5zM23 3l-5 5 5 5z" fill="${c[0]}"/><ellipse cx="12" cy="8" rx="7.5" ry="6" fill="${c[0]}"/><path d="M8 3.2c3 2 3 7.6 0 9.6M13 2.2c3 2.6 3 9 0 11.6" stroke="${c[1]}" stroke-width="2.6" fill="none"/></svg>`;
+  // Rond, une bande courbe de la 2e couleur et un reflet, comme le bonbon de Pokémon GO
+  return `<svg class="candy" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="${c[0]}" stroke="rgba(0,0,0,.25)" stroke-width=".8"/><path d="M2.2 11.6C5 9.4 8.4 5.6 9.6 1.2c2 .5 3.5 1.6 4.4 3.1C12 8.4 8.6 12 4.4 14.4c-1-.7-1.7-1.6-2.2-2.8z" fill="${c[1]}"/><ellipse cx="5.2" cy="4.6" rx="1.9" ry="1.2" transform="rotate(-35 5.2 4.6)" fill="#fff" opacity=".75"/></svg>`;
 }
 function readCandy(root) {
   if (candyCol.has(root)) return Promise.resolve();

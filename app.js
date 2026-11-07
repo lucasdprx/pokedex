@@ -105,13 +105,15 @@ let shinyCaught = loadCaught(SHINY_KEY); // shiny cochés, mêmes clés
 let shinyMode = false;          // bascule Normal / Shiny
 // Collections Méga / Obscurs / Purifiés (formes v1 : A1, choix à gauche du filtre) : mêmes clés que le Pokédex
 const FORM_KEYS = { mega: "pokedex-go-mega", shadow: "pokedex-go-shadow", purified: "pokedex-go-purified",
-  costume: "pokedex-go-costume", costumeShiny: "pokedex-go-costume-shiny" }; // costumes v1 : E1, K1
+  costume: "pokedex-go-costume", costumeShiny: "pokedex-go-costume-shiny", // costumes v1 : E1, K1
+  dynamax: "pokedex-go-dynamax", gigamax: "pokedex-go-gigamax" }; // collection-max v1 : A2, B1
 let formSets = Object.fromEntries(Object.entries(FORM_KEYS).map(([k, key]) => [k, loadCaught(key)]));
 let coll = "dex";               // collection affichée
 let megaEntries = [];           // cartes de la collection Méga
 let costumeEntries = [];        // cartes des Pokémon costumés (tools/costumes.py)
+let gigaEntries = [];           // cartes de la collection Gigamax (tools/max.py)
 const isCostume = () => coll === "costume" || coll === "costumeShiny";
-const pool = () => coll === "mega" ? megaEntries : isCostume() ? costumeEntries : entries;
+const pool = () => coll === "mega" ? megaEntries : coll === "gigamax" ? gigaEntries : isCostume() ? costumeEntries : entries;
 // Illustration de chaque Méga (n° PokeAPI)
 const MEGA_SPRITES = { 3: 10033, "6 X": 10034, "6 Y": 10035, 9: 10036, 15: 10090, 18: 10073, 65: 10037, 80: 10071, 94: 10038,
   115: 10039, 127: 10040, 130: 10041, 142: 10042, 181: 10045, 208: 10072, 212: 10046, 214: 10047, 229: 10048, 248: 10049,
@@ -156,7 +158,7 @@ window.marksApi = {
 const marks = () => coll !== "dex" ? formSets[coll] : shinyMode ? shinyCaught : caught;
 // Cochable dans la collection affichée : sorti dans GO (et son shiny aussi, en mode Shiny)
 const can = e => isCostume() ? e.available && (coll === "costume" || !!e.iconShiny)
-  : coll !== "dex" ? e.available && !e.regional && (coll === "mega" ? e.megaOut : e.shadowOut)
+  : coll !== "dex" ? e.available && !e.regional && (coll === "mega" ? e.megaOut : coll === "dynamax" ? e.dynaOut : coll === "gigamax" || e.shadowOut)
   : e.available && (!shinyMode || e.shinyOut);
 function prettyForm(f) {
   return (f || "").replace(/_/g, " ").trim();
@@ -189,7 +191,7 @@ async function init() {
     catch { localStorage.removeItem(CACHE_KEY); return init(); } // copie abîmée : on retélécharge
     els.status.style.display = "none";
     render();
-    if (Date.now() - cached.time < CACHE_MAX_AGE && cached.mega && typeof cached.mega[0] === "object" && cached.costumes) return; // sans costumes : copie d'avant // sans liste Méga : copie d'avant, on relit
+    if (Date.now() - cached.time < CACHE_MAX_AGE && cached.mega && typeof cached.mega[0] === "object" && cached.costumes && cached.max) return; // sans costumes : copie d'avant // sans liste Méga : copie d'avant, on relit
     // Données de plus d'un jour : mise à jour en fond, sans bloquer l'affichage
     try {
       const fresh = await fetchSources();
@@ -199,7 +201,8 @@ async function init() {
                       JSON.stringify(fresh.shiny) !== JSON.stringify(cached.shiny) ||
                       JSON.stringify(fresh.mega) !== JSON.stringify(cached.mega) ||
                       JSON.stringify(fresh.shadow) !== JSON.stringify(cached.shadow) ||
-                      JSON.stringify(fresh.costumes) !== JSON.stringify(cached.costumes);
+                      JSON.stringify(fresh.costumes) !== JSON.stringify(cached.costumes) ||
+                      JSON.stringify(fresh.max) !== JSON.stringify(cached.max);
       if (changed) { buildEntries(fresh); render(); }
     } catch { /* hors ligne : on garde la copie */ }
     return;
@@ -267,7 +270,8 @@ async function fetchSources() {
     try { shiny = Object.keys(await resShiny.json()).map(Number).sort((a, b) => a - b); } catch {}
   }
   const costumes = await fetch("costumes.json").then(r => r.ok ? r.json() : []).catch(() => []);
-  return { data, released: [...released].sort((a, b) => a - b), shiny, mega, shadow, costumes };
+  const max = await fetch("max.json").then(r => r.ok ? r.json() : null).catch(() => null) || { dynamax: [], gigamax: [] };
+  return { data, released: [...released].sort((a, b) => a - b), shiny, mega, shadow, costumes, max };
 }
 
 // Données brutes → cartes (une par forme de base ou régionale)
@@ -278,6 +282,7 @@ function buildEntries(src) {
   const shinyOut = new Set(shinyList);
   const megaList = (src.mega || []).filter(m => typeof m === "object"); // ancienne copie : simples n°
   const megaOut = new Set(megaList.map(m => m.id)), shadowOut = new Set(src.shadow || []);
+  const dynaOut = new Set((src.max || {}).dynamax || []);
   // Espèces dont la forme de base est présente dans les données.
   // Certaines espèces (Palarticho, M. Glaquette…) n'existent QUE sous un nom "régional"
   // (Galarian) sans forme de base : c'est alors leur forme normale, à compter.
@@ -321,6 +326,7 @@ function buildEntries(src) {
       shinyOut: shinyOut.has(e.pokemon_id),   // son shiny est sorti ?
       megaOut: megaOut.has(e.pokemon_id),     // a une Méga dans GO ?
       shadowOut: shadowOut.has(e.pokemon_id), // existe en Obscur (et donc Purifié) ?
+      dynaOut: dynaOut.has(e.pokemon_id),     // sorti en Dynamax ?
     };
   }).sort((a, b) => a.id - b.id || a.regional - b.regional || a.form.localeCompare(b.form));
   // Collection Méga : une carte par Méga (Dracaufeu X et Y à part), avec son image
@@ -341,7 +347,13 @@ function buildEntries(src) {
       search: base.search + " " + normalize(c.fr + " " + c.en + " costume") };
   }).filter(Boolean)
     .sort((a, b) => a.id - b.id || (a.year || 0) - (b.year || 0) || a.costume.localeCompare(b.costume)); // n° de Pokédex, puis année
-  byKey = new Map(entries.concat(megaEntries, costumeEntries).map(e => [e.key, e]));
+  // Gigamax : une carte par espèce, avec l'image de la forme géante
+  gigaEntries = ((src.max || {}).gigamax || []).map(g => {
+    const base = entries.find(e => e.id === g.id && !e.regional);
+    return base && { ...base, key: g.id + "_GIGAMAX", form: "GIGAMAX", name: base.name + " " + t("hGiga"), sprite: g.sprite, regional: false,
+      search: base.search + " gigamax gigantamax" };
+  }).filter(Boolean);
+  byKey = new Map(entries.concat(megaEntries, costumeEntries, gigaEntries).map(e => [e.key, e]));
   if (typeof buildHow === "function") buildHow();
 }
 

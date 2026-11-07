@@ -90,7 +90,10 @@ function buildHow() {
 // Ce qui compte comme « manquant » dans le mode affiché, avec ses moyens de l'avoir
 function howFor(e) {
   if (!howMap || !can(e) || marks().has(e.key)) return null;
-  return (howMap.get(e.key) || []).filter(h => !shinyMode || h.shiny);
+  // Collections Max : seulement leurs combats Max
+  const only = coll === "dynamax" ? "dyna" : coll === "gigamax" ? "giga" : null;
+  return (howMap.get(only === "giga" ? (entries.find(x => x.id === e.id && !x.regional) || e).key : e.key) || [])
+    .filter(h => (!shinyMode || h.shiny) && (!only || (h.src === "max" && h.detail === only)));
 }
 
 const fmtHour = ms => new Date(ms).toLocaleTimeString(LANG, { hour: "numeric", minute: new Date(ms).getMinutes() ? "2-digit" : undefined }).replace(/^0(?=\d)/, ""); // « 6 h », pas « 06 h »
@@ -355,6 +358,8 @@ function ficheForms(e) {
     out.push({ k: b.key, label: b.formLabel || t("fNormal"), sp: spriteOf(b), got: caught.has(b.key) });
     if (b.shinyOut) out.push({ k: b.key, label: pre + "Shiny", sp: spriteOf(b), shiny: 1, got: shinyCaught.has(b.key) });
   }
+  for (const g of gigaEntries.filter(x => x.id === e.id))
+    out.push({ k: g.key, label: t("hGiga"), sp: spriteOf(g), got: formSets.gigamax.has(g.key) });
   for (const m of megaEntries.filter(x => x.id === e.id))
     out.push({ k: m.key, label: m.name.replace(nameOf(e.id, ""), "").replace(/-\s*/, " ").replace(/\s+/g, " ").trim() || t("mega"), sp: spriteOf(m), got: formSets.mega.has(m.key) });
   const base = entries.find(x => x.id === e.id && !x.regional) || e;

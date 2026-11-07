@@ -658,11 +658,13 @@ dialog.now.closing { animation: now-down .25s ease-in forwards; }
 /* C1 : l'œuf tremble de temps en temps */
 .now-sub.egg svg { animation: now-wob 3s ease-in-out infinite; transform-origin: 50% 90%; }
 @keyframes now-wob { 0%, 70%, 100% { transform: none; } 75% { transform: rotate(-14deg); } 80% { transform: rotate(12deg); } 85% { transform: rotate(-8deg); } 90% { transform: rotate(4deg); } }
-/* D1 : flammes violettes des raids obscurs */
-.now-grid.shadow .now-cell::before { content: ""; position: absolute; inset: 12% 14% 4%; border-radius: 50% 50% 45% 45%;
-  background: radial-gradient(ellipse at 50% 70%, #a35ce0, rgba(106,47,176,.7) 50%, transparent 75%);
-  animation: aura 1.4s ease-in-out infinite alternate; }
-.now-grid.shadow .now-cell img { position: relative; }
+/* Raids obscurs : même effet que la collection Obscurs (contour violet qui pulse) ; ceux qui manquent restent gris */
+.now-grid.shadow .now-cell img { filter: saturate(.75) brightness(.85) drop-shadow(0 0 1px #b46cff) drop-shadow(0 0 3px #7b3fb8); animation: shadow-glow 1.6s ease-in-out infinite alternate; }
+.now-grid.shadow .now-cell.missing img { filter: grayscale(1) opacity(.45) drop-shadow(0 0 1px #b46cff) drop-shadow(0 0 3px #7b3fb8); animation-name: shadow-glow-miss; }
+@keyframes shadow-glow-miss {
+  from { filter: grayscale(1) opacity(.45) drop-shadow(0 0 1px #b46cff) drop-shadow(0 0 3px #7b3fb8); }
+  to { filter: grayscale(1) opacity(.45) drop-shadow(0 0 3px #d29bff) drop-shadow(0 0 9px #7b3fb8); } }
+@media (prefers-reduced-motion: reduce) { .now-grid.shadow .now-cell img { animation: none; } }
 /* E1 : les nouveaux sautillent à l'ouverture ; E2 : leur point pulse */
 .now-cell.fresh img { animation: now-hop .7s ease-out .6s both; }
 @keyframes now-hop { 0%, 50%, 100% { transform: none; } 25%, 75% { transform: translateY(-8px); } }

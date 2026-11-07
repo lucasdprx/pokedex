@@ -542,14 +542,13 @@ function renderGens() {
   els.gens.scrollLeft = scroll;
 }
 
-// Mode Shiny (menu ⋯) : même grille, autre collection
+// Mode Shiny (choix « Shiny » du filtre des collections) : même grille, autre collection
 function setShiny(on) {
   shinyMode = on;
   document.body.classList.toggle("shiny", on);
-  document.getElementById("shinyCheck").textContent = on ? "✦" : "";
+  if (on) document.getElementById("coll").value = "shiny";
   render();
 }
-document.getElementById("shinyBtn").addEventListener("click", () => setShiny(!shinyMode));
 
 // Textes fixes de la page (data-i18n, -ph, -aria)
 function applyLang() {
@@ -1165,11 +1164,11 @@ document.getElementById("friendX").addEventListener("click", () => {
 
 // Choix de la collection : Pokédex / Méga / Obscurs / Purifiés
 document.getElementById("coll").addEventListener("change", ev => {
-  coll = ev.target.value;
+  const shiny = ev.target.value === "shiny";
+  coll = shiny ? "dex" : ev.target.value;
   document.body.dataset.coll = coll;
-  if (coll !== "dex" && shinyMode) setShiny(false); // le Shiny ne vaut que pour le Pokédex
+  if (shiny !== shinyMode) setShiny(shiny); else render(); // le Shiny ne vaut que pour le Pokédex
   updateStats();
-  render();
   // Cascade (animations v1 : F1) : les cartes visibles arrivent une à une
   [...els.grid.children].slice(0, 30).forEach((c, i) => { c.style.animationDelay = i * 0.03 + "s"; c.classList.add("arrive"); });
 });

@@ -8,7 +8,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
 import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
-  doc, getDoc, getDocFromServer, setDoc, onSnapshot, serverTimestamp,
+  doc, getDoc, getDocFromServer, setDoc, onSnapshot, serverTimestamp, addDoc, collection,
 } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
 
 const app = initializeApp({
@@ -83,6 +83,11 @@ window.loadFriend = async uid => {
 if (window.onSyncReady) onSyncReady();
 // Notifications : l'abonnement de cet appareil est gardé sur le compte, lu chaque matin par tools/notify.py
 window.pushAccount = () => ready;
+// Signaler un problème : le message va dans la collection « reports » (lue dans la console Firebase)
+window.isSignedIn = () => !!user;
+window.sendReport = text => addDoc(collection(db, "reports"), {
+  text, lang: LANG, ua: navigator.userAgent, uid: user.uid, at: serverTimestamp(),
+});
 window.savePushSub = sub => setDoc(ref, { pushSub: sub ? JSON.stringify(sub) : null, pushLang: LANG }, { merge: true });
 
 const FORMS = ["mega", "shadow", "purified"]; // collections Méga / Obscurs / Purifiés

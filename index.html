@@ -166,6 +166,15 @@ setTimeout(function () { var s = document.getElementById("splash"); if (s) s.rem
   </div>
 </dialog>
 
+<dialog id="reportDialog">
+  <h2 data-i18n="report">Signaler un problème</h2>
+  <form id="reportForm">
+    <textarea id="reportText" rows="5" maxlength="2000" required data-i18n-ph="reportPh" data-i18n-aria="report"></textarea>
+    <p id="reportMsg" hidden></p>
+    <button type="submit" class="primary" id="reportSend" data-i18n="reportSend">Envoyer</button>
+    <button type="button" class="quiet" id="reportCancel" data-i18n="cancel">Annuler</button>
+  </form>
+</dialog>
 <dialog id="sentDialog">
   <h2 data-i18n="linkSent">Lien envoyé</h2>
   <p id="sentText"></p>

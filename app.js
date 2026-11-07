@@ -1220,9 +1220,32 @@ document.getElementById("obSkip").addEventListener("click", obDone);
 document.getElementById("guideBtn").addEventListener("click", obShow);
 if (!localStorage.getItem(OB_KEY)) setTimeout(obShow, 1300);
 
-// --- Signaler un problème (R1) : mail prêt avec la version et l'appareil ---
+// --- Signaler un problème : fenêtre avec un champ, le message part dans Firebase ---
+const reportDialog = document.getElementById("reportDialog");
+const reportText = document.getElementById("reportText");
+const reportMsg = document.getElementById("reportMsg");
+const reportSend = document.getElementById("reportSend");
 document.getElementById("reportBtn").addEventListener("click", ev => {
   ev.preventDefault();
-  const body = `\n\n---\nPokédex GO ${document.documentElement.lang}\n${navigator.userAgent}`;
-  location.href = `mailto:darpeixlucas@gmail.com?subject=${encodeURIComponent("Pokédex GO : " + t("report"))}&body=${encodeURIComponent(body)}`;
+  // Seulement connecté : on sait qui écrit, et la base refuse les anonymes
+  if (!(window.isSignedIn && isSignedIn())) { flash(t("reportLogin")); document.getElementById("loginDialog").showModal(); return; }
+  reportMsg.hidden = true; reportSend.disabled = false;
+  reportDialog.showModal();
+});
+document.getElementById("reportCancel").addEventListener("click", () => reportDialog.close());
+document.getElementById("reportForm").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const text = reportText.value.trim();
+  if (!text) return;
+  reportSend.disabled = true;
+  try {
+    if (!window.sendReport) throw new Error("offline");
+    await Promise.race([sendReport(text), new Promise((_, no) => setTimeout(() => no(new Error("timeout")), 10000))]);
+    reportMsg.textContent = t("reportOk"); reportMsg.hidden = false;
+    reportText.value = "";
+    setTimeout(() => reportDialog.close(), 1500);
+  } catch {
+    reportMsg.textContent = t("reportFail"); reportMsg.hidden = false;
+    reportSend.disabled = false;
+  }
 });

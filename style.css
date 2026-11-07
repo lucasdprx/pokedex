@@ -714,3 +714,7 @@ html[data-theme="dark"] #onboard { background: linear-gradient(180deg, #0b2130, 
 .ob-skip { position: absolute; top: calc(env(safe-area-inset-top) + 12px); right: 14px; background: none; border: 0; color: var(--muted); font-size: .95rem; cursor: pointer; }
 /* Mention « appli de fan » en bas du menu ☰ (M1) */
 .menu .fan { margin: 6px 16px 0; font-size: .75rem; color: var(--muted); line-height: 1.3; }
+#reportDialog textarea { width: 100%; box-sizing: border-box; margin-bottom: 10px; padding: 10px; border: 2px solid var(--line); border-radius: 10px; font-size: 1rem; resize: vertical; background: #fff; color: var(--text); }
+html[data-theme="dark"] #reportDialog textarea { background: var(--bg, #0f2734); }
+#reportDialog form { display: flex; flex-direction: column; gap: 6px; }
+#reportMsg { margin: 0 0 6px; color: var(--strong); }

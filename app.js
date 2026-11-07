@@ -337,9 +337,10 @@ function buildEntries(src) {
     if (!base) return null;
     const label = LANG === "fr" ? c.fr : c.en;
     return { ...base, key: c.id + "_C_" + c.code, form: "C_" + c.code, costume: label, regional: false,
-      icon: COSTUME_ICON(c.icon), iconShiny: c.shiny ? COSTUME_ICON(c.shiny) : null,
+      year: c.year, icon: COSTUME_ICON(c.icon), iconShiny: c.shiny ? COSTUME_ICON(c.shiny) : null,
       search: base.search + " " + normalize(c.fr + " " + c.en + " costume") };
-  }).filter(Boolean);
+  }).filter(Boolean)
+    .sort((a, b) => a.id - b.id || (a.year || 0) - (b.year || 0) || a.costume.localeCompare(b.costume)); // n° de Pokédex, puis année
   byKey = new Map(entries.concat(megaEntries, costumeEntries).map(e => [e.key, e]));
   if (typeof buildHow === "function") buildHow();
 }

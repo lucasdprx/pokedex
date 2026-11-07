@@ -41,6 +41,52 @@ WORDS = {  # mot du code → (fr, en)
 COLORS = {"BLUE": ("bleu", "blue"), "RED": ("rouge", "red"), "YELLOW": ("jaune", "yellow")}
 GENDER = {"GOGGLES": "es", "CAP": "e", "MONOCLE": ""}  # accord de la couleur en français
 
+# Vrais noms des costumes (Pokebip « Pokémon costumés », Bulbapedia « Event Pokémon (GO) ») :
+# « CODE » pour toutes les espèces, « n°:CODE » pour une seule. Le reste garde le nom tiré du code.
+NAMES = {
+    "HOLIDAY_2016": ("Chapeau de Noël", "Santa hat"),
+    "ONE_YEAR_ANNIVERSARY": ("Casquette de Sacha", "Ash's hat"),
+    "HALLOWEEN_2017": ("Chapeau de sorcière", "Witch hat"),
+    "SUMMER_2018": ("Lunettes de soleil", "Sunglasses"),
+    "25:SUMMER_2018": ("Lunettes et chapeau", "Summer style"), "26:SUMMER_2018": ("Lunettes et chapeau", "Summer style"),
+    "172:SUMMER_2018": ("Lunettes et chapeau", "Summer style"),
+    "FALL_2018": ("Casquette Fragment", "Fragment cap"),
+    "NOVEMBER_2018": ("Couronne de fleurs", "Flower crown"),
+    "WINTER_2018": ("Bonnet hivernal", "Winter hat"), "234:WINTER_2018": ("Clochettes", "Bells"),
+    "MAY_2019": ("Casquette Détective", "Detective hat"),
+    "COPY_2019": ("Clone", "Clone"),
+    "VS_2019": ("Catcheur", "Libre"),
+    "JAN_2020": ("Chapeau festif", "Party hat"),
+    "APRIL_2020": ("Couronne de fleurs", "Flower crown"), "25:APRIL_2020": ("Chapeau fleuri", "Flower hat"),
+    "KANTO_2020": ("Chapeau Dracaufeu", "Charizard hat"), "JOHTO_2020": ("Chapeau Noctali", "Umbreon hat"),
+    "HOENN_2020": ("Chapeau Rayquaza", "Rayquaza hat"), "SINNOH_2020": ("Chapeau Lucario", "Lucario hat"),
+    "SAFARI_2020": ("Chapeau safari", "Safari hat"), "ADVENTURE_HAT_2020": ("Explorateur", "Explorer"),
+    "1:FALL_2019": ("Chapeau Munja", "Shedinja hat"), "4:FALL_2019": ("Chapeau Osselait", "Cubone hat"),
+    "7:FALL_2019": ("Chapeau Tutafeh", "Yamask hat"), "25:FALL_2019": ("Costume de Mimiqui", "Mimikyu costume"),
+    "FALL_2020": ("Collaboration Longchamp", "Longchamp collab"),
+    "GOFEST_2021": ("Chapeau GO Fest 2021", "GO Fest 2021 hat"),
+    "ROCK_STAR": ("Rock star", "Rock star"), "POP_STAR": ("Pop star", "Pop star"),
+    "FLYING_5TH_ANNIV": ("Volant 5e anniversaire", "Flying 5th anniversary"), "FLYING_OKINAWA": ("Volant Okinawa", "Flying Okinawa"),
+    "FLYING_01": ("Ballons volants 1", "Flying balloons 1"), "FLYING_02": ("Ballons volants 2", "Flying balloons 2"),
+    "FLYING_03": ("Ballons volants 3", "Flying balloons 3"), "FLYING_04": ("Ballons volants 4", "Flying balloons 4"),
+    "HALLOWEEN_2021": ("Chenapan d'Halloween", "Halloween mischief"),
+    "FASHION_2021": ("Fashion Week 2021", "Fashion Week 2021"),
+    "GEMS_1_2021": ("Chapeau de Louka", "Lucas's hat"), "GEMS_2_2021": ("Chapeau d'Aurore", "Dawn's hat"),
+    "HOLIDAY_2021": ("Festif", "Holiday"),
+    "JAN_2022": ("Chapeau du nouvel an", "New Year's hat"),
+    "79:2020": ("Lunettes 2020", "2020 glasses"), "80:2021": ("Lunettes 2021", "2021 glasses"), "199:2022": ("Lunettes 2022", "2022 glasses"),
+    "25:GOFEST_2022": ("Gracidée", "Gracidea"), "143:GOFEST_2022": ("Chapeau de cow-boy", "Cowboy hat"),
+    "TCG_2022": ("Chapeau JCC", "TCG hat"), "ANNIVERSARY_2022": ("Chapeau gâteau", "Cake hat"),
+    "KARIYUSHI": ("Chemise kariyushi", "Kariyushi shirt"),
+    "FALL_2022": ("Costume effrayant", "Spooky costume"),
+    "HOLIDAY_2022": ("Chapeau de fête", "Holiday hat"),
+    "JAN_2023": ("Haut-de-forme de fête", "New Year's top hat"),
+    "GOTOUR_2023_HAT": ("Chapeau de Brice", "Brendan's hat"), "GOTOUR_2023_BANDANA": ("Ruban de Flora", "May's bandana"),
+    "SPRING_2023": ("Fleurs de cerisier", "Cherry blossoms"),
+    "SPRING_2023_INSTINCT": ("Accessoire de Spark", "Spark's accessory"), "SPRING_2023_MYSTIC": ("Accessoire de Blanche", "Blanche's accessory"),
+    "SPRING_2023_VALOR": ("Accessoire de Candela", "Candela's accessory"),
+}
+
 def label(code, lang):
     out, words = [], code.upper().split("_")
     if "ADVENTURE" in words and "HAT" in words:
@@ -63,6 +109,10 @@ def label(code, lang):
             out.append(w.capitalize())
     s = " ".join(x for x in out if x)
     return s[:1].upper() + s[1:]
+
+def name(dex, code):
+    k = code.upper().replace("_NOEVOLVE", "")
+    return NAMES.get(f"{dex}:{k}") or NAMES.get(k) or (label(code, "fr"), label(code, "en"))
 
 tree = json.load(urllib.request.urlopen(urllib.request.Request(TREE, headers={"User-Agent": "pokedex-go"}), timeout=120))
 files = {x["path"][len(DIR):] for x in tree["tree"] if x["path"].startswith(DIR) and x["path"].endswith(".icon.png")}
@@ -87,7 +137,7 @@ for f in sorted(files):
     icon = base + "icon.png" if base + "icon.png" in files else base + "g2.icon.png"
     shiny = next((s for s in (base + "s.icon.png", base + "g2.s.icon.png") if s in files), None)
     out.append({"id": dex, "code": code, "icon": icon, "shiny": shiny, "year": max(years) if years else None,
-                "fr": label(code, "fr"), "en": label(code, "en")})
+                **dict(zip(("fr", "en"), name(dex, code)))})
 
 with open("costumes.json", "w", encoding="utf-8") as fh:
     json.dump(out, fh, ensure_ascii=False, separators=(",", ":"))

@@ -718,3 +718,7 @@ html[data-theme="dark"] #onboard { background: linear-gradient(180deg, #0b2130, 
 html[data-theme="dark"] #reportDialog textarea { background: var(--bg, #0f2734); }
 #reportDialog form { display: flex; flex-direction: column; gap: 6px; }
 #reportMsg { margin: 0 0 6px; color: var(--strong); }
+/* Calendrier : source muette ou liste trop vieille */
+.now-stale { margin: 4px 0 6px; font-size: .85rem; color: var(--warn); display: inline-block; }
+.now-retry { margin: 0 0 10px 8px; background: var(--soft); color: var(--strong); border: 1px solid var(--line); border-radius: 8px; padding: 4px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+.now-empty + .now-retry { margin-left: 0; }

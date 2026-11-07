@@ -9,16 +9,18 @@ const DUCK_AGE = 3 * 3600e3; // relu toutes les 3 h
 let duck = null;      // données brutes reçues
 let howMap = null;    // clé de carte → [{src, detail, start, end, shiny}] trié, du plus proche au plus loin
 
-async function loadDuck() {
+async function loadDuck(force) {
   try {
     const c = JSON.parse(localStorage.getItem(DUCK_KEY));
     // Copie locale lue une seule fois : la relire refait toute la grille (clignotement, attente)
     if (c && !howMap) { duck = c; buildHow(); }
-    if (c && Date.now() - c.time < DUCK_AGE) return;
+    if (c && !force && Date.now() - c.time < DUCK_AGE) return;
   } catch {}
   try {
     const get = f => fetch(DUCK + f + ".json").then(r => { if (!r.ok) throw r.status; return r.json(); });
     const [raids, eggs, research, events] = await Promise.all(["raids", "eggs", "research", "events"].map(get));
+    // Format changé chez Leek Duck : on garde l'ancienne liste plutôt qu'une liste vide
+    if (![raids, eggs, research, events].every(Array.isArray)) throw "format";
     duck = { time: Date.now(), raids, eggs, research, events };
     try { localStorage.setItem(DUCK_KEY, JSON.stringify(duck)); } catch {}
     buildHow();
@@ -246,16 +248,20 @@ function renderNow() {
     [["all", "catAll"], ["raid", "catRaids"], ["egg", "catEggs"], ["research", "catResearch"]]
       .map(([k, key]) => tab("c", k, nowCat === k, t(key))).join("");
   const body = document.getElementById("nowBody");
-  if (!howMap) { body.innerHTML = `<p class="now-empty">${t("nowOffline")}</p>`; return; }
+  // Source muette : le dire, avec « Réessayer » ; liste trop vieille : la date en tête
+  const retry = `<button class="now-retry" type="button">${t("retry")}</button>`;
+  if (!howMap) { body.innerHTML = `<p class="now-empty">${t(navigator.onLine ? "nowDown" : "nowOffline")}</p>${retry}`; return; }
+  const old = duck && Date.now() - duck.time > 24 * 3600e3
+    ? `<p class="now-stale">${t("nowStale", { d: new Date(duck.time).toLocaleDateString(document.documentElement.lang) })}</p>${retry}` : "";
   const groups = sheetGroups(nowPane === "now" ? now : soon);
   if (!groups.length) {
     // Leek Duck ne liste que les œufs et études du moment : pour Bientôt, on ne sait pas encore
     const unknown = nowPane === "soon" && (nowCat === "egg" || nowCat === "research");
-    body.innerHTML = `<p class="now-empty">${t(unknown ? (nowCat === "egg" ? "soonEggsUnknown" : "soonResearchUnknown") : "nowNothing")}</p>`;
+    body.innerHTML = old + `<p class="now-empty">${t(unknown ? (nowCat === "egg" ? "soonEggsUnknown" : "soonResearchUnknown") : "nowNothing")}</p>`;
     return;
   }
   // Vignettes sans nom, six par rangée (calendrier-allege v1 : A1) ; le nom au survol
-  body.innerHTML = groups.map(g =>
+  body.innerHTML = old + groups.map(g =>
     `<div class="now-sub ${g.kind}">${g.icon}${g.title}</div><div class="now-grid ${g.kind}">` + g.list.map(({ e, h, missing }) => {
       const sp = spriteOf(e), fresh = missing && nowFresh.has((shinyMode ? "s:" : "") + e.key);
       return `<div class="now-cell${missing ? " missing" : ""}${fresh ? " fresh" : ""}" title="${e.name}" data-key="${e.key}" role="button" tabindex="0"><img crossorigin="anonymous" src="${shinyMode ? SPRITE_TINY_SHINY(sp) : SPRITE_TINY(sp)}" alt="${e.name}" ` +
@@ -292,6 +298,8 @@ document.getElementById("nowBtn").addEventListener("click", () => {
 });
 // Toucher une vignette : fermer la feuille et aller au Pokémon dans le Pokédex
 document.getElementById("nowBody").addEventListener("click", ev => {
+  const again = ev.target.closest(".now-retry");
+  if (again) { again.disabled = true; loadDuck(true).then(renderNow); return; }
   const cell = ev.target.closest(".now-cell");
   if (!cell) return;
   // calendrier-effets v1 : G2, la feuille descend puis la carte s'allume

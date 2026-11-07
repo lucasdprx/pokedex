@@ -8,7 +8,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
 import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
-  doc, getDoc, getDocFromServer, setDoc, onSnapshot, serverTimestamp, addDoc, collection,
+  doc, getDoc, getDocFromServer, setDoc, onSnapshot, serverTimestamp, collection, writeBatch,
 } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
 
 const app = initializeApp({
@@ -85,9 +85,13 @@ if (window.onSyncReady) onSyncReady();
 window.pushAccount = () => ready;
 // Signaler un problème : le message va dans la collection « reports » (lue dans la console Firebase)
 window.isSignedIn = () => !!user;
-window.sendReport = text => addDoc(collection(db, "reports"), {
-  text, lang: LANG, ua: navigator.userAgent, uid: user.uid, at: serverTimestamp(),
-});
+// Un signalement toutes les 10 min par compte : la base le vérifie avec reportLimits/{uid}
+window.sendReport = text => {
+  const b = writeBatch(db);
+  b.set(doc(collection(db, "reports")), { text, lang: LANG, ua: navigator.userAgent, uid: user.uid, at: serverTimestamp() });
+  b.set(doc(db, "reportLimits", user.uid), { at: serverTimestamp() });
+  return b.commit();
+};
 window.savePushSub = sub => setDoc(ref, { pushSub: sub ? JSON.stringify(sub) : null, pushLang: LANG }, { merge: true });
 
 const FORMS = ["mega", "shadow", "purified"]; // collections Méga / Obscurs / Purifiés

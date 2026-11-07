@@ -1230,8 +1230,13 @@ document.getElementById("reportBtn").addEventListener("click", ev => {
   // Seulement connecté : on sait qui écrit, et la base refuse les anonymes
   if (!(window.isSignedIn && isSignedIn())) { flash(t("reportLogin")); document.getElementById("loginDialog").showModal(); return; }
   reportMsg.hidden = true; reportSend.disabled = false;
+  const wait = reportWait();
+  if (wait) { reportMsg.textContent = t("reportWait", { n: wait }); reportMsg.hidden = false; reportSend.disabled = true; }
   reportDialog.showModal();
 });
+// Anti-spam : 10 min entre deux signalements (aussi vérifié par la base)
+const REPORT_KEY = "pokedex-go-last-report", REPORT_GAP = 10 * 60 * 1000;
+const reportWait = () => { const left = +(localStorage.getItem(REPORT_KEY) || 0) + REPORT_GAP - Date.now(); return left > 0 ? Math.ceil(left / 60000) : 0; };
 document.getElementById("reportCancel").addEventListener("click", () => reportDialog.close());
 document.getElementById("reportForm").addEventListener("submit", async ev => {
   ev.preventDefault();
@@ -1241,6 +1246,7 @@ document.getElementById("reportForm").addEventListener("submit", async ev => {
   try {
     if (!window.sendReport) throw new Error("offline");
     await Promise.race([sendReport(text), new Promise((_, no) => setTimeout(() => no(new Error("timeout")), 10000))]);
+    localStorage.setItem(REPORT_KEY, Date.now());
     reportMsg.textContent = t("reportOk"); reportMsg.hidden = false;
     reportText.value = "";
     setTimeout(() => reportDialog.close(), 1500);

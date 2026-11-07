@@ -1,7 +1,7 @@
 // Pokédex hors ligne : la page et les images déjà vues restent disponibles sans réseau.
 // Les listes de Pokémon, elles, sont gardées par la page (localStorage).
 
-const VERSION = "v62";                       // à changer quand la liste PAGE_FILES change
+const VERSION = "v63";                       // à changer quand la liste PAGE_FILES change
 const PAGE_CACHE = `pokedex-page-${VERSION}`;
 const IMG_CACHE = "pokedex-images";         // gardé d'une version à l'autre
 const IMG_MAX = 1200;                       // au-delà, les plus anciennes partent
@@ -9,6 +9,10 @@ const PAGE_FILES = [
   "./",
   "./index.html",
   "./style.css",
+  "./fonts/baloo2-latin.woff2",
+  "./fonts/baloo2-latin-ext.woff2",
+  "./fonts/rubik-latin.woff2",
+  "./fonts/rubik-latin-ext.woff2",
   "./app.js",
   "./pvp.json",
   "./costumes.json",

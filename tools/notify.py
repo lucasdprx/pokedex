@@ -1,6 +1,7 @@
 """Notification du matin : les Pokémon qui manquent à chaque personne et qui viennent d'arriver.
 
-Lit ScrapedDuck (raids, œufs, études, Heures vedettes, Journées Communauté en cours), puis pour
+Lit ScrapedDuck (raids, œufs, études, Heures vedettes, Journées Communauté en cours, combats Max
+d'aujourd'hui et de demain), puis pour
 chaque compte abonné (users/<uid>.pushSub) envoie une seule notification qui les liste.
 Un Pokémon n'est annoncé qu'une fois : users/<uid>.pushSent garde ce qui l'a déjà été.
 Lancé chaque matin par .github/workflows/notify.yml.
@@ -8,7 +9,8 @@ Lancé chaque matin par .github/workflows/notify.yml.
 Secrets : FIREBASE_SA (clé JSON d'un compte de service Firebase), VAPID_PRIVATE.
 """
 import json, os, re, urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -75,9 +77,33 @@ for ev in get(DUCK + "events.json"):
     for p in (x.get("communityday") or {}).get("spawns", []):
         add(p["name"], p.get("image"), ("cday", ""))
 
+# Combats Max d'aujourd'hui et de demain (heure de Paris ; Leek Duck donne l'heure locale) : prévenir la veille
+names = json.load(open("names.json", encoding="utf-8"))
+EN_DEX = {n.lower(): i + 1 for i, n in enumerate(names.get("en") or [])}
+today = datetime.now(ZoneInfo("Europe/Paris")).date()
+maxes = {}  # (n°, "dyna" | "giga") → (jour, heures ou "", fin)
+for ev in get(DUCK + "events.json"):
+    m = re.search(r"\b(Gigantamax|Eternamax|Dynamax) ([A-Z][\w'-]+)", ev.get("name") or "")
+    s, e = ev.get("start"), ev.get("end")
+    if not m or not s or not e or m.group(2).lower() not in EN_DEX:
+        continue
+    s, e = datetime.fromisoformat(s[:19]), datetime.fromisoformat(e[:19])
+    if s.date() > today + timedelta(days=1) or e.date() < today:
+        continue
+    hours = f"{s.hour} h–{e.hour} h" if s.date() == e.date() else ""
+    maxes.setdefault((EN_DEX[m.group(2).lower()], "dyna" if m.group(1) == "Dynamax" else "giga"), (max(s.date(), today), hours, e.date()))
+
 HOW_FR = {"raid": "en raid", "egg": "en œuf", "research": "en étude", "spotlight": "en Heure vedette", "cday": "en Journée Communauté"}
 HOW_EN = {"raid": "in raids", "egg": "in eggs", "research": "in research", "spotlight": "in Spotlight Hour", "cday": "on Community Day"}
-names = json.load(open("names.json", encoding="utf-8"))
+
+
+def max_when(lang, day, hours, end):
+    """« demain 6 h–21 h », « aujourd'hui », « jusqu'au 15/11 »."""
+    fr = lang == "fr"
+    if not hours and day == today:
+        return (f"jusqu'au {end:%d/%m}" if fr else f"until {end:%m/%d}")
+    w = ("aujourd'hui" if fr else "today") if day == today else ("demain" if fr else "tomorrow")
+    return f"{w} {hours}" if hours else w
 
 
 def has(caught, dex, reg):
@@ -100,6 +126,10 @@ def has_form(d, dex, kind, mform):
         if not mform:
             keys.add(f"{dex}_Normal")  # anciennes coches Méga
         return bool(keys & set(d.get("mega") or []))
+    if kind == "dyna":
+        return any(k.partition("_")[0] == str(dex) for k in d.get("dynamax") or [])
+    if kind == "giga":
+        return f"{dex}_GIGAMAX" in set(d.get("gigamax") or [])
     return any(k.partition("_")[0] == str(dex) for k in d.get("shadow") or [])
 
 
@@ -110,6 +140,10 @@ def label(dex, reg, lang, kind=None, mform=""):
         return (f"Méga-{n}" if lang == "fr" else f"Mega {n}") + (f" {mform}" if mform else "")
     if kind == "shadow":
         return f"{n} obscur" if lang == "fr" else f"Shadow {n}"
+    if kind in ("dyna", "giga"):
+        if kind == "giga" and dex == 890:  # Éthernatos : Infinimax
+            return f"{n} Infinimax" if lang == "fr" else f"Eternamax {n}"
+        return f"{n} {'Dynamax' if kind == 'dyna' else ('Gigamax' if lang == 'fr' else 'Gigantamax')}"
     if not reg:
         return n
     fr = {"Alola": "d'Alola", "Galarian": "de Galar", "Hisuian": "de Hisui", "Paldea": "de Paldea"}
@@ -134,6 +168,9 @@ for snap in db.collection("users").stream():
         if not got:
             k = f"{dex}_{reg or ''}" + (f"_{kind}{mform}" if kind else "")
             missing[k] = (dex, reg, how, kind, mform)
+    for (dex, kind), (day, hours, end) in maxes.items():
+        if not has_form(d, dex, kind, ""):
+            missing[f"max_{dex}_{kind}_{day}"] = (dex, None, ("max", (day, hours, end)), kind, "")
     sent = set(d.get("pushSent") or [])
     test = os.environ.get("TEST") == "true"  # lancé à la main avec « test » : tout annoncer, sans rien noter
     fresh = [v for k, v in missing.items() if test or k not in sent]
@@ -144,7 +181,10 @@ for snap in db.collection("users").stream():
         lang = "fr" if d.get("pushLang") == "fr" else "en"
         one, many, et = TEXT[lang]
         hows = HOW_FR if lang == "fr" else HOW_EN
-        parts = [f"{label(dex, reg, lang, kind, mform)} {hows[how[0]]}" for dex, reg, how, kind, mform in fresh[:4]]
+        # Combats Max d'abord : ils ne durent que quelques heures
+        fresh.sort(key=lambda v: v[2][0] != "max")
+        parts = [f"{label(dex, reg, lang, kind, mform)} " + (max_when(lang, *how[1]) if how[0] == "max" else hows[how[0]])
+                 for dex, reg, how, kind, mform in fresh[:4]]
         body = (", ".join(parts[:-1]) + et + parts[-1]) if len(parts) > 1 else parts[0]
         if len(fresh) > 4:
             body += "…"

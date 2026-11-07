@@ -70,14 +70,15 @@ function buildHow() {
     if (end && end < now) continue;
     const x = ev.extraData || {};
     const when = start && start > now ? start : null; // à venir : sa date ; en cours : maintenant
-    if (x.spotlight) for (const p of x.spotlight.list || []) add(p.name, p.image, "spotlight", "", p.canBeShiny, when, end);
-    if (x.communityday) for (const p of x.communityday.spawns || []) add(p.name, p.image, "cday", "", true, when, end);
+    // Combat Max, Heure vedette, Journée Communauté d'un seul jour : leurs heures (combats-max v2 : A1, B1)
+    const oneDay = start && end && new Date(start).toDateString() === new Date(end).toDateString();
+    const hours = oneDay ? fmtHours(start, end) : "";
+    if (x.spotlight) for (const p of x.spotlight.list || []) add(p.name, p.image, "spotlight", "", p.canBeShiny, when, end, false, hours);
+    if (x.communityday) for (const p of x.communityday.spawns || []) add(p.name, p.image, "cday", "", true, when, end, false, hours);
     // Combats Max : le Pokémon est dans le nom (« Dynamax Espurr during Max Monday », « Gigantamax Machamp… »)
     const mx = (ev.name || "").match(/\b(Gigantamax|Eternamax|Dynamax) ([A-Z][\w'-]+)/);
     const mxId = mx && lastSrc && (lastSrc.data.find(d => (d.pokemon_name || "").toLowerCase() === mx[2].toLowerCase()) || {}).pokemon_id;
-    // Combat d'un seul jour : ses heures (combats-max v2 : A1, B1)
-    const oneDay = start && end && new Date(start).toDateString() === new Date(end).toDateString();
-    if (mxId) add(mx[2], "pm" + mxId, "max", mx[1] === "Dynamax" ? "dyna" : "giga", true, when, end, false, oneDay ? fmtHours(start, end) : "");
+    if (mxId) add(mx[2], "pm" + mxId, "max", mx[1] === "Dynamax" ? "dyna" : "giga", true, when, end, false, hours);
     if (x.raidbattles && when) for (const p of x.raidbattles.bosses || []) add(p.name, p.image, "raid", tier(ev.name), p.canBeShiny, when, end, /shadow/i.test(ev.name));
   }
   for (const list of map.values()) list.sort((a, b) => (a.start || 0) - (b.start || 0));

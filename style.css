@@ -764,3 +764,4 @@ img[src*="pogo_assets"] { transform: scale(1.6); }
 .fiche-forms img[src*="pogo_assets"], .fiche-big img[src*="pogo_assets"] { transform: scale(1.5); }
 /* « Costumes shiny » est long : le choix de collection garde sa largeur, le filtre reste à côté */
 #coll { width: 8.6em; flex: none; text-overflow: ellipsis; }
+.evo-mon img[src*="pogo_assets"] { transform: scale(1.5); }

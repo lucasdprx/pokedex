@@ -405,17 +405,28 @@ function readCandy(root) {
     img.onerror = () => ok();
   });
 }
-function evoHtml(id) {
+// Famille : normale, ou pour un costumé, seulement les membres qui portent le même costume
+// (Bulbizarre → Herbizarre → Florizarre Halloween 2019) ; rien si le costume n'évolue pas
+function evoHtml(e) {
   if (!evoKids) return "";
-  let root = id; while (evoParent.has(root)) root = evoParent.get(root);
-  if (!evoKids.has(root)) return "";
+  const cos = e.ccode;
+  const member = n => cos ? costumeEntries.find(x => x.id === n && x.ccode === cos)
+    : entries.find(x => x.id === n && !x.regional);
+  let root = e.id;
+  while (evoParent.has(root) && member(evoParent.get(root))) root = evoParent.get(root);
+  let candyRoot = root; while (evoParent.has(candyRoot)) candyRoot = evoParent.get(candyRoot);
+  const kidsOf = n => (evoKids.get(n) || []).filter(k => member(k.id));
+  if (!kidsOf(root).length) return "";
+  const owned = m => cos ? formSets.costume.has(m.key) : caught.has(m.key);
   const node = n => {
-    const b = entries.find(x => x.id === n && !x.regional);
-    if (!b) return "";
-    const kids = (evoKids.get(n) || []).filter(k => entries.some(x => x.id === k.id));
-    return `<div class="evo-step${kids.length > 3 ? " many" : ""}"><button class="evo-mon${n === id ? " on" : ""}${caught.has(b.key) ? "" : " miss"}" data-evo="${b.key}">` +
-      `<img crossorigin="anonymous" src="${SPRITE_TINY(spriteOf(b))}" alt="" data-sprite="${spriteOf(b)}" data-shiny="0" onerror="imgFallback(this)">${b.name}</button>` +
-      (kids.length ? `<div class="evo-next">` + kids.map(k => `<div class="evo-branch"><b>${k.candy}${candySvg(root)}→</b>${node(k.id)}</div>`).join("") + `</div>` : "") + `</div>`;
+    const m = member(n);
+    if (!m) return "";
+    const kids = kidsOf(n);
+    const img = m.icon ? `<img crossorigin="anonymous" src="${m.icon}" alt="">`
+      : `<img crossorigin="anonymous" src="${SPRITE_TINY(spriteOf(m))}" alt="" data-sprite="${spriteOf(m)}" data-shiny="0" onerror="imgFallback(this)">`;
+    return `<div class="evo-step${kids.length > 3 ? " many" : ""}"><button class="evo-mon${n === e.id ? " on" : ""}${owned(m) ? "" : " miss"}" data-evo="${m.key}">` +
+      `${img}${m.name}</button>` +
+      (kids.length ? `<div class="evo-next">` + kids.map(k => `<div class="evo-branch"><b>${k.candy}${candySvg(candyRoot)}→</b>${node(k.id)}</div>`).join("") + `</div>` : "") + `</div>`;
   };
   return `<h3>${t("fEvo")}</h3><div class="fiche-evo">${node(root)}</div>`;
 }
@@ -436,7 +447,7 @@ function renderFiche() {
     e.types.map(ty => `<span style="color:${TYPE_COLOR[ty] || "#aaa"}">${typeName(ty)}</span>`).join(" ") + `</div></div></div>` +
     (forms.length > 1 ? `<h3>${t("fForms")}</h3><div class="fiche-forms">` + forms.map((x, i) =>
       `<button data-f="${i}" class="${i === ficheSel ? "on" : ""}${x.got ? "" : " miss"}${x.shiny ? " gold" : ""}${x.cls ? " " + x.cls : ""}">${formImg(x, true)}<span>${x.label}</span>${x.got ? `<i class="ok">✓</i>` : ""}</button>`).join("") + `</div>` : "") +
-    evoHtml(e.id) +
+    evoHtml(e) +
     (how.length || zoneOf(e) ? `<h3>${t("fHow")}</h3><div class="fiche-how">` +
       (zoneOf(e) ? `<div>${t("onlyIn", { z: zoneOf(e) })}</div>` : "") +
       how.map(h => `<div>${howLabel({ ...h, start: null })}<b>${h.start ? t("fromDay", { d: fmtDay(h.start) }) : ""}</b></div>`).join("") + `</div>` : "") +

@@ -151,13 +151,17 @@ const EGG_COLORS = { 1: ["#59a9e0", "#7fc8f8"], 2: ["#5ba83a", "#8fd36b"], 5: ["
   7: ["#d9b62e", "#f4d35e"], 10: ["#8a5ccf", "#a77fe0"], 12: ["#c43c3c", "#e05252"] };
 const RAID_COLORS = { 1: "#f29bb6", 3: "#f4c430", 5: "#8a8fa3", mega: "#c0392b", shadow: "#6b3fa0" };
 
+// Le calendrier suit le Pokédex (ou le Shiny), pas les collections Méga, Obscurs, Purifiés :
+// filtrer sur Méga ne doit pas vider la liste des raids et des œufs
+const calCan = e => e.available && (!shinyMode || e.shinyOut);
+const calMarks = () => shinyMode ? shinyCaught : caught;
 // Tous les Pokémon disponibles (ceux que tu as aussi), dans le mode affiché
 function sheetRows() {
   const now = [], soon = [];
   if (!howMap) return { now, soon };
   for (const e of entries) {
-    if (!can(e)) continue;
-    const missing = !marks().has(e.key);
+    if (!calCan(e)) continue;
+    const missing = !calMarks().has(e.key);
     for (const h of (howMap.get(e.key) || []).filter(h => !shinyMode || h.shiny)) (h.start ? soon : now).push({ e, h, missing });
   }
   return { now, soon };
@@ -235,7 +239,7 @@ function sheetGroups(rows) {
 
 // Ce dont dépend la feuille : la refaire seulement quand ça change
 let nowDrawn = "";
-const nowSig = () => [nowPane, nowCat, shinyMode, duck && duck.time, marks().size, document.documentElement.lang, nowFresh.size].join("|");
+const nowSig = () => [nowPane, nowCat, shinyMode, duck && duck.time, calMarks().size, document.documentElement.lang, nowFresh.size].join("|");
 function renderNow() {
   nowDrawn = nowSig();
   const { now, soon } = sheetRows();

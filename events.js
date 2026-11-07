@@ -72,6 +72,10 @@ function buildHow() {
     const when = start && start > now ? start : null; // à venir : sa date ; en cours : maintenant
     if (x.spotlight) for (const p of x.spotlight.list || []) add(p.name, p.image, "spotlight", "", p.canBeShiny, when, end);
     if (x.communityday) for (const p of x.communityday.spawns || []) add(p.name, p.image, "cday", "", true, when, end);
+    // Combats Max : le Pokémon est dans le nom (« Dynamax Espurr during Max Monday », « Gigantamax Machamp… »)
+    const mx = (ev.name || "").match(/\b(Gigantamax|Eternamax|Dynamax) ([A-Z][\w'-]+)/);
+    const mxId = mx && lastSrc && (lastSrc.data.find(d => (d.pokemon_name || "").toLowerCase() === mx[2].toLowerCase()) || {}).pokemon_id;
+    if (mxId) add(mx[2], "pm" + mxId, "max", mx[1] === "Dynamax" ? "dyna" : "giga", true, when, end);
     if (x.raidbattles && when) for (const p of x.raidbattles.bosses || []) add(p.name, p.image, "raid", tier(ev.name), p.canBeShiny, when, end, /shadow/i.test(ev.name));
   }
   for (const list of map.values()) list.sort((a, b) => (a.start || 0) - (b.start || 0));
@@ -93,6 +97,7 @@ function howLabel(h) {
       : h.detail === "mega" ? t("raidMega") : t("raidN", { n: h.detail }))
     : h.src === "egg" ? t("eggKm", { km: h.detail })
     : h.src === "research" ? t("fieldResearch")
+    : h.src === "max" ? t(h.detail === "dyna" ? "maxDyna" : "maxGiga")
     : h.src === "spotlight" ? t("spotlightOne") : t("cdayOne");
   return h.start ? base + " " + t("fromDay", { d: fmtDay(h.start) }) : base;
 }
@@ -149,6 +154,8 @@ const raidIcon = fill => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="$
   `<path d="M12 9l1.3 2.7 2.9.3-2.2 2 .7 2.9L12 15.4 9.3 16.9l.7-2.9-2.2-2 2.9-.3z" fill="#fff"/></svg>`;
 const EGG_COLORS = { 1: ["#59a9e0", "#7fc8f8"], 2: ["#5ba83a", "#8fd36b"], 5: ["#e08a24", "#f5a142"],
   7: ["#d9b62e", "#f4d35e"], 10: ["#8a5ccf", "#a77fe0"], 12: ["#c43c3c", "#e05252"] };
+const maxIcon = fill => `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="${fill}" stroke="rgba(0,0,0,.25)"/>` +
+  `<path d="M7 16V8l5 5 5-5v8" stroke="#fff" stroke-width="2.2" fill="none" stroke-linejoin="round"/></svg>`;
 const RAID_COLORS = { 1: "#f29bb6", 3: "#f4c430", 5: "#8a8fa3", mega: "#c0392b", shadow: "#6b3fa0" };
 
 // Le calendrier suit le Pokédex (ou le Shiny), pas les collections Méga, Obscurs, Purifiés :
@@ -216,6 +223,11 @@ function sheetGroups(rows) {
     push(raidIcon(RAID_COLORS.shadow), t("hRaidShadow"),
       raids.filter(r => r.h.shadow).sort((a, b) => (+b.h.detail || 0) - (+a.h.detail || 0) || byStart(a, b)), true, "shadow");
   }
+  // Combats Max après les raids, Gigamax puis Dynamax (combats-max v1 : A1, B1)
+  if (nowCat === "all" || nowCat === "max") {
+    push(maxIcon("#b0306a"), t("hGiga"), rows.filter(r => r.h.src === "max" && r.h.detail === "giga").sort(byStart), false, "max");
+    push(maxIcon("#e0457b"), t("hDyna"), rows.filter(r => r.h.src === "max" && r.h.detail === "dyna").sort(byStart), false, "max");
+  }
   if (nowCat === "all" || nowCat === "egg") {
     const eggs = rows.filter(r => r.h.src === "egg");
     const kms = [...new Set(eggs.map(r => r.h.detail))].sort((a, b) => parseFloat(a) - parseFloat(b));
@@ -249,7 +261,7 @@ function renderNow() {
     tab("p", "now", nowPane === "now", `${t("nowTab")} <span>${now.length}</span>`) +
     tab("p", "soon", nowPane === "soon", `${t("soonTab")} <span>${soon.length}</span>`);
   document.getElementById("nowCats").innerHTML =
-    [["all", "catAll"], ["raid", "catRaids"], ["egg", "catEggs"], ["research", "catResearch"]]
+    [["all", "catAll"], ["raid", "catRaids"], ["egg", "catEggs"], ["research", "catResearch"], ["max", "catMax"]]
       .map(([k, key]) => tab("c", k, nowCat === k, t(key))).join("");
   const body = document.getElementById("nowBody");
   // Source muette : le dire, avec « Réessayer » ; liste trop vieille : la date en tête

@@ -47,12 +47,12 @@ const parseDate = s => s ? new Date(s).getTime() : null;
 function buildHow() {
   if (!duck || !entries.length) return;
   const map = new Map();
-  const add = (name, img, src, detail, shiny, start = null, end = null, shadow = false) => {
+  const add = (name, img, src, detail, shiny, start = null, end = null, shadow = false, hours = "") => {
     const e = entryOf(name, img);
     if (!e) return;
     const list = map.get(e.key) || [];
     // Même source et même début déjà notés (raid listé deux fois) : on garde le premier
-    if (!list.some(h => h.src === src && h.start === start && h.shadow === shadow && (src !== "research" || h.detail === detail))) list.push({ src, detail, start, end, shadow, shiny: shiny !== false });
+    if (!list.some(h => h.src === src && h.start === start && h.shadow === shadow && (src !== "research" || h.detail === detail))) list.push({ src, detail, start, end, shadow, hours, shiny: shiny !== false });
     map.set(e.key, list);
   };
   const tier = s => {
@@ -75,7 +75,9 @@ function buildHow() {
     // Combats Max : le Pokémon est dans le nom (« Dynamax Espurr during Max Monday », « Gigantamax Machamp… »)
     const mx = (ev.name || "").match(/\b(Gigantamax|Eternamax|Dynamax) ([A-Z][\w'-]+)/);
     const mxId = mx && lastSrc && (lastSrc.data.find(d => (d.pokemon_name || "").toLowerCase() === mx[2].toLowerCase()) || {}).pokemon_id;
-    if (mxId) add(mx[2], "pm" + mxId, "max", mx[1] === "Dynamax" ? "dyna" : "giga", true, when, end);
+    // Combat d'un seul jour : ses heures (combats-max v2 : A1, B1)
+    const oneDay = start && end && new Date(start).toDateString() === new Date(end).toDateString();
+    if (mxId) add(mx[2], "pm" + mxId, "max", mx[1] === "Dynamax" ? "dyna" : "giga", true, when, end, false, oneDay ? fmtHours(start, end) : "");
     if (x.raidbattles && when) for (const p of x.raidbattles.bosses || []) add(p.name, p.image, "raid", tier(ev.name), p.canBeShiny, when, end, /shadow/i.test(ev.name));
   }
   for (const list of map.values()) list.sort((a, b) => (a.start || 0) - (b.start || 0));
@@ -91,6 +93,8 @@ function howFor(e) {
   return (howMap.get(e.key) || []).filter(h => !shinyMode || h.shiny);
 }
 
+const fmtHour = ms => new Date(ms).toLocaleTimeString(LANG, { hour: "numeric", minute: new Date(ms).getMinutes() ? "2-digit" : undefined }).replace(/^0(?=\d)/, ""); // « 6 h », pas « 06 h »
+const fmtHours = (a, b) => fmtHour(a) + "–" + fmtHour(b);
 const fmtDay = ms => new Date(ms).toLocaleDateString(LANG, { day: "numeric", month: "short" });
 function howLabel(h) {
   const base = h.src === "raid" ? (h.shadow ? t("raidShadow") + (h.detail ? " " + h.detail + "★" : "")
@@ -99,6 +103,7 @@ function howLabel(h) {
     : h.src === "research" ? t("fieldResearch")
     : h.src === "max" ? t(h.detail === "dyna" ? "maxDyna" : "maxGiga")
     : h.src === "spotlight" ? t("spotlightOne") : t("cdayOne");
+  if (h.hours) return base + (h.start ? " " + fmtDay(h.start) : "") + " " + h.hours;
   return h.start ? base + " " + t("fromDay", { d: fmtDay(h.start) }) : base;
 }
 
@@ -282,7 +287,7 @@ function renderNow() {
       const sp = spriteOf(e), fresh = missing && nowFresh.has((shinyMode ? "s:" : "") + e.key);
       return `<div class="now-cell${missing ? " missing" : ""}${fresh ? " fresh" : ""}" title="${e.name}" data-key="${e.key}" role="button" tabindex="0"><img crossorigin="anonymous" src="${shinyMode ? SPRITE_TINY_SHINY(sp) : SPRITE_TINY(sp)}" alt="${e.name}" ` +
         `data-sprite="${sp}" data-shiny="${shinyMode ? 1 : 0}" onerror="imgFallback(this)">` +
-        (fresh ? `<i class="now-dot"></i>` : "") + (h.start ? `<b>${fmtDay(h.start)}</b>` : "") + `</div>`;
+        (fresh ? `<i class="now-dot"></i>` : "") + (h.start || h.hours ? `<b>${[h.start && fmtDay(h.start), h.hours].filter(Boolean).join("<br>")}</b>` : "") + `</div>`;
     }).join("") + `</div>`).join("");
 }
 

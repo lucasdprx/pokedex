@@ -27,6 +27,13 @@
 // Écran de lancement (splash v2 : L1, Q1) : la Poké Ball tremble puis s'ouvre, ~1 s
 setTimeout(function () { var s = document.getElementById("splash"); if (s) s.remove(); }, 1300);
 </script>
+<!-- Guide du premier lancement (maquettes/avant-reddit/v1, G3) -->
+<div id="onboard" hidden>
+  <div class="ob-track"><div class="ob-page"></div><div class="ob-page"></div><div class="ob-page"></div></div>
+  <div class="ob-dots"><i></i><i></i><i></i></div>
+  <button class="ob-next" id="obNext"></button>
+  <button class="ob-skip" id="obSkip" data-i18n="obSkip">Passer</button>
+</div>
 <header>
   <div class="top">
     <span class="ball"></span>
@@ -52,6 +59,10 @@ setTimeout(function () { var s = document.getElementById("splash"); if (s) s.rem
       <button id="shareBtn" data-i18n="share">Partager mon Pokédex</button>
       <button id="installBtn" data-i18n="install" hidden>Installer l'appli</button>
       <button id="langBtn"><span data-i18n="language">Langue</span><b id="langCur"></b></button>
+      <hr>
+      <button id="guideBtn" data-i18n="guide">Revoir le guide</button>
+      <a id="reportBtn" data-i18n="report" href="#">Signaler un problème</a>
+      <p class="fan" data-i18n="fan">Appli de fan, non affiliée à Niantic ni à The Pokémon Company.</p>
     </div>
     <input type="file" id="importFile" accept="application/json,.json" hidden>
     <input type="file" id="genieFile" accept="text/csv,.csv" hidden>

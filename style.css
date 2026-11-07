@@ -689,10 +689,28 @@ dialog.now.closing { animation: now-down .25s ease-in forwards; }
   transform: translateX(100%); transition: transform .25s ease-in;
 }
 .menu.drawer.open { transform: none; transition: transform .3s cubic-bezier(.3,.6,.35,1); }
-.menu.drawer button { display: flex; align-items: center; gap: 8px; padding: 12px 16px; }
+.menu.drawer button, .menu.drawer a { display: flex; align-items: center; gap: 8px; padding: 12px 16px; }
 .menu.drawer b { margin-left: auto; padding-left: 12px; font-weight: 400; color: var(--muted); }
 .acct-head { display: flex; align-items: center; gap: 10px; padding: 8px 16px 4px; font-weight: 800; color: var(--strong); text-transform: uppercase; font-size: .9rem; }
 .acct-head svg { width: 20px; height: 20px; display: block; }
 #acctMenu [hidden] { display: none; }
 #langMenu { position: fixed; top: calc(env(safe-area-inset-top) + 60px); right: 12px; z-index: 42; }
 @media (prefers-reduced-motion: reduce) { .menu.drawer, .menu.drawer.open, .menu-veil { transition: none; } }
+
+/* Guide du premier lancement : 3 écrans à glisser (maquettes/avant-reddit/v1, G3) */
+#onboard { position: fixed; inset: 0; z-index: 60; background: linear-gradient(180deg, #9fe3ec, #5cc6db); display: flex; flex-direction: column; align-items: center; padding: calc(env(safe-area-inset-top) + 20px) 0 calc(env(safe-area-inset-bottom) + 28px); color: var(--text); }
+#onboard[hidden] { display: none; }
+html[data-theme="dark"] #onboard { background: linear-gradient(180deg, #0b2130, #08161f); }
+.ob-track { flex: 1; width: 100%; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.ob-track::-webkit-scrollbar { display: none; }
+.ob-page { flex: 0 0 100%; scroll-snap-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 0 32px; text-align: center; }
+.ob-page h2 { margin: 0; font-family: "Rubik", system-ui, sans-serif; font-weight: 800; text-transform: uppercase; color: var(--strong); font-size: 1.3rem; }
+.ob-page img { width: 170px; height: 170px; object-fit: contain; }
+.ob-page p { margin: 0; font-size: 1.15rem; max-width: 300px; }
+.ob-dots { display: flex; gap: 7px; margin: 10px 0 16px; }
+.ob-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--strong); opacity: .3; transition: opacity .2s; }
+.ob-dots i.on { opacity: 1; }
+.ob-next { background: var(--accent); color: #fff; border: 0; border-radius: 12px; padding: 10px 34px; font-weight: 700; font-size: 1.05rem; cursor: pointer; }
+.ob-skip { position: absolute; top: calc(env(safe-area-inset-top) + 12px); right: 14px; background: none; border: 0; color: var(--muted); font-size: .95rem; cursor: pointer; }
+/* Mention « appli de fan » en bas du menu ☰ (M1) */
+.menu .fan { margin: 6px 16px 0; font-size: .75rem; color: var(--muted); line-height: 1.3; }

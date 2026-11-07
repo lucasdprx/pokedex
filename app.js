@@ -1190,3 +1190,39 @@ document.getElementById("themeBtn").addEventListener("click", () => {
 });
 darkMq.addEventListener("change", applyTheme);
 applyTheme();
+
+// --- Guide du premier lancement (avant-reddit v1 : G3), revu depuis le menu ☰ ---
+const OB_KEY = "pokedex-go-onboarded";
+const onboard = document.getElementById("onboard");
+const obTrack = onboard.querySelector(".ob-track");
+const obNext = document.getElementById("obNext");
+const obPage = () => Math.round(obTrack.scrollLeft / obTrack.clientWidth);
+function obShow() {
+  [[1, "ob1"], [25, "ob2"], [150, "ob3"]].forEach(([id, key], i) => {
+    obTrack.children[i].innerHTML = `<h2>Pokédex GO</h2><img src="${SPRITE_SMALL(id)}" alt=""><p>${t(key)}</p>`;
+  });
+  onboard.hidden = false;
+  obTrack.scrollLeft = 0;
+  obSync();
+}
+function obSync() {
+  const p = obPage();
+  [...onboard.querySelectorAll(".ob-dots i")].forEach((d, i) => d.classList.toggle("on", i === p));
+  obNext.textContent = t(p === 2 ? "obGo" : "obNext");
+}
+function obDone() { onboard.hidden = true; localStorage.setItem(OB_KEY, "1"); }
+obTrack.addEventListener("scroll", obSync, { passive: true });
+obNext.addEventListener("click", () => {
+  const p = obPage();
+  if (p >= 2) obDone(); else obTrack.scrollTo({ left: (p + 1) * obTrack.clientWidth, behavior: "smooth" });
+});
+document.getElementById("obSkip").addEventListener("click", obDone);
+document.getElementById("guideBtn").addEventListener("click", obShow);
+if (!localStorage.getItem(OB_KEY)) setTimeout(obShow, 1300);
+
+// --- Signaler un problème (R1) : mail prêt avec la version et l'appareil ---
+document.getElementById("reportBtn").addEventListener("click", ev => {
+  ev.preventDefault();
+  const body = `\n\n---\nPokédex GO ${document.documentElement.lang}\n${navigator.userAgent}`;
+  location.href = `mailto:darpeixlucas@gmail.com?subject=${encodeURIComponent("Pokédex GO : " + t("report"))}&body=${encodeURIComponent(body)}`;
+});

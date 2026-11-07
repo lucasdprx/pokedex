@@ -1169,8 +1169,16 @@ document.getElementById("coll").addEventListener("change", ev => {
   document.body.dataset.coll = coll;
   if (shiny !== shinyMode) setShiny(shiny); else render(); // le Shiny ne vaut que pour le Pokédex
   updateStats();
-  // Cascade (animations v1 : F1) : les cartes visibles arrivent une à une
-  [...els.grid.children].slice(0, 30).forEach((c, i) => { c.style.animationDelay = i * 0.03 + "s"; c.classList.add("arrive"); });
+  // Cascade (animations v1 : F1) : toutes les cartes à l'écran arrivent, rangée par rangée
+  // (sur un grand écran, 12 par rangée : compter les cartes en laissait la moitié sans animation)
+  const cards = [...els.grid.children], top0 = cards.length && cards[0].getBoundingClientRect().top;
+  for (const c of cards) {
+    const r = c.getBoundingClientRect();
+    if (r.top > innerHeight) break;
+    const row = Math.round((r.top - top0) / (r.height || 1)), col = c.offsetLeft / (c.offsetWidth || 1);
+    c.classList.remove("arrive"); void c.offsetWidth;
+    c.style.animationDelay = Math.min(row * 0.08 + col * 0.02, 0.6) + "s"; c.classList.add("arrive");
+  }
 });
 
 // --- Thème (mode-sombre : B1 suit le téléphone, choix dans le menu ⋯ ; couleurs N3 bleu nuit foncé) ---

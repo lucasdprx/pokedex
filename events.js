@@ -53,11 +53,13 @@ function buildHow() {
     // Raid Méga : l'image de la Méga (X ou Y selon le nom), pas celle de l'espèce
     const xy = (/ ([XY])$/.exec(name || "") || [, ""])[1];
     const isMega = /^(Mega|Primal) /.test(name || "");
-    const sp = isMega ? MEGA_SPRITES[e.id + (xy ? " " + xy : "")] || null : null;
-    const mk = isMega ? e.id + "_MEGA" + (xy ? "_" + xy : "") : null; // clé dans la collection Méga
+    const giga = src === "max" && detail === "giga" ? gigaEntries.find(g => g.id === e.id) : null;
+    const sp = isMega ? MEGA_SPRITES[e.id + (xy ? " " + xy : "")] || null : giga ? giga.sprite : null;
+    // Collection qui décide du gris : Méga, Gigamax ou Obscurs (sinon le Pokédex)
+    const mk = isMega ? ["mega", e.id + "_MEGA" + (xy ? "_" + xy : "")] : giga ? ["gigamax", giga.key] : shadow ? ["shadow", e.key] : null;
     const list = map.get(e.key) || [];
     // Même source et même début déjà notés (raid listé deux fois) : on garde le premier
-    if (!list.some(h => h.src === src && h.start === start && h.shadow === shadow && h.sp === sp && (src !== "research" || h.detail === detail))) list.push({ src, detail, start, end, shadow, hours, sp, mk, shiny: shiny !== false });
+    if (!list.some(h => h.src === src && h.start === start && h.shadow === shadow && h.sp === sp && h.mk?.[1] === mk?.[1] && (src !== "research" || h.detail === detail))) list.push({ src, detail, start, end, shadow, hours, sp, mk, shiny: shiny !== false });
     map.set(e.key, list);
   };
   const tier = s => {
@@ -183,7 +185,7 @@ function sheetRows() {
   for (const e of entries) {
     if (!calCan(e)) continue;
     const missing = !calMarks().has(e.key);
-    for (const h of (howMap.get(e.key) || []).filter(h => !shinyMode || h.shiny)) (h.start ? soon : now).push({ e, h, missing: h.mk ? !formSets.mega.has(h.mk) : missing }); // Méga : grisée sans la Méga
+    for (const h of (howMap.get(e.key) || []).filter(h => !shinyMode || h.shiny)) (h.start ? soon : now).push({ e, h, missing: h.mk && !shinyMode ? !formSets[h.mk[0]].has(h.mk[1]) : missing });
   }
   return { now, soon };
 }

@@ -386,7 +386,6 @@ function ficheForms(e) {
   const base = entries.find(x => x.id === e.id && !x.regional) || e;
   if (base.shadowOut) {
     out.push({ k: base.key, label: t("cShadow").replace(/s$/, ""), sp: spriteOf(base), cls: "shadow", got: formSets.shadow.has(base.key) });
-    out.push({ k: base.key, label: t("cPurified").replace(/s$/, ""), sp: spriteOf(base), cls: "purified", got: formSets.purified.has(base.key) });
   }
   return out;
 }

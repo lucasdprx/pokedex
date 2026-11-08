@@ -110,8 +110,11 @@ function howFor(e) {
   if (!howMap || !can(e) || marks().has(e.key)) return null;
   // Collections Max : seulement leurs combats Max
   const only = coll === "dynamax" ? "dyna" : coll === "gigamax" ? "giga" : null;
-  return (howMap.get(only === "giga" ? (entries.find(x => x.id === e.id && !x.regional) || e).key : e.key) || [])
-    .filter(h => (!shinyMode || h.shiny) && (!only || (h.src === "max" && h.detail === only)));
+  // Obscurs et Purifiés : seulement les raids obscurs (un œuf ou une étude ne donne pas d'obscur) ; Méga : ses raids Méga
+  const sh = coll === "shadow" || coll === "purified", mega = coll === "mega";
+  const base = only === "giga" || mega ? (entries.find(x => x.id === e.id && !x.regional) || e).key : e.key;
+  return (howMap.get(base) || [])
+    .filter(h => (!shinyMode || h.shiny) && (!only || (h.src === "max" && h.detail === only)) && (!sh || h.shadow) && (!mega || (h.mk && h.mk[1] === e.key)));
 }
 
 const fmtHour = ms => new Date(ms).toLocaleTimeString(LANG, { hour: "numeric", minute: new Date(ms).getMinutes() ? "2-digit" : undefined }).replace(/^0(?=\d)/, ""); // « 6 h », pas « 06 h »

@@ -61,6 +61,8 @@ const STORE_KEY = "pokedex-go-caught";
 const SHINY_KEY = "pokedex-go-shiny";
 // Listes de Pokémon gardées dans le navigateur : affichage immédiat, et hors ligne
 const CACHE_KEY = "pokedex-go-data";
+// Numéro des listes gardées : l'augmenter quand une source ou un fichier de données change, pour tout relire
+const DATA_V = 2;
 const CACHE_MAX_AGE = 24 * 60 * 60 * 1000; // au-delà, mise à jour en fond
 
 
@@ -191,7 +193,7 @@ async function init() {
     catch { localStorage.removeItem(CACHE_KEY); return init(); } // copie abîmée : on retélécharge
     els.status.style.display = "none";
     render();
-    if (Date.now() - cached.time < CACHE_MAX_AGE && cached.mega && typeof cached.mega[0] === "object" && cached.costumes && cached.max && cached.shadowForms) return; // sans obscurs PvPoke : copie d'avant, on relit // sans costumes : copie d'avant // sans liste Méga : copie d'avant, on relit
+    if (Date.now() - cached.time < CACHE_MAX_AGE && cached.mega && typeof cached.mega[0] === "object" && cached.costumes && cached.v === DATA_V) return; // copie d'une version d'avant : on relit // sans costumes : copie d'avant // sans liste Méga : copie d'avant, on relit
     // Données de plus d'un jour : mise à jour en fond, sans bloquer l'affichage
     try {
       const fresh = await fetchSources();
@@ -276,7 +278,7 @@ async function fetchSources() {
   }
   const costumes = await fetch("costumes.json").then(r => r.ok ? r.json() : []).catch(() => []);
   const max = await fetch("max.json").then(r => r.ok ? r.json() : null).catch(() => null) || { dynamax: [], gigamax: [] };
-  return { data, released: [...released].sort((a, b) => a - b), shiny, mega, shadow, shadowForms, costumes, max };
+  return { data, released: [...released].sort((a, b) => a - b), shiny, mega, shadow, shadowForms, v: DATA_V, costumes, max };
 }
 
 // Données brutes → cartes (une par forme de base ou régionale)

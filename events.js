@@ -306,7 +306,7 @@ function renderNow() {
   body.innerHTML = old + groups.map(g =>
     `<div class="now-sub ${g.kind}">${g.icon}${g.title}</div><div class="now-grid ${g.kind}">` + g.list.map(({ e, h, missing }) => {
       const sp = h.sp || spriteOf(e), fresh = missing && nowFresh.has((shinyMode ? "s:" : "") + e.key);
-      return `<div class="now-cell${missing ? " missing" : ""}${fresh ? " fresh" : ""}" title="${e.name}" data-key="${e.key}" role="button" tabindex="0"><img crossorigin="anonymous" src="${shinyMode ? SPRITE_TINY_SHINY(sp) : SPRITE_TINY(sp)}" alt="${e.name}" ` +
+      return `<div class="now-cell${missing ? " missing" : ""}${fresh ? " fresh" : ""}" title="${e.name}" data-key="${h.mk ? h.mk[1] : e.key}" data-coll="${shinyMode ? "" : h.mk ? h.mk[0] : h.src === "max" ? "dynamax" : "dex"}" role="button" tabindex="0"><img crossorigin="anonymous" src="${shinyMode ? SPRITE_TINY_SHINY(sp) : SPRITE_TINY(sp)}" alt="${e.name}" ` +
         `data-sprite="${sp}" data-shiny="${shinyMode ? 1 : 0}" onerror="imgFallback(this)">` +
         (fresh ? `<i class="now-dot"></i>` : "") + (h.start || h.hours ? `<b>${[h.start && fmtDay(h.start), h.hours].filter(Boolean).join("<br>")}</b>` : "") + `</div>`;
     }).join("") + `</div>`).join("");
@@ -345,7 +345,7 @@ document.getElementById("nowBody").addEventListener("click", ev => {
   const cell = ev.target.closest(".now-cell");
   if (!cell) return;
   // calendrier-effets v1 : G2, la feuille descend puis la carte s'allume
-  closeNow(() => goToEntry(cell.dataset.key));
+  closeNow(() => goToEntry(cell.dataset.key, cell.dataset.coll)); // dans sa collection : Obscurs, Méga, Gigamax…
 });
 document.getElementById("nowBody").addEventListener("keydown", ev => {
   if ((ev.key === "Enter" || ev.key === " ") && ev.target.closest(".now-cell")) { ev.preventDefault(); ev.target.click(); }

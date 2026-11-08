@@ -1039,7 +1039,9 @@ if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
 
 // Depuis le calendrier : aller à la carte d'un Pokémon dans le Pokédex
 // (filtres et recherche retirés s'ils la cachent), puis un petit rebond pour la repérer
-window.goToEntry = key => {
+window.goToEntry = (key, to) => {
+  const sel = document.getElementById("coll");
+  if (to && to !== coll) { sel.value = to; sel.dispatchEvent(new Event("change")); }
   const find = () => [...els.grid.children].find(c => c.dataset.key === key);
   if (!find()) {
     els.search.value = "";

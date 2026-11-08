@@ -255,7 +255,7 @@ function sheetGroups(rows) {
   // Combats Max après les raids, Gigamax puis Dynamax (combats-max v1 : A1, B1)
   if (nowCat === "all" || nowCat === "max") {
     push(maxIcon("#b0306a"), t("hGiga"), rows.filter(r => r.h.src === "max" && r.h.detail === "giga").sort(byStart), false, "max");
-    push(maxIcon("#e0457b"), t("hDyna"), rows.filter(r => r.h.src === "max" && r.h.detail === "dyna").sort(byStart), false, "max");
+    push(maxIcon("#e0457b"), t("hDyna"), rows.filter(r => r.h.src === "max" && r.h.detail === "dyna").sort(byStart), false, "max dyna");
   }
   if (nowCat === "all" || nowCat === "egg") {
     const eggs = rows.filter(r => r.h.src === "egg");

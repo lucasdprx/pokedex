@@ -801,3 +801,14 @@ img[src*="pogo_assets"] { transform: scale(1.6); }
 /* « Costumes shiny » est long : le choix de collection garde sa largeur, le filtre reste à côté */
 #coll { width: 8.6em; flex: none; text-overflow: ellipsis; }
 .evo-mon img[src*="pogo_assets"] { transform: scale(1.5); }
+
+/* Dynamax : même effet que les obscurs, en rouge (contour qui pulse) ; ceux qui manquent restent gris */
+body[data-coll="dynamax"] .card.caught img, .now-grid.dyna .now-cell img {
+  filter: drop-shadow(0 0 1px #ff6b6b) drop-shadow(0 0 3px #d61f3c);
+  animation: dyna-glow 1.6s ease-in-out infinite alternate;
+}
+.now-grid.dyna .now-cell.missing img { filter: grayscale(1) opacity(.45) drop-shadow(0 0 1px #ff6b6b) drop-shadow(0 0 3px #d61f3c); animation-name: dyna-glow-miss; }
+@keyframes dyna-glow { to { filter: drop-shadow(0 0 3px #ff9a9a) drop-shadow(0 0 9px #d61f3c); } }
+@keyframes dyna-glow-miss { from { filter: grayscale(1) opacity(.45) drop-shadow(0 0 1px #ff6b6b) drop-shadow(0 0 3px #d61f3c); }
+  to { filter: grayscale(1) opacity(.45) drop-shadow(0 0 3px #ff9a9a) drop-shadow(0 0 9px #d61f3c); } }
+@media (prefers-reduced-motion: reduce) { body[data-coll="dynamax"] .card.caught img, .now-grid.dyna .now-cell img { animation: none; } }

@@ -69,19 +69,20 @@ function buildHow() {
   };
   // Raids en cours d'après le calendrier : la page Raids de Leek Duck a parfois un jour de retard
   // (Démétéros obscur affiché alors que Boréas obscur est en raid) ; le calendrier l'emporte pour son niveau
-  // Niveau couvert par le calendrier (5★, Méga, obscurs 5★) : seuls ses boss en cours comptent, la page Raids est en retard
-  const now = Date.now(), live = new Map(), known = new Map(); // "true:5" → boss du calendrier
+  // Entre deux périodes du calendrier : la page Raids, sans les boss dont la période est finie
+  const now = Date.now(), live = new Map(), ended = new Set(); // live : "true:5" → boss en cours
+  const bare = n => (n || "").replace(/^Shadow /, "").replace(/\s*\(.*$/, "").toLowerCase();
   for (const ev of duck.events || []) {
     const start = parseDate(ev.start), end = parseDate(ev.end), bosses = ((ev.extraData || {}).raidbattles || {}).bosses;
     if (!bosses || !bosses.length) continue;
     const k = /shadow/i.test(ev.name) + ":" + (tier(ev.name) || 5);
-    known.set(k, true);
-    if (!start || start > now || (end && end < now)) continue;
+    if (end && end < now) { bosses.forEach(b => ended.add(k + bare(b.name))); continue; }
+    if (!start || start > now) continue;
     live.set(k, (live.get(k) || []).concat(bosses));
   }
   const raids = (duck.raids || []).filter(r => {
     const k = /^Shadow /.test(r.name) + ":" + tier(r.tier);
-    return !known.has(k);
+    return !live.has(k) && !ended.has(k + bare(r.name));
   });
   for (const [k, bosses] of live) for (const p of bosses) raids.push({ ...p, tier: k.endsWith("mega") ? "Mega" : k.split(":")[1] + "-Star", name: (k.startsWith("true") && !/^Shadow /.test(p.name) ? "Shadow " : "") + p.name });
   for (const r of raids) add(r.name, r.image, "raid", tier(r.tier), r.canBeShiny, null, null, /^Shadow /.test(r.name));

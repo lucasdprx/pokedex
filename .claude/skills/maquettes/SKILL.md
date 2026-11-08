@@ -3,7 +3,7 @@ name: maquettes
 description: Faire choisir une interface de Pokédex GO à l'utilisateur sur maquettes avant de la coder — une page HTML de variantes numérotées (vrais cadres, vrais textes, animées ou interactives si l'écran l'est), vue sur son téléphone par « Aperçu de l'appli » ou dans un navigateur, votes 👍/👎 et remarques renvoyés à Claude, une capture par variante, puis le choix gardé. À utiliser pour tout nouvel écran ou changement visible, quand il demande « fais-moi des maquettes », « montre-moi avant de coder », hésite entre plusieurs designs, ou avant de coder toute nouvelle interface — sans attendre qu'il dise « maquettes », y compris au milieu d'un autre skill (une vue, un costume, une fonction) qui mène à un changement visible.
 metadata:
   template: maquettes
-  template-version: 1.8.3
+  template-version: 1.9.1
   template-from: 83e492bcbf0bcffa
 ---
 
@@ -105,6 +105,9 @@ Maquetter une autre appli que celle de la session : avec son skill maquettes et 
   Chaque changement déclenche `mockplace` (remonte, `detail {variant, name, x, y, scale}`) : la page
   l'écoute pour régler la taille selon la perspective, le refléter dans un autre cadre, et écrire dans
   `el.dataset.info` ce dont le code aura besoin (la position réelle sous l'objet, par exemple).
+- **Un réglage qu'il fait lui-même part avec ses votes.** Un élément d'une variante dont `data-retour` n'est
+  pas vide (un cadrage de caméra qu'il a tourné, un curseur qu'il a bougé) est envoyé tel quel avec les remarques
+  (« E1 <data-retour> ») : la page l'écrit à chaque changement, il n'a rien à recopier.
 - En bas : `<textarea id="global">` (remarque libre) et `<button id="send">`.
 - `?only=E1` n'affiche que ce cadre (captures).
 

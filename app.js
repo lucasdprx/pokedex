@@ -232,7 +232,7 @@ async function fetchSources() {
   // Méga et Obscurs sortis (n° de Pokédex) ; vides si pogoapi ne répond pas
   const ids = (url, pick) => fetch(url).then(r => r.ok ? r.json() : null)
     .then(d => d ? [...new Set(pick(d))].sort((a, b) => a - b) : []).catch(() => []);
-  const [mega, shadow] = await Promise.all([
+  let [mega, shadow] = await Promise.all([
     fetch("https://pogoapi.net/api/v1/mega_pokemon.json").then(r => r.ok ? r.json() : [])
       .then(d => d.map(m => ({ id: m.pokemon_id, form: m.form, primal: /^Primal/.test(m.mega_name) }))
         .sort((a, b) => a.id - b.id || a.form.localeCompare(b.form))).catch(() => []),
@@ -247,6 +247,8 @@ async function fetchSources() {
     try {
       const pvp = await resPvp.json();
       (pvp.pokemon || []).forEach(p => { if (p.released) released.add(p.dex); });
+      // Obscurs : pogoapi n'est plus à jour (Boréas manquait), on ajoute ceux de PvPoke
+      shadow = [...new Set([...shadow, ...(pvp.shadow || [])])].sort((a, b) => a - b);
       // Comble les espèces manquantes de pogoapi (ex : 902 Paragruel) via PvPoke
       const typesDex = new Set(data.map(e => e.pokemon_id));
       const seen = new Set();

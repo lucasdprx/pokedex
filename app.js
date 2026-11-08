@@ -158,7 +158,7 @@ window.marksApi = {
 const marks = () => coll !== "dex" ? formSets[coll] : shinyMode ? shinyCaught : caught;
 // Cochable dans la collection affichée : sorti dans GO (et son shiny aussi, en mode Shiny)
 const can = e => isCostume() ? e.available && (coll === "costume" || !!e.iconShiny)
-  : coll !== "dex" ? e.available && !e.regional && (coll === "mega" ? e.megaOut : coll === "dynamax" ? e.dynaOut : coll === "gigamax" || e.shadowOut)
+  : coll !== "dex" ? e.available && (!e.regional || coll === "shadow" || coll === "purified") && (coll === "mega" ? e.megaOut : coll === "dynamax" ? e.dynaOut : coll === "gigamax" || e.shadowOut)
   : e.available && (!shinyMode || e.shinyOut);
 function prettyForm(f) {
   return (f || "").replace(/_/g, " ").trim();
@@ -191,7 +191,7 @@ async function init() {
     catch { localStorage.removeItem(CACHE_KEY); return init(); } // copie abîmée : on retélécharge
     els.status.style.display = "none";
     render();
-    if (Date.now() - cached.time < CACHE_MAX_AGE && cached.mega && typeof cached.mega[0] === "object" && cached.costumes && cached.max && cached.shadowPvp) return; // sans obscurs PvPoke : copie d'avant, on relit // sans costumes : copie d'avant // sans liste Méga : copie d'avant, on relit
+    if (Date.now() - cached.time < CACHE_MAX_AGE && cached.mega && typeof cached.mega[0] === "object" && cached.costumes && cached.max && cached.shadowForms) return; // sans obscurs PvPoke : copie d'avant, on relit // sans costumes : copie d'avant // sans liste Méga : copie d'avant, on relit
     // Données de plus d'un jour : mise à jour en fond, sans bloquer l'affichage
     try {
       const fresh = await fetchSources();
@@ -201,6 +201,7 @@ async function init() {
                       JSON.stringify(fresh.shiny) !== JSON.stringify(cached.shiny) ||
                       JSON.stringify(fresh.mega) !== JSON.stringify(cached.mega) ||
                       JSON.stringify(fresh.shadow) !== JSON.stringify(cached.shadow) ||
+                      JSON.stringify(fresh.shadowForms) !== JSON.stringify(cached.shadowForms) ||
                       JSON.stringify(fresh.costumes) !== JSON.stringify(cached.costumes) ||
                       JSON.stringify(fresh.max) !== JSON.stringify(cached.max);
       if (changed) { buildEntries(fresh); render(); }
@@ -232,6 +233,7 @@ async function fetchSources() {
   // Méga et Obscurs sortis (n° de Pokédex) ; vides si pogoapi ne répond pas
   const ids = (url, pick) => fetch(url).then(r => r.ok ? r.json() : null)
     .then(d => d ? [...new Set(pick(d))].sort((a, b) => a - b) : []).catch(() => []);
+  let shadowForms = [];
   let [mega, shadow] = await Promise.all([
     fetch("https://pogoapi.net/api/v1/mega_pokemon.json").then(r => r.ok ? r.json() : [])
       .then(d => d.map(m => ({ id: m.pokemon_id, form: m.form, primal: /^Primal/.test(m.mega_name) }))
@@ -249,6 +251,7 @@ async function fetchSources() {
       (pvp.pokemon || []).forEach(p => { if (p.released) released.add(p.dex); });
       // Obscurs : pogoapi n'est plus à jour (Boréas manquait), on ajoute ceux de PvPoke
       shadow = [...new Set([...shadow, ...(pvp.shadow || [])])].sort((a, b) => a - b);
+      shadowForms = pvp.shadowForms || [];
       // Comble les espèces manquantes de pogoapi (ex : 902 Paragruel) via PvPoke
       const typesDex = new Set(data.map(e => e.pokemon_id));
       const seen = new Set();
@@ -273,7 +276,7 @@ async function fetchSources() {
   }
   const costumes = await fetch("costumes.json").then(r => r.ok ? r.json() : []).catch(() => []);
   const max = await fetch("max.json").then(r => r.ok ? r.json() : null).catch(() => null) || { dynamax: [], gigamax: [] };
-  return { data, released: [...released].sort((a, b) => a - b), shiny, mega, shadow, shadowPvp: true, costumes, max };
+  return { data, released: [...released].sort((a, b) => a - b), shiny, mega, shadow, shadowForms, costumes, max };
 }
 
 // Données brutes → cartes (une par forme de base ou régionale)
@@ -283,7 +286,7 @@ function buildEntries(src) {
   const released = new Set(releasedList);
   const shinyOut = new Set(shinyList);
   const megaList = (src.mega || []).filter(m => typeof m === "object"); // ancienne copie : simples n°
-  const megaOut = new Set(megaList.map(m => m.id)), shadowOut = new Set(src.shadow || []);
+  const megaOut = new Set(megaList.map(m => m.id)), shadowOut = new Set(src.shadow || []), shadowForms = src.shadowForms || [];
   const dynaOut = new Set((src.max || {}).dynamax || []);
   // Espèces dont la forme de base est présente dans les données.
   // Certaines espèces (Palarticho, M. Glaquette…) n'existent QUE sous un nom "régional"
@@ -327,7 +330,8 @@ function buildEntries(src) {
       available: released.has(e.pokemon_id), // disponible dans Pokémon GO ?
       shinyOut: shinyOut.has(e.pokemon_id),   // son shiny est sorti ?
       megaOut: megaOut.has(e.pokemon_id),     // a une Méga dans GO ?
-      shadowOut: shadowOut.has(e.pokemon_id), // existe en Obscur (et donc Purifié) ?
+      // existe en Obscur (et donc Purifié) ? Forme régionale : seulement si elle-même l'est (Rattata d'Alola)
+      shadowOut: !isBase ? shadowForms.some(k => k.startsWith(e.pokemon_id + "_") && form.toUpperCase().startsWith(k.split("_")[1])) : shadowOut.has(e.pokemon_id),
       dynaOut: dynaOut.has(e.pokemon_id),     // sorti en Dynamax ?
     };
   }).sort((a, b) => a.id - b.id || a.regional - b.regional || a.form.localeCompare(b.form));

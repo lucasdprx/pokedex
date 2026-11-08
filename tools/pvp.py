@@ -17,5 +17,9 @@ for p in gm.get("pokemon", []):
                                "types": p.get("types", []), "released": False})
     row["released"] = row["released"] or bool(p.get("released"))
 shadow = sorted({p["dex"] for p in gm.get("pokemon", []) if p.get("speciesId", "").endswith("_shadow") and p.get("released")})
+# Formes régionales sorties en obscur : "19_ALOLA" (Rattata d'Alola obscur)
+REG = {"alolan": "ALOLA", "galarian": "GALARIAN", "hisuian": "HISUIAN", "paldea": "PALDEA"}
+shadow_forms = sorted({f'{p["dex"]}_{t}' for p in gm.get("pokemon", []) if p.get("speciesId", "").endswith("_shadow") and p.get("released")
+                       for w, t in REG.items() if f"_{w}" in p["speciesId"]})
 with open("pvp.json", "w", encoding="utf-8") as f:
-    json.dump({"pokemon": [out[k] for k in sorted(out)], "shadow": shadow}, f, ensure_ascii=False, separators=(",", ":"))
+    json.dump({"pokemon": [out[k] for k in sorted(out)], "shadow": shadow, "shadowForms": shadow_forms}, f, ensure_ascii=False, separators=(",", ":"))

@@ -280,7 +280,7 @@ function sheetGroups(rows) {
 
 // Ce dont dépend la feuille : la refaire seulement quand ça change
 let nowDrawn = "";
-const nowSig = () => [nowPane, nowCat, shinyMode, duck && duck.time, calMarks().size, document.documentElement.lang, nowFresh.size].join("|");
+const nowSig = () => [nowPane, nowCat, shinyMode, duck && duck.time, calMarks().size, formSets.mega.size, formSets.shadow.size, formSets.gigamax.size, document.documentElement.lang, nowFresh.size].join("|");
 function renderNow() {
   nowDrawn = nowSig();
   const { now, soon } = sheetRows();

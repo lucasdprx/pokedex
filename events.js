@@ -54,7 +54,7 @@ function buildHow() {
     const xy = (/ ([XY])$/.exec(name || "") || [, ""])[1];
     const isMega = /^(Mega|Primal) /.test(name || "");
     const giga = src === "max" && detail === "giga" ? gigaEntries.find(g => g.id === e.id) : null;
-    const sp = isMega ? MEGA_SPRITES[e.id + (xy ? " " + xy : "")] || null : giga ? giga.sprite : null;
+    const sp = isMega ? (megaEntries.find(m => m.id === e.id && m.form === "MEGA" + (xy ? "_" + xy : "")) || {}).sprite || MEGA_SPRITES[e.id + (xy ? " " + xy : "")] || null : giga ? giga.sprite : null;
     // Collection qui décide du gris : Méga, Gigamax ou Obscurs (sinon le Pokédex)
     const mk = isMega ? ["mega", e.id + "_MEGA" + (xy ? "_" + xy : "")] : giga ? ["gigamax", giga.key] : shadow ? ["shadow", e.key] : null;
     const list = map.get(e.key) || [];

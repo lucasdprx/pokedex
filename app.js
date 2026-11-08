@@ -62,7 +62,7 @@ const SHINY_KEY = "pokedex-go-shiny";
 // Listes de Pokémon gardées dans le navigateur : affichage immédiat, et hors ligne
 const CACHE_KEY = "pokedex-go-data";
 // Numéro des listes gardées : l'augmenter quand une source ou un fichier de données change, pour tout relire
-const DATA_V = 2;
+const DATA_V = 3;
 const CACHE_MAX_AGE = 24 * 60 * 60 * 1000; // au-delà, mise à jour en fond
 
 
@@ -237,9 +237,8 @@ async function fetchSources() {
     .then(d => d ? [...new Set(pick(d))].sort((a, b) => a - b) : []).catch(() => []);
   let shadowForms = [];
   let [mega, shadow] = await Promise.all([
-    fetch("https://pogoapi.net/api/v1/mega_pokemon.json").then(r => r.ok ? r.json() : [])
-      .then(d => d.map(m => ({ id: m.pokemon_id, form: m.form, primal: /^Primal/.test(m.mega_name) }))
-        .sort((a, b) => a.id - b.id || a.form.localeCompare(b.form))).catch(() => []),
+    // mega.json (tools/mega.py, pokemon-go-api) : pogoapi n'avait plus Méga-Dracolosse ni Méga-Mewtwo
+    fetch("mega.json").then(r => r.ok ? r.json() : []).catch(() => []),
     ids("https://pogoapi.net/api/v1/shadow_pokemon.json", d => Object.keys(d).map(Number)),
   ]);
   if (!resTypes.ok) throw new Error("HTTP " + resTypes.status);
@@ -343,7 +342,7 @@ function buildEntries(src) {
     if (!base) return null;
     const x = m.form === "Normal" ? "" : " " + m.form;
     return { ...base, key: m.id + "_MEGA" + (x ? "_" + m.form : ""), form: "MEGA" + (x ? "_" + m.form : ""),
-      name: t(m.primal ? "primalName" : "megaName", { n: base.name }) + x, sprite: MEGA_SPRITES[m.id + x] || base.id, regional: false };
+      name: t(m.primal ? "primalName" : "megaName", { n: base.name }) + x, sprite: m.sprite || MEGA_SPRITES[m.id + x] || base.id, regional: false };
   }).filter(Boolean);
   // Costumés : une carte par costume, sur la base de l'espèce, avec l'icône du jeu
   costumeEntries = (src.costumes || []).map(c => {

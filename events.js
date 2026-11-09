@@ -174,6 +174,7 @@ const TASK_FR = [
   [/^Catch (a|\d+) Pokémon$/, n => `Attraper ${n === "a" ? "un" : n} Pokémon`],
   [/^Make (a|\d+) (Nice|Great|Excellent) (Curveball )?Throws?( in a row)?$/, (n, q, c, row) =>
     `Faire ${n === "a" ? "un" : n} ${{ Nice: "Joli", Great: "Super", Excellent: "Excellent" }[q]}${n === "a" || n === "1" || q === "Great" ? "" : "s"} Lancer${n === "a" || n === "1" ? "" : "s"}${c ? " en courbe" : ""}${row ? " d'affilée" : ""}`],
+  [/^Make an Excellent Throw$/, () => "Faire un Excellent Lancer"],
   [/^Make (a|\d+) Curveball Throws?$/, n => `Faire ${n === "a" ? "un" : n} lancer${n === "a" || n === "1" ? "" : "s"} en courbe`],
   [/^Win a three-star raid or higher$/, () => "Gagner un raid 3★ ou plus"],
   [/^Win (a|\d+) raids?$/, n => n === "a" ? "Gagner un raid" : `Gagner ${n} raids`],
@@ -183,15 +184,27 @@ const TASK_FR = [
   [/^Spin (\d+) PokéStops$/, n => `Faire tourner ${n} PokéStops`],
   [/^Take a snapshot of a wild Pokémon$/, () => "Photographier un Pokémon sauvage"],
   [/^Evolve (a|\d+) Pokémon$/, n => `Faire évoluer ${n === "a" ? "un" : n} Pokémon`],
+  [/^Power up (\w+)-type Pokémon (\d+) times$/, (ty, n) => `Améliorer des Pokémon de type ${typeName(ty)} ${n} fois`],
+  [/^Use (a|\d+) (\w+)-type Charged Attacks? in (?:a )?battles?$/, (n, ty) => `Utiliser ${n === "a" ? "une" : n} Attaque${n === "a" || n === "1" ? "" : "s"} Chargée${n === "a" || n === "1" ? "" : "s"} de type ${typeName(ty)} en combat`],
+  [/^Win (a|\d+) Max Battles?$/, n => n === "a" ? "Gagner un Combat Max" : `Gagner ${n} Combats Max`],
+  [/^Catch (a|an|\d+) ((?:Alolan |Galarian |Hisuian |Paldean )?[A-Z][\w'.é -]*?)s?$/, (n, who) => { const fr = pokeFr(who); return fr && `Attraper ${/^\d/.test(n) ? n : "un"} ${fr}`; }],
   [/^Power up Pokémon (\d+) times$/, n => `Améliorer des Pokémon ${n} fois`],
   [/^Earn (\d+) Candies walking with your buddy$/, n => `Gagner ${n} Bonbons avec ton copain`],
   [/^Send (\d+) Gifts and add a sticker to each$/, n => `Envoyer ${n} Cadeaux avec un autocollant`],
   [/^Trade (a|\d+) Pokémon$/, n => `Échanger ${n === "a" ? "un" : n} Pokémon`],
   [/^Defeat (a|\d+) Team GO Rocket Grunts?$/, n => n === "a" ? "Vaincre un Sbire de la Team GO Rocket" : `Vaincre ${n} Sbires de la Team GO Rocket`],
 ];
+// « Hisuian Sliggoo » → « Colimucus de Hisui » (nom de la carte), ou null si inconnu
+function pokeFr(en) {
+  const reg = REGIONAL.find(([w]) => en.startsWith(w + " "));
+  const base = reg ? en.slice(reg[0].length + 1) : en;
+  const id = (NAMES?.en || []).indexOf(base) + 1;
+  const e = id && entries.find(e => e.id === id && (reg ? e.regional && e.form.toUpperCase().startsWith(reg[1]) : !e.regional));
+  return e ? e.name : null;
+}
 function taskLabel(text) {
   if (LANG !== "fr") return text || t("hResearch");
-  for (const [re, fr] of TASK_FR) { const m = (text || "").match(re); if (m) return fr(...m.slice(1)); }
+  for (const [re, fr] of TASK_FR) { const m = (text || "").match(re); const out = m && fr(...m.slice(1)); if (out) return out; }
   return text || t("hResearch");
 }
 

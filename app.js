@@ -62,7 +62,7 @@ const SHINY_KEY = "pokedex-go-shiny";
 // Listes de Pokémon gardées dans le navigateur : affichage immédiat, et hors ligne
 const CACHE_KEY = "pokedex-go-data";
 // Numéro des listes gardées : l'augmenter quand une source ou un fichier de données change, pour tout relire
-const DATA_V = 3;
+const DATA_V = 4;
 const CACHE_MAX_AGE = 24 * 60 * 60 * 1000; // au-delà, mise à jour en fond
 
 
@@ -275,6 +275,10 @@ async function fetchSources() {
   if (resShiny && resShiny.ok) {
     try { shiny = Object.keys(await resShiny.json()).map(Number).sort((a, b) => a - b); } catch {}
   }
+  // forms.json (tools/forms.py, pokemon-go-api) : formes régionales absentes de pogoapi (Colimucus de Hisui)
+  const forms = await fetch("forms.json").then(r => r.ok ? r.json() : []).catch(() => []);
+  const haveForm = new Set(data.map(e => e.pokemon_id + "_" + (e.form || "Normal").toUpperCase()));
+  forms.forEach(f => { if (!haveForm.has(f.pokemon_id + "_" + f.form.toUpperCase())) data.push(f); });
   const costumes = await fetch("costumes.json").then(r => r.ok ? r.json() : []).catch(() => []);
   const max = await fetch("max.json").then(r => r.ok ? r.json() : null).catch(() => null) || { dynamax: [], gigamax: [] };
   return { data, released: [...released].sort((a, b) => a - b), shiny, mega, shadow, shadowForms, v: DATA_V, costumes, max };

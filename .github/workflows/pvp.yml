@@ -14,10 +14,11 @@ jobs:
       - run: python tools/costumes.py
       - run: python tools/max.py || true
       - run: python tools/mega.py || true
+      - run: python tools/forms.py || true
       - run: |
-          git diff --quiet pvp.json costumes.json max.json mega.json && exit 0
+          git diff --quiet pvp.json costumes.json max.json mega.json forms.json && exit 0
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
-          git add pvp.json costumes.json max.json mega.json
+          git add pvp.json costumes.json max.json mega.json forms.json
           git commit -m "Update PvPoke, costume and Max lists"
           git push

@@ -85,7 +85,11 @@ for ev in events:
     elif start and start <= now:
         live.setdefault(k, []).extend(bosses)
 try:
-    raids = json.load(open("raids.json", encoding="utf-8"))
+    own = json.load(open("raids.json", encoding="utf-8"))
+    # Ancien format (liste) ou fichier plus mis à jour depuis 12 h (tools/raids.py en panne) : ScrapedDuck
+    if isinstance(own, list) or now - when(own["time"]) > timedelta(hours=12):
+        raise ValueError("raids.json trop vieux")
+    raids = own["raids"]
 except Exception:
     raids = get(DUCK + "raids.json")
 for r in raids:
@@ -118,7 +122,8 @@ EN_DEX = {n.lower(): i + 1 for i, n in enumerate(names.get("en") or [])}
 today = datetime.now(ZoneInfo("Europe/Paris")).date()
 maxes = {}  # (n°, "dyna" | "giga") → (jour, heures ou "", fin)
 for ev in events:
-    m = re.search(r"\b(Gigantamax|Eternamax|Dynamax) ([A-Z][\w'-]+)", ev.get("name") or "")
+    # Seulement les combats Max (pas une étude « Gigantamax Machamp Power Up! »)
+    m = ev.get("eventType") in ("max-battles", "max-mondays") and re.search(r"\b(Gigantamax|Eternamax|Dynamax) ([A-Z][\w'-]+)", ev.get("name") or "")
     s, e = ev.get("start"), ev.get("end")
     if not m or not s or not e or m.group(2).lower() not in EN_DEX:
         continue

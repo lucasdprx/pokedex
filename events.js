@@ -9,24 +9,36 @@ const DUCK_AGE = 3600e3; // relu toutes les heures
 let duck = null;      // données brutes reçues
 let howMap = null;    // clé de carte → [{src, detail, start, end, shiny}] trié, du plus proche au plus loin
 
+const RAIDS_MAX_AGE = 12 * 3600e3; // raids.json plus vieux (tools/raids.py en panne) : ScrapedDuck à la place
+
 async function loadDuck(force) {
+  let c = null;
   try {
-    const c = JSON.parse(localStorage.getItem(DUCK_KEY));
-    // Copie locale lue une seule fois : la relire refait toute la grille (clignotement, attente)
-    if (c && !howMap) { duck = c; buildHow(); }
+    c = JSON.parse(localStorage.getItem(DUCK_KEY));
+    if (c && !howMap) { duck = c; buildHow(); }        // copie locale : affichée tout de suite
+    else if (c && howMap) buildHow();                  // déjà affichée : recalculée à l'heure qu'il est
     if (c && !force && Date.now() - c.time < DUCK_AGE) return;
   } catch {}
-  try {
-    const get = f => fetch(DUCK + f + ".json").then(r => { if (!r.ok) throw r.status; return r.json(); });
-    // Raids : notre raids.json (tools/raids.py, relu chaque heure chez Leek Duck) ; ScrapedDuck sinon (une fois par jour)
-    const ownRaids = fetch("raids.json", { cache: "no-cache" }).then(r => { if (!r.ok) throw r.status; return r.json(); }).catch(() => get("raids"));
-    const [raids, eggs, research, events] = await Promise.all([ownRaids, ...["eggs", "research", "events"].map(get)]);
-    // Format changé chez Leek Duck : on garde l'ancienne liste plutôt qu'une liste vide
-    if (![raids, eggs, research, events].every(Array.isArray)) throw "format";
-    duck = { time: Date.now(), raids, eggs, research, events };
-    try { localStorage.setItem(DUCK_KEY, JSON.stringify(duck)); } catch {}
-    buildHow();
-  } catch { /* hors ligne : la dernière liste reçue, ou rien */ }
+  const get = f => fetch(DUCK + f + ".json").then(r => { if (!r.ok) throw r.status; return r.json(); });
+  // Raids : notre raids.json (tools/raids.py, relu chaque heure chez Leek Duck) ; ScrapedDuck s'il manque ou est vieux
+  const ownRaids = fetch("raids.json", { cache: "no-cache" }).then(r => { if (!r.ok) throw r.status; return r.json(); })
+    .then(d => {
+      const list = Array.isArray(d) ? d : d.raids, time = Array.isArray(d) ? 0 : Date.parse(d.time);
+      if (!Array.isArray(list) || !(Date.now() - time < RAIDS_MAX_AGE)) throw "vieux";
+      return list;
+    }).catch(() => get("raids"));
+  // Chaque liste à part : une qui ne répond pas (ou change de format) garde sa dernière copie, les autres sont à jour
+  const names = ["raids", "eggs", "research", "events"];
+  const got = await Promise.allSettled([ownRaids, ...names.slice(1).map(get)]);
+  const fresh = got.map(r => r.status === "fulfilled" && Array.isArray(r.value) ? r.value : null);
+  if (fresh.every(v => !v)) return;                    // hors ligne : la dernière liste reçue, ou rien
+  const next = { time: Date.now() };
+  names.forEach((n, i) => { next[n] = fresh[i] || (c && Array.isArray(c[n]) ? c[n] : []); });
+  // Une liste en échec : réessayer dans 5 min plutôt qu'une heure
+  if (fresh.some(v => !v)) next.time = Date.now() - DUCK_AGE + 5 * 60e3;
+  duck = next;
+  try { localStorage.setItem(DUCK_KEY, JSON.stringify(duck)); } catch {}
+  buildHow();
 }
 
 // N° de Pokédex lu dans le nom de l'image (pm942.icon.png, pokemon_icon_487_11.png, poke_capture_0824_…)
@@ -36,11 +48,13 @@ const REGIONAL = [["Alolan", "ALOLA"], ["Galarian", "GALAR"], ["Hisuian", "HISUI
 // (obscur, costumé, Méga : on attrape l'espèce de base)
 function entryOf(name, img) {
   const id = dexOf(img);
-  return id ? formEntry(id, REGIONAL.find(([w]) => (name || "").includes(w))) : null;
+  const breed = ((name || "").match(/\((\w+) Breed\)/) || [])[1]; // Tauros de Paldea (Blaze Breed)
+  return id ? formEntry(id, REGIONAL.find(([w]) => (name || "").includes(w)), breed) : null;
 }
-// Carte d'une espèce : sa forme régionale (reg = ["Hisuian", "HISUI"]) si elle existe, sinon la forme de base
-function formEntry(id, reg) {
-  const e = reg && entries.find(e => e.id === id && e.regional && e.form.toUpperCase().startsWith(reg[1]));
+// Carte d'une espèce : sa forme régionale (reg = ["Hisuian", "HISUI"], race éventuelle) si elle existe, sinon la base
+function formEntry(id, reg, breed) {
+  const regs = reg ? entries.filter(e => e.id === id && e.regional && e.form.toUpperCase().startsWith(reg[1])) : [];
+  const e = (breed && regs.find(e => e.form.toUpperCase().endsWith("_" + breed.toUpperCase()))) || regs[0];
   return e || entries.find(e => e.id === id && !e.regional) || null;
 }
 const parseDate = s => s ? new Date(s).getTime() : null;
@@ -60,7 +74,7 @@ function buildHow() {
     const mk = isMega ? ["mega", e.id + "_MEGA" + (xy ? "_" + xy : "")] : giga ? ["gigamax", giga.key] : shadow ? ["shadow", e.key] : null;
     const list = map.get(e.key) || [];
     // Même source et même début déjà notés (raid listé deux fois) : on garde le premier
-    if (!list.some(h => h.src === src && h.start === start && h.shadow === shadow && h.sp === sp && h.mk?.[1] === mk?.[1] && (src !== "research" || h.detail === detail))) list.push({ src, detail, start, end, shadow, hours, sp, mk, shiny: shiny !== false });
+    if (!list.some(h => h.src === src && h.start === start && h.shadow === shadow && h.sp === sp && h.mk?.[1] === mk?.[1] && h.detail === detail)) list.push({ src, detail, start, end, shadow, hours, sp, mk, shiny: shiny !== false });
     map.set(e.key, list);
   };
   const tier = s => {
@@ -86,9 +100,10 @@ function buildHow() {
     return !live.has(k) && !ended.has(k + bare(r.name));
   });
   for (const [k, bosses] of live) for (const p of bosses) raids.push({ ...p, tier: k.endsWith("mega") ? "Mega" : k.split(":")[1] + "-Star", name: (k.startsWith("true") && !/^Shadow /.test(p.name) ? "Shadow " : "") + p.name });
-  for (const r of raids) {
-    add(r.name, r.image, "raid", tier(r.tier), r.canBeShiny, null, null, /^Shadow /.test(r.name));
-    // Heure de raids (note de la page Raids) : à venir avec ses heures, ou en cours
+  for (const r of raids) add(r.name, r.image, "raid", tier(r.tier), r.canBeShiny, null, null, /^Shadow /.test(r.name));
+  // Heure de raids (note de la page Raids) : à venir avec ses heures, ou en cours, même si le calendrier
+  // a pris la place de la page pour ce niveau
+  for (const r of duck.raids || []) {
     for (const [a, b] of r.hours || []) {
       const st = parseDate(a), en = parseDate(b);
       if (en > now) add(r.name, r.image, "raid", tier(r.tier), r.canBeShiny, st > now ? st : null, en, /^Shadow /.test(r.name), fmtHours(st, en));
@@ -108,7 +123,7 @@ function buildHow() {
     if (x.spotlight) for (const p of x.spotlight.list || []) add(p.name, p.image, "spotlight", "", p.canBeShiny, when, end, false, hours);
     if (x.communityday) for (const p of x.communityday.spawns || []) add(p.name, p.image, "cday", "", true, when, end, false, hours);
     // Combats Max : le Pokémon est dans le nom (« Dynamax Espurr during Max Monday », « Gigantamax Machamp… »)
-    const mx = (ev.name || "").match(/\b(Gigantamax|Eternamax|Dynamax) ([A-Z][\w'-]+)/);
+    const mx = /^max-(battles|mondays)$/.test(ev.eventType || "") && (ev.name || "").match(/\b(Gigantamax|Eternamax|Dynamax) ([A-Z][\w'-]+)/);
     const mxId = mx && lastSrc && (lastSrc.data.find(d => (d.pokemon_name || "").toLowerCase() === mx[2].toLowerCase()) || {}).pokemon_id;
     if (mxId) add(mx[2], "pm" + mxId, "max", mx[1] === "Dynamax" ? "dyna" : "giga", true, when, end, false, hours);
     const rh = (ev.name || "").match(/^(.+?) (?:Super Mega )?Raid (?:Hour|Day)$/);
@@ -266,10 +281,11 @@ window.updateNowDot = () => {
 // Pokémon pas encore vus à l'ouverture de la feuille : leur point reste jusqu'à la fermeture
 let nowFresh = new Set();
 function markNowSeen() {
-  const seen = seenNow();
-  for (const k of missingNow()) if (!seen.has(k)) nowFresh.add(k);
-  for (const k of missingNow()) seen.add(k);
-  try { localStorage.setItem(SEEN_KEY, JSON.stringify([...seen])); } catch {}
+  const seen = seenNow(), now = missingNow();
+  for (const k of now) if (!seen.has(k)) nowFresh.add(k);
+  // Oubli des Pokémon partis (plus du tout dans la liste) : revenus plus tard, ils remettent le point
+  const seen2 = new Set([...seen].filter(k => !howMap || howMap.has(k.replace(/^s:/, ""))).concat(now));
+  try { localStorage.setItem(SEEN_KEY, JSON.stringify([...seen2])); } catch {}
   updateNowDot();
 }
 

@@ -11,7 +11,9 @@ TREE = "https://api.github.com/repos/PokeMiners/pogo_assets/git/trees/master?rec
 DIR = "Images/Pokemon - 256x256/Addressable Assets/"  # le plus complet, 256 px
 # Formes « f » qui sont des costumes : une année, ou un mot d'événement
 COSTUME_F = re.compile(r"\d{4}|COSTUME|HAT|_STAR$|^POP_STAR|^ROCK_STAR|TSHIRT|FLYING_|WCS|KURTA|DOCTOR|HORIZONS|JEJU|"
-                       r"KARIYUSHI|COPY|GOFEST|GOTOUR|TIARA|SCARF|CAP_|HELMET|GOGGLES|VISOR|ANNIV")
+                       r"KARIYUSHI|COPY|GOFEST|GOTOUR|TIARA|SCARF|CAP_|HELMET|GOGGLES|VISOR|ANNIV|^COIN_A\d")
+# Costumes sans mot reconnaissable : Mewtwo armuré (« pm150.fA »)
+COSTUME_EXTRA = {(150, "A"): ("Armure", "Armored")}
 
 WORDS = {  # mot du code → (fr, en)
     "HALLOWEEN": ("Halloween", "Halloween"), "FALL": ("Halloween", "Halloween"), "HOLIDAY": ("Fêtes", "Holiday"),
@@ -124,7 +126,7 @@ for f in sorted(files):
         continue
     dex, form, cos = int(m.group(1)), m.group(2), m.group(3)
     code = cos or form
-    if not code or (not cos and not COSTUME_F.search(code)):
+    if not code or (not cos and not COSTUME_F.search(code) and (dex, code) not in COSTUME_EXTRA):
         continue
     years = [int(y) for y in re.findall(r"(?<!\d)(20\d\d)(?!\d)", code)]
     if years and max(years) > year_now:
@@ -137,8 +139,27 @@ for f in sorted(files):
     icon = base + "icon.png" if base + "icon.png" in files else base + "g2.icon.png"
     shiny = next((s for s in (base + "s.icon.png", base + "g2.s.icon.png") if s in files), None)
     out.append({"id": dex, "code": code, "icon": icon, "shiny": shiny, "year": max(years) if years else None,
-                **dict(zip(("fr", "en"), name(dex, code)))})
+                **dict(zip(("fr", "en"), COSTUME_EXTRA.get((dex, code)) or name(dex, code)))})
+
+# Shiny sorti : les fichiers du jeu ont l'image shiny de presque tous les costumes, même jamais sortis en shiny.
+# On garde seulement ceux de la liste shiny de Leek Duck (date passée) ; sans elle, l'avis de la veille.
+try:
+    today = datetime.date.today().strftime("%Y/%m/%d")
+    req = urllib.request.Request("https://leekduck.com/shiny/pms.json", headers={"User-Agent": "Mozilla/5.0 (pokedex-go)"})
+    ld = {x["aa_fn"] for x in json.load(urllib.request.urlopen(req, timeout=60)) if (x.get("released_date") or "9999") <= today}
+    for c in out:
+        if c["shiny"] and re.sub(r"\.(g2\.)?icon\.png$", "", c["icon"]) not in ld:
+            c["shiny"] = None
+except Exception as e:
+    print("shiny Leek Duck indisponible :", e)
+    try:
+        before = {(c["id"], c["code"]): c["shiny"] for c in json.load(open("costumes.json", encoding="utf-8"))}
+        for c in out:
+            if (c["id"], c["code"]) in before:
+                c["shiny"] = before[(c["id"], c["code"])]
+    except Exception:
+        pass
 
 with open("costumes.json", "w", encoding="utf-8") as fh:
     json.dump(out, fh, ensure_ascii=False, separators=(",", ":"))
-print(len(out), "costumes,", len({c["id"] for c in out}), "espèces")
+print(len(out), "costumes,", len({c["id"] for c in out}), "espèces,", sum(1 for c in out if c["shiny"]), "shiny")

@@ -1,8 +1,3 @@
-const TYPES_URL = "https://pogoapi.net/api/v1/pokemon_types.json";
-const RELEASED_URL = "https://pogoapi.net/api/v1/released_pokemon.json";
-const SHINY_URL = "https://pogoapi.net/api/v1/shiny_pokemon.json";
-// PvPoke : liste tenue à jour très fréquemment (flag "released")
-const PVP_URL = "pvp.json"; // gamemaster PvPoke réduit chaque jour (tools/pvp.py)
 
 // Noms par langue (names.json, source PokeAPI, gardé hors ligne par sw.js).
 let NAMES = null;
@@ -62,7 +57,7 @@ const SHINY_KEY = "pokedex-go-shiny";
 // Listes de Pokémon gardées dans le navigateur : affichage immédiat, et hors ligne
 const CACHE_KEY = "pokedex-go-data";
 // Numéro des listes gardées : l'augmenter quand une source ou un fichier de données change, pour tout relire
-const DATA_V = 4;
+const DATA_V = 5;
 const CACHE_MAX_AGE = 24 * 60 * 60 * 1000; // au-delà, mise à jour en fond
 
 
@@ -198,14 +193,8 @@ async function init() {
     try {
       const fresh = await fetchSources();
       writeCache(fresh);
-      const changed = JSON.stringify(fresh.data) !== JSON.stringify(cached.data) ||
-                      JSON.stringify(fresh.released) !== JSON.stringify(cached.released) ||
-                      JSON.stringify(fresh.shiny) !== JSON.stringify(cached.shiny) ||
-                      JSON.stringify(fresh.mega) !== JSON.stringify(cached.mega) ||
-                      JSON.stringify(fresh.shadow) !== JSON.stringify(cached.shadow) ||
-                      JSON.stringify(fresh.shadowForms) !== JSON.stringify(cached.shadowForms) ||
-                      JSON.stringify(fresh.costumes) !== JSON.stringify(cached.costumes) ||
-                      JSON.stringify(fresh.max) !== JSON.stringify(cached.max);
+      const { time, ...old } = cached;
+      const changed = JSON.stringify(fresh) !== JSON.stringify(old);
       if (changed) { buildEntries(fresh); render(); }
     } catch { /* hors ligne : on garde la copie */ }
     return;
@@ -226,62 +215,24 @@ async function init() {
   }
 }
 
-// Télécharge les listes (pogoapi + PvPoke) → { data, released } bruts, avant tri en cartes
+// Télécharge les listes du site (croisées chaque jour par tools/dex.py, mega.py, costumes.py, max.py)
+// → données brutes, avant tri en cartes. Une liste annexe qui ne répond pas garde sa copie d'avant.
 async function fetchSources() {
-  const [resTypes, resRel, resPvp, resShiny] = await Promise.all([
-    fetch(TYPES_URL), fetch(RELEASED_URL), fetch(PVP_URL).catch(() => null),
-    fetch(SHINY_URL).catch(() => null),
+  const json = f => fetch(f, { cache: "no-cache" }).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
+  const before = readCache() || {};
+  const [dex, mega, costumes, max] = await Promise.all([
+    json("dex.json"),
+    ...["mega.json", "costumes.json", "max.json"].map(f => json(f).catch(() => null)),
   ]);
-  // Méga et Obscurs sortis (n° de Pokédex) ; vides si pogoapi ne répond pas
-  const ids = (url, pick) => fetch(url).then(r => r.ok ? r.json() : null)
-    .then(d => d ? [...new Set(pick(d))].sort((a, b) => a - b) : []).catch(() => []);
-  let shadowForms = [];
-  let [mega, shadow] = await Promise.all([
-    // mega.json (tools/mega.py, pokemon-go-api) : pogoapi n'avait plus Méga-Dracolosse ni Méga-Mewtwo
-    fetch("mega.json").then(r => r.ok ? r.json() : []).catch(() => []),
-    ids("https://pogoapi.net/api/v1/shadow_pokemon.json", d => Object.keys(d).map(Number)),
-  ]);
-  if (!resTypes.ok) throw new Error("HTTP " + resTypes.status);
-  if (!resRel.ok) throw new Error("HTTP " + resRel.status);
-  const data = await resTypes.json();
-  // Disponibles dans GO (n° de Pokédex) = union pogoapi + PvPoke (plus à jour)
-  const released = new Set(Object.keys(await resRel.json()).map(Number));
-  if (resPvp && resPvp.ok) {
-    try {
-      const pvp = await resPvp.json();
-      (pvp.pokemon || []).forEach(p => { if (p.released) released.add(p.dex); });
-      // Obscurs : pogoapi n'est plus à jour (Boréas manquait), on ajoute ceux de PvPoke
-      shadow = [...new Set([...shadow, ...(pvp.shadow || [])])].sort((a, b) => a - b);
-      shadowForms = pvp.shadowForms || [];
-      // Comble les espèces manquantes de pogoapi (ex : 902 Paragruel) via PvPoke
-      const typesDex = new Set(data.map(e => e.pokemon_id));
-      const seen = new Set();
-      (pvp.pokemon || []).forEach(p => {
-        if (p.dex > 0 && p.dex <= 1025 && !typesDex.has(p.dex) && !seen.has(p.dex)) {
-          seen.add(p.dex);
-          data.push({
-            pokemon_id: p.dex,
-            pokemon_name: (p.speciesName || "").replace(/\s*\(.*\)$/, ""),
-            form: "Normal",
-            type: (p.types || []).filter(t => t && t !== "none")
-                   .map(t => t.charAt(0).toUpperCase() + t.slice(1)),
-          });
-        }
-      });
-    } catch { /* PvPoke indispo : on garde pogoapi seul */ }
-  }
-  // Shiny sortis dans GO (n° de Pokédex) ; liste vide si pogoapi ne répond pas
-  let shiny = [];
-  if (resShiny && resShiny.ok) {
-    try { shiny = Object.keys(await resShiny.json()).map(Number).sort((a, b) => a - b); } catch {}
-  }
-  // forms.json (tools/forms.py, pokemon-go-api) : formes régionales absentes de pogoapi (Colimucus de Hisui)
-  const forms = await fetch("forms.json").then(r => r.ok ? r.json() : []).catch(() => []);
-  const haveForm = new Set(data.map(e => e.pokemon_id + "_" + (e.form || "Normal").toUpperCase()));
-  forms.forEach(f => { if (!haveForm.has(f.pokemon_id + "_" + f.form.toUpperCase())) data.push(f); });
-  const costumes = await fetch("costumes.json").then(r => r.ok ? r.json() : []).catch(() => []);
-  const max = await fetch("max.json").then(r => r.ok ? r.json() : null).catch(() => null) || { dynamax: [], gigamax: [] };
-  return { data, released: [...released].sort((a, b) => a - b), shiny, mega, shadow, shadowForms, v: DATA_V, costumes, max };
+  if (!Array.isArray(dex.data) || !dex.data.length || !Array.isArray(dex.released)) throw new Error("dex.json");
+  return {
+    data: dex.data, released: dex.released, unreleasedForms: dex.unreleasedForms || [],
+    shiny: dex.shiny || [], shinyForms: dex.shinyForms || [], shadow: dex.shadow || [], shadowForms: dex.shadowForms || [],
+    mega: Array.isArray(mega) ? mega : before.mega || [],
+    costumes: Array.isArray(costumes) ? costumes : before.costumes || [],
+    max: max && Array.isArray(max.dynamax) ? max : before.max || { dynamax: [], gigamax: [] },
+    v: DATA_V,
+  };
 }
 
 // Données brutes → cartes (une par forme de base ou régionale)
@@ -290,6 +241,7 @@ function buildEntries(src) {
   const { data, released: releasedList, shiny: shinyList = [] } = src;
   const released = new Set(releasedList);
   const shinyOut = new Set(shinyList);
+  const unreleasedForms = new Set(src.unreleasedForms || []), shinyForms = new Set(src.shinyForms || []);
   const megaList = (src.mega || []).filter(m => typeof m === "object"); // ancienne copie : simples n°
   const megaOut = new Set(megaList.map(m => m.id)), shadowOut = new Set(src.shadow || []), shadowForms = src.shadowForms || [];
   const dynaOut = new Set((src.max || {}).dynamax || []);
@@ -332,8 +284,10 @@ function buildEntries(src) {
       id: e.pokemon_id,
       name, region, form, formLabel, types, search,
       regional: !isBase,           // formes régionales : non comptées dans le Pokédex
-      available: released.has(e.pokemon_id), // disponible dans Pokémon GO ?
-      shinyOut: shinyOut.has(e.pokemon_id),   // son shiny est sorti ?
+      // disponible dans Pokémon GO ? (une forme régionale peut ne pas l'être : Darumacho de Galar en Mode Transe)
+      available: released.has(e.pokemon_id) && !unreleasedForms.has(e.pokemon_id + "_" + form.toUpperCase()),
+      // son shiny est sorti ? (forme régionale : son propre shiny)
+      shinyOut: isBase ? shinyOut.has(e.pokemon_id) : shinyForms.has(e.pokemon_id + "_" + form.toUpperCase()),
       megaOut: megaOut.has(e.pokemon_id),     // a une Méga dans GO ?
       // existe en Obscur (et donc Purifié) ? Forme régionale : seulement si elle-même l'est (Rattata d'Alola)
       shadowOut: !isBase ? shadowForms.some(k => k.startsWith(e.pokemon_id + "_") && form.toUpperCase().startsWith(k.split("_")[1])) : shadowOut.has(e.pokemon_id),

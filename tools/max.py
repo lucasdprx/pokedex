@@ -1,6 +1,5 @@
-"""Pokémon Dynamax et Gigamax sortis dans GO : max.json, d'après la liste de Pokémon GO Hub,
-complétée par les données du jeu (PokeMiners : Magmar manquait chez Hub), sauf ceux dont le combat Max
-n'a pas encore commencé (calendrier Leek Duck).
+"""Pokémon Dynamax et Gigamax sortis dans GO : max.json. Les données du jeu (PokeMiners) disent qui a une
+forme Max ; la liste de Pokémon GO Hub et le calendrier Leek Duck disent qui est sorti.
 
 {"dynamax": [n°…], "gigamax": [{"id": n°, "sprite": n° PokeAPI de l'image Gigamax}…]}. Une liste vide (page changée) ne remplace pas l'ancienne.
 Lancé chaque jour par .github/workflows/pvp.yml.
@@ -30,28 +29,45 @@ def gmax_sprite(n):
 
 for n in sorted({int(n) for n, k in found if k == "Gigantamax"}):
     out["gigamax"].append({"id": n, "sprite": gmax_sprite(n)})
-# Données du jeu : « breadOverrides » = a une forme Dynamax (BREAD_DOUGH_MODE = Gigamax)
+# Données du jeu (PokeMiners) : « breadOverrides » = formes Max de chaque Pokémon
+# (BREAD_MODE = Dynamax, BREAD_DOUGH_MODE(_2) = Gigamax). Elles font foi : un Pokémon listé par Hub
+# sans données Max dans le jeu (Créhelf, Meltan…) n'est pas gardé.
 try:
     gm = json.load(urllib.request.urlopen("https://raw.githubusercontent.com/PokeMiners/game_masters/master/latest/latest.json", timeout=120))
-    dyna = set()
+    dyna, dough = set(), set()
     for t in gm:
         m = re.match(r"EXTENDED_V(\d{4})_POKEMON_", t.get("templateId", ""))
-        if m and any(b.get("breadMode") != "BREAD_DOUGH_MODE" for b in t["data"]["pokemonExtendedSettings"].get("breadOverrides", [])):
+        if not m:
+            continue
+        modes = {b.get("breadMode") for b in t["data"]["pokemonExtendedSettings"].get("breadOverrides", [])}
+        if "BREAD_MODE" in modes:
             dyna.add(int(m.group(1)))
-    # Pas encore sortis : leur combat Max est annoncé pour plus tard
+        if modes & {"BREAD_DOUGH_MODE", "BREAD_DOUGH_MODE_2"}:
+            dough.add(int(m.group(1)))
+    # Pas encore sortis : le premier combat Max listé est à venir, et Hub ne l'a pas encore
+    # (un Pokémon qui revient, déjà chez Hub, reste)
     from datetime import datetime
     names = json.load(open("names.json", encoding="utf-8"))
     en = {n.lower(): i + 1 for i, n in enumerate(names.get("en") or [])}
     ev = json.load(urllib.request.urlopen("https://raw.githubusercontent.com/bigfoott/ScrapedDuck/data/events.json", timeout=60))
     now = datetime.now().isoformat()
-    first = {}
+    first, past_giga = {}, set()
     for e in ev:
-        mm = re.search(r"\b(?:Gigantamax|Eternamax|Dynamax) ([A-Z][\w'-]+)", e.get("name") or "")
-        if mm and mm.group(1).lower() in en and e.get("start"):
-            n = en[mm.group(1).lower()]
+        if e.get("eventType") not in ("max-battles", "max-mondays"):
+            continue
+        mm = re.search(r"(Gigantamax|Eternamax|Dynamax) ([A-Z][\w'-]+)", e.get("name") or "")
+        if mm and mm.group(1).lower() != "eternamax" and mm.group(2).lower() in en and e.get("start"):
+            n = en[mm.group(2).lower()]
             first[n] = min(first.get(n, e["start"]), e["start"])
-    later = {n for n, st in first.items() if st > now}
-    out["dynamax"] = sorted(set(out["dynamax"]) | (dyna - later))
+            if mm.group(1) == "Gigantamax" and e["start"] <= now:
+                past_giga.add(n)
+    hub = set(out["dynamax"])
+    later = {n for n, st in first.items() if st > now and n not in hub}
+    out["dynamax"] = sorted(dyna - later)
+    # Gigamax : Hub ou un combat Gigamax déjà passé, et une forme Gigamax dans le jeu (Duralugon n'en a pas)
+    giga = (({g["id"] for g in out["gigamax"]} | past_giga) & dough)
+    out["gigamax"] = [g for g in out["gigamax"] if g["id"] in giga] +                      [{"id": n, "sprite": gmax_sprite(n)} for n in sorted(giga - {g["id"] for g in out["gigamax"]})]
+    out["gigamax"].sort(key=lambda g: g["id"])
 except Exception as e:
     print("données du jeu indisponibles :", e)
 if len(out["dynamax"]) < 50:

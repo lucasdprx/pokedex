@@ -1,4 +1,4 @@
-name: Update PvPoke list
+name: Update Pokémon lists
 on:
   schedule:
     - cron: "17 5 * * *"
@@ -10,16 +10,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: python tools/pvp.py
+      - run: python tools/dex.py || true
       - run: python tools/costumes.py
       - run: python tools/max.py || true
       - run: python tools/mega.py || true
-      - run: python tools/forms.py || true
       - run: |
-          git diff --quiet pvp.json costumes.json max.json mega.json forms.json && exit 0
+          git diff --quiet dex.json costumes.json max.json mega.json && exit 0
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
-          git add pvp.json costumes.json max.json mega.json forms.json
-          git commit -m "Update PvPoke, costume and Max lists"
+          git add dex.json costumes.json max.json mega.json
+          git commit -m "Update Pokémon lists (dex, costumes, Max, Mega)"
           git pull --rebase   # raids.yml pousse chaque heure : ne pas perdre la mise à jour du jour
           git push

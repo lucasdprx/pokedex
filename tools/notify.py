@@ -149,7 +149,7 @@ def max_when(lang, day, hours, end):
 # Espèces qui n'existent que sous une forme « régionale » (Palarticho = 865_Galarian) : c'est leur carte de base
 try:
     _forms = {}
-    for e in get("https://pogoapi.net/api/v1/pokemon_types.json"):
+    for e in json.load(open("dex.json", encoding="utf-8"))["data"]:
         _forms.setdefault(e["pokemon_id"], []).append(e.get("form") or "Normal")
     ONLY_REGIONAL = {d for d, fs in _forms.items() if all(f.startswith(REG_PREFIX) for f in fs)}
 except Exception:

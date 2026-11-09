@@ -34,6 +34,11 @@ for note in re.findall(r'<p class="note">(.*?)</p>', page, re.S):
     (sh, sm), (eh, em) = h24(*t.group(1, 2, 3)), h24(*t.group(4, 5, 6))
     for who, month, day in re.findall(r"([A-Z][\w' -]+?) on \w+day, (\w+) (\d+)", note[t.end():]):
         d = datetime.strptime(f"{month} {day} {year}", "%B %d %Y")
+        # Fin décembre, une date de janvier est celle de l'année suivante (et l'inverse début janvier)
+        if (d - datetime.now()).days < -180:
+            d = d.replace(year=year + 1)
+        elif (d - datetime.now()).days > 180:
+            d = d.replace(year=year - 1)
         for r in out:
             base = re.sub(r"\s*\(.*", "", r["name"]).replace("Shadow ", "")
             if base and base in who:

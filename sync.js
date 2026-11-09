@@ -36,7 +36,7 @@ let user = null, ref = null, ready = false, unsub = null;
 // sinon (coches faites hors connexion, premier passage) on fusionne au lieu d'écraser.
 const isClean = () => user && localStorage.getItem(SYNC_KEY) === "clean:" + user.uid;
 
-let waiting = 0, failTimer = null;
+let waiting = 0, failTimer = null, pushGen = 0;
 function track(promise) {
   waiting++;
   if (!failTimer) failTimer = setTimeout(() => showToast(true), 120000);
@@ -51,10 +51,14 @@ function push() {
   if (!ready) return;
   const m = marksApi.get();
   // merge : garde l'abonnement aux notifications (pushSub) et ce qui a déjà été annoncé (pushSent)
-  track(setDoc(ref, { caught: m.caught, shiny: m.shiny, mega: m.mega, shadow: m.shadow, purified: m.purified,
+  const w = setDoc(ref, { caught: m.caught, shiny: m.shiny, mega: m.mega, shadow: m.shadow, purified: m.purified,
     costume: m.costume, costumeShiny: m.costumeShiny, dynamax: m.dynamax, gigamax: m.gigamax,
-    updated: serverTimestamp() }, { merge: true }));
-  localStorage.setItem(SYNC_KEY, "clean:" + user.uid);
+    updated: serverTimestamp() }, { merge: true });
+  track(w);
+  // « clean » seulement quand le serveur a reçu ce dernier envoi : un envoi perdu (onglet privé fermé
+  // hors ligne, refus) laisse l'appareil à fusionner au prochain passage au lieu d'être écrasé
+  const gen = ++pushGen, uid = user.uid;
+  w.then(() => { if (gen === pushGen && user && user.uid === uid) localStorage.setItem(SYNC_KEY, "clean:" + uid); }, () => {});
   if (localStorage.getItem(SHARE_KEY) === user.uid) pushShared();
 }
 window.syncPush = push;

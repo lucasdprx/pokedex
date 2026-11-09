@@ -561,7 +561,8 @@ function renderGens() {
     for (const tab of [0, 1]) {
       const b = document.createElement("button");
       b.className = "tab" + (friend.tab === tab ? " active" : "");
-      b.innerHTML = `${t(tab ? "cmpMe" : "cmpHe", { n: friend.name })}<span>${n(tab)}</span>`;
+      b.textContent = t(tab ? "cmpMe" : "cmpHe", { n: friend.name }); // nom choisi par l'ami : jamais en HTML
+      b.append(Object.assign(document.createElement("span"), { textContent: n(tab) }));
       b.addEventListener("click", () => { friend.tab = tab; renderGens(); render(); window.scrollTo(0, 0); });
       els.gens.appendChild(b);
     }
@@ -724,6 +725,8 @@ document.getElementById("export").addEventListener("click", () => {
     count: caught.size,
     caught: [...caught],
     shiny: [...shinyCaught],
+    // Méga, Obscurs, Costumes, Dynamax, Gigamax…
+    forms: Object.fromEntries(Object.entries(formSets).map(([k, set]) => [k, [...set]])),
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -1017,22 +1020,29 @@ document.getElementById("importFile").addEventListener("change", (ev) => {
   const reader = new FileReader();
   reader.onload = async () => {
     input.value = ""; // permet de réimporter le même fichier
-    let clean, cleanShiny = [];
+    let clean, cleanShiny = null;
+    const cleanForms = {};
+    const strs = a => Array.isArray(a) ? a.filter(k => typeof k === "string") : null;
     try {
       const data = JSON.parse(reader.result);
       const list = Array.isArray(data) ? data : data.caught;
       if (!Array.isArray(list)) throw new Error(t("badFormat"));
-      clean = list.filter(k => typeof k === "string");
-      cleanShiny = (Array.isArray(data.shiny) ? data.shiny : []).filter(k => typeof k === "string");
+      clean = strs(list);
+      cleanShiny = strs(data.shiny);
+      for (const k of Object.keys(formSets)) { const a = strs(data.forms?.[k]); if (a) cleanForms[k] = a; }
     } catch (err) {
       alert(t("importFail") + err.message);
       return;
     }
-    // Rien de marqué ici : rien à perdre, on charge directement
-    const choice = caught.size ? await askImport(clean.length) : "replace";
+    // Rien de marqué ici, dans aucune collection : rien à perdre, on charge directement
+    const here = caught.size + shinyCaught.size + Object.values(formSets).reduce((n, set) => n + set.size, 0);
+    const choice = here ? await askImport(clean.length) : "replace";
     if (choice === "cancel") return;
-    caught = choice === "merge" ? new Set([...caught, ...clean]) : new Set(clean);
-    shinyCaught = choice === "merge" ? new Set([...shinyCaught, ...cleanShiny]) : new Set(cleanShiny);
+    const put = (old, add) => choice === "merge" ? new Set([...old, ...add]) : new Set(add);
+    caught = put(caught, clean);
+    // Une collection absente du fichier (sauvegarde ancienne) n'est pas effacée
+    if (cleanShiny) shinyCaught = put(shinyCaught, cleanShiny);
+    for (const [k, a] of Object.entries(cleanForms)) formSets[k] = put(formSets[k], a);
     saveCaught();
     render();
   };

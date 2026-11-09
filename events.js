@@ -36,13 +36,12 @@ const REGIONAL = [["Alolan", "ALOLA"], ["Galarian", "GALAR"], ["Hisuian", "HISUI
 // (obscur, costumé, Méga : on attrape l'espèce de base)
 function entryOf(name, img) {
   const id = dexOf(img);
-  if (!id) return null;
-  const reg = REGIONAL.find(([w]) => (name || "").includes(w));
-  if (reg) {
-    const e = entries.find(e => e.id === id && e.regional && e.form.toUpperCase().startsWith(reg[1]));
-    if (e) return e;
-  }
-  return entries.find(e => e.id === id && !e.regional) || null;
+  return id ? formEntry(id, REGIONAL.find(([w]) => (name || "").includes(w))) : null;
+}
+// Carte d'une espèce : sa forme régionale (reg = ["Hisuian", "HISUI"]) si elle existe, sinon la forme de base
+function formEntry(id, reg) {
+  const e = reg && entries.find(e => e.id === id && e.regional && e.form.toUpperCase().startsWith(reg[1]));
+  return e || entries.find(e => e.id === id && !e.regional) || null;
 }
 const parseDate = s => s ? new Date(s).getTime() : null;
 
@@ -172,9 +171,8 @@ const TASK_FR = [
   [/^Catch (\d+) different species of Pokémon$/, n => `Attraper ${n} espèces de Pokémon différentes`],
   [/^Catch (\d+) Pokémon with Weather Boost$/, n => `Attraper ${n} Pokémon boostés par la météo`],
   [/^Catch (a|\d+) Pokémon$/, n => `Attraper ${n === "a" ? "un" : n} Pokémon`],
-  [/^Make (a|\d+) (Nice|Great|Excellent) (Curveball )?Throws?( in a row)?$/, (n, q, c, row) =>
-    `Faire ${n === "a" ? "un" : n} ${{ Nice: "Joli", Great: "Super", Excellent: "Excellent" }[q]}${n === "a" || n === "1" || q === "Great" ? "" : "s"} Lancer${n === "a" || n === "1" ? "" : "s"}${c ? " en courbe" : ""}${row ? " d'affilée" : ""}`],
-  [/^Make an Excellent Throw$/, () => "Faire un Excellent Lancer"],
+  [/^Make (an?|\d+) (Nice|Great|Excellent) (Curveball )?Throws?( in a row)?$/, (n, q, c, row) => (n = n === "an" ? "a" : n,
+    `Faire ${n === "a" ? "un" : n} ${{ Nice: "Joli", Great: "Super", Excellent: "Excellent" }[q]}${n === "a" || n === "1" || q === "Great" ? "" : "s"} Lancer${n === "a" || n === "1" ? "" : "s"}${c ? " en courbe" : ""}${row ? " d'affilée" : ""}`)],
   [/^Make (a|\d+) Curveball Throws?$/, n => `Faire ${n === "a" ? "un" : n} lancer${n === "a" || n === "1" ? "" : "s"} en courbe`],
   [/^Win a three-star raid or higher$/, () => "Gagner un raid 3★ ou plus"],
   [/^Win (a|\d+) raids?$/, n => n === "a" ? "Gagner un raid" : `Gagner ${n} raids`],
@@ -187,7 +185,7 @@ const TASK_FR = [
   [/^Power up (\w+)-type Pokémon (\d+) times$/, (ty, n) => `Améliorer des Pokémon de type ${typeName(ty)} ${n} fois`],
   [/^Use (a|\d+) (\w+)-type Charged Attacks? in (?:a )?battles?$/, (n, ty) => `Utiliser ${n === "a" ? "une" : n} Attaque${n === "a" || n === "1" ? "" : "s"} Chargée${n === "a" || n === "1" ? "" : "s"} de type ${typeName(ty)} en combat`],
   [/^Win (a|\d+) Max Battles?$/, n => n === "a" ? "Gagner un Combat Max" : `Gagner ${n} Combats Max`],
-  [/^Catch (a|an|\d+) ((?:Alolan |Galarian |Hisuian |Paldean )?[A-Z][\w'.é -]*?)s?$/, (n, who) => { const fr = pokeFr(who); return fr && `Attraper ${/^\d/.test(n) ? n : "un"} ${fr}`; }],
+  [/^Catch (a|an|\d+) ((?:Alolan |Galarian |Hisuian |Paldean )?[A-Z][^,]*)$/, (n, who) => { const fr = pokeFr(who); return fr && `Attraper ${/^\d/.test(n) ? n : "un"} ${fr}`; }],
   [/^Power up Pokémon (\d+) times$/, n => `Améliorer des Pokémon ${n} fois`],
   [/^Earn (\d+) Candies walking with your buddy$/, n => `Gagner ${n} Bonbons avec ton copain`],
   [/^Send (\d+) Gifts and add a sticker to each$/, n => `Envoyer ${n} Cadeaux avec un autocollant`],
@@ -195,12 +193,18 @@ const TASK_FR = [
   [/^Defeat (a|\d+) Team GO Rocket Grunts?$/, n => n === "a" ? "Vaincre un Sbire de la Team GO Rocket" : `Vaincre ${n} Sbires de la Team GO Rocket`],
 ];
 // « Hisuian Sliggoo » → « Colimucus de Hisui » (nom de la carte), ou null si inconnu
+// Noms anglais → n°, comparés sans casse ni accents ni sorte d'apostrophe (Farfetch’d / Farfetch'd)
+const nameKey = n => normalize(n).replace(/[’‘`]/g, "'");
+let enIds = null, enIdsOf = null;
 function pokeFr(en) {
+  if (enIdsOf !== NAMES) { enIdsOf = NAMES; enIds = new Map((NAMES?.en || []).map((n, i) => [nameKey(n), i + 1])); }
   const reg = REGIONAL.find(([w]) => en.startsWith(w + " "));
   const base = reg ? en.slice(reg[0].length + 1) : en;
-  const id = (NAMES?.en || []).indexOf(base) + 1;
-  const e = id && entries.find(e => e.id === id && (reg ? e.regional && e.form.toUpperCase().startsWith(reg[1]) : !e.regional));
-  return e ? e.name : null;
+  // « Catch 3 Magikarps » : le nom tel quel, sinon sans le s du pluriel (Ralts garde le sien)
+  const id = enIds.get(nameKey(base)) || (/s$/.test(base) && enIds.get(nameKey(base.slice(0, -1))));
+  const e = id && formEntry(id, reg);
+  if (!e || (reg && !e.regional)) return null;
+  return e.name.replace(/\s*\(.*\)$/, ""); // Tauros de Paldea, pas une seule de ses races
 }
 function taskLabel(text) {
   if (LANG !== "fr") return text || t("hResearch");

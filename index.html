@@ -10,11 +10,20 @@
 // la nouvelle les range (sans écraser ce qu'elle a déjà)
 (function () {
   var NEW = "https://pokedex-go.pages.dev/";
+  // Seulement les coches et les réglages, vérifiés à l'arrivée (un lien #move= peut venir de n'importe qui)
+  var MARKS = /^pokedex-go-(caught|shiny|mega|shadow|purified|costume|costume-shiny|dynamax|gigamax)$/;
+  var PREFS = /^pokedex-go-(lang|theme|onboarded)$/;
+  var ok = function (k, v) {
+    if (PREFS.test(k)) return /^[\w-]{1,16}$/.test(v);
+    if (!MARKS.test(k)) return false;
+    try { var a = JSON.parse(v); return Array.isArray(a) && a.every(function (x) { return typeof x === "string" && /^[\w-]{1,40}$/.test(x); }); }
+    catch (e) { return false; }
+  };
   if (/github\.io$/.test(location.hostname)) {
     var d = {};
     for (var i = 0; i < localStorage.length; i++) {
-      var k = localStorage.key(i);
-      if (k.indexOf("pokedex-go-") === 0 && !/-(data|events2|last-report)$/.test(k)) d[k] = localStorage.getItem(k);
+      var k = localStorage.key(i), v = localStorage.getItem(k);
+      if (ok(k, v)) d[k] = v;
     }
     location.replace(NEW + location.search + "#move=" + encodeURIComponent(JSON.stringify(d)));
     return;
@@ -22,7 +31,7 @@
   if (location.hash.indexOf("#move=") === 0) {
     try {
       var m = JSON.parse(decodeURIComponent(location.hash.slice(6)));
-      for (var key in m) if (localStorage.getItem(key) === null) localStorage.setItem(key, m[key]);
+      for (var key in m) if (typeof m[key] === "string" && ok(key, m[key]) && localStorage.getItem(key) === null) localStorage.setItem(key, m[key]);
     } catch (e) {}
     history.replaceState(null, "", location.pathname + location.search);
   }

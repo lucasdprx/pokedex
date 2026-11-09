@@ -60,14 +60,49 @@ def add(name, img, how):
     avail.setdefault((dex, None if kind else reg, kind, mform), how)
 
 
-for r in get(DUCK + "raids.json"):
-    add(r["name"], r.get("image"), ("raid", r.get("tier", "")))
+events = get(DUCK + "events.json")
+
+
+def tier(s):
+    if re.search(r"mega", s or "", re.I):
+        return "mega"
+    m = re.search(r"(\d)-star", s or "", re.I)
+    return m.group(1) if m else ""
+
+
+# Raids : raids.json du site (page Raids de Leek Duck, relue chaque heure), corrigé par le calendrier comme
+# sur le site (events.js) : le calendrier l'emporte pour son niveau, les boss dont la période est finie sont retirés
+bare = lambda n: re.sub(r"\s*\(.*$", "", re.sub(r"^Shadow ", "", n or "")).lower()
+live, ended = {}, set()
+for ev in events:
+    bosses = ((ev.get("extraData") or {}).get("raidbattles") or {}).get("bosses") or []
+    if not bosses:
+        continue
+    k = (bool(re.search("shadow", ev.get("name") or "", re.I)), tier(ev.get("name")) or "5")
+    start, end = when(ev.get("start")), when(ev.get("end"))
+    if end and end < now:
+        ended.update(k + (bare(b.get("name")),) for b in bosses)
+    elif start and start <= now:
+        live.setdefault(k, []).extend(bosses)
+try:
+    raids = json.load(open("raids.json", encoding="utf-8"))
+except Exception:
+    raids = get(DUCK + "raids.json")
+for r in raids:
+    k = (r["name"].startswith("Shadow "), tier(r.get("tier")))
+    if k not in live and k + (bare(r["name"]),) not in ended:
+        add(r["name"], r.get("image"), ("raid", r.get("tier", "")))
+for (shadow, t), bosses in live.items():
+    for b in bosses:
+        name = b.get("name") or ""
+        add(("Shadow " if shadow and not name.startswith("Shadow ") else "") + ("Mega " if t == "mega" and not re.match(r"(Mega|Primal) ", name) else "") + name,
+            b.get("image"), ("raid", t))
 for g in get(DUCK + "eggs.json"):
     add(g["name"], g.get("image"), ("egg", g.get("eggType", "")))
 for task in get(DUCK + "research.json"):
     for r in task.get("rewards", []):
         add(r["name"], r.get("image"), ("research", ""))
-for ev in get(DUCK + "events.json"):
+for ev in events:
     start, end = when(ev.get("start")), when(ev.get("end"))
     if not start or start > now or (end and end < now):
         continue
@@ -82,7 +117,7 @@ names = json.load(open("names.json", encoding="utf-8"))
 EN_DEX = {n.lower(): i + 1 for i, n in enumerate(names.get("en") or [])}
 today = datetime.now(ZoneInfo("Europe/Paris")).date()
 maxes = {}  # (n°, "dyna" | "giga") → (jour, heures ou "", fin)
-for ev in get(DUCK + "events.json"):
+for ev in events:
     m = re.search(r"\b(Gigantamax|Eternamax|Dynamax) ([A-Z][\w'-]+)", ev.get("name") or "")
     s, e = ev.get("start"), ev.get("end")
     if not m or not s or not e or m.group(2).lower() not in EN_DEX:
@@ -106,6 +141,16 @@ def max_when(lang, day, hours, end):
     return f"{w} {hours}" if hours else w
 
 
+# Espèces qui n'existent que sous une forme « régionale » (Palarticho = 865_Galarian) : c'est leur carte de base
+try:
+    _forms = {}
+    for e in get("https://pogoapi.net/api/v1/pokemon_types.json"):
+        _forms.setdefault(e["pokemon_id"], []).append(e.get("form") or "Normal")
+    ONLY_REGIONAL = {d for d, fs in _forms.items() if all(f.startswith(REG_PREFIX) for f in fs)}
+except Exception:
+    ONLY_REGIONAL = {862, 863, 865, 866, 867}
+
+
 def has(caught, dex, reg):
     """La personne a-t-elle ce Pokémon ? Forme de base : n'importe quelle forme non régionale."""
     for k in caught:
@@ -114,7 +159,7 @@ def has(caught, dex, reg):
             continue
         if reg and form.startswith(reg):
             return True
-        if not reg and not form.startswith(REG_PREFIX):
+        if not reg and (dex in ONLY_REGIONAL or not form.startswith(REG_PREFIX)):
             return True
     return False
 

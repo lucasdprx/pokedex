@@ -3,8 +3,8 @@
 // Données : ScrapedDuck, copie automatique de Leek Duck (https://github.com/bigfoott/ScrapedDuck).
 
 const DUCK = "https://raw.githubusercontent.com/bigfoott/ScrapedDuck/data/";
-const DUCK_KEY = "pokedex-go-events2";
-const DUCK_AGE = 3 * 3600e3; // relu toutes les 3 h
+const DUCK_KEY = "pokedex-go-events3"; // changé : relire tout de suite (raids.json)
+const DUCK_AGE = 3600e3; // relu toutes les heures
 
 let duck = null;      // données brutes reçues
 let howMap = null;    // clé de carte → [{src, detail, start, end, shiny}] trié, du plus proche au plus loin
@@ -18,7 +18,9 @@ async function loadDuck(force) {
   } catch {}
   try {
     const get = f => fetch(DUCK + f + ".json").then(r => { if (!r.ok) throw r.status; return r.json(); });
-    const [raids, eggs, research, events] = await Promise.all(["raids", "eggs", "research", "events"].map(get));
+    // Raids : notre raids.json (tools/raids.py, relu chaque heure chez Leek Duck) ; ScrapedDuck sinon (une fois par jour)
+    const ownRaids = fetch("raids.json", { cache: "no-cache" }).then(r => { if (!r.ok) throw r.status; return r.json(); }).catch(() => get("raids"));
+    const [raids, eggs, research, events] = await Promise.all([ownRaids, ...["eggs", "research", "events"].map(get)]);
     // Format changé chez Leek Duck : on garde l'ancienne liste plutôt qu'une liste vide
     if (![raids, eggs, research, events].every(Array.isArray)) throw "format";
     duck = { time: Date.now(), raids, eggs, research, events };
@@ -85,7 +87,14 @@ function buildHow() {
     return !live.has(k) && !ended.has(k + bare(r.name));
   });
   for (const [k, bosses] of live) for (const p of bosses) raids.push({ ...p, tier: k.endsWith("mega") ? "Mega" : k.split(":")[1] + "-Star", name: (k.startsWith("true") && !/^Shadow /.test(p.name) ? "Shadow " : "") + p.name });
-  for (const r of raids) add(r.name, r.image, "raid", tier(r.tier), r.canBeShiny, null, null, /^Shadow /.test(r.name));
+  for (const r of raids) {
+    add(r.name, r.image, "raid", tier(r.tier), r.canBeShiny, null, null, /^Shadow /.test(r.name));
+    // Heure de raids (note de la page Raids) : à venir avec ses heures, ou en cours
+    for (const [a, b] of r.hours || []) {
+      const st = parseDate(a), en = parseDate(b);
+      if (en > now) add(r.name, r.image, "raid", tier(r.tier), r.canBeShiny, st > now ? st : null, en, /^Shadow /.test(r.name), fmtHours(st, en));
+    }
+  }
   for (const g of duck.eggs || []) add(g.name, g.image, "egg", g.eggType, g.canBeShiny);
   for (const task of duck.research || [])
     for (const r of task.rewards || []) add(r.name, r.image, "research", (task.text || "").replace(/<[^>]+>/g, "").trim(), r.canBeShiny);
@@ -103,6 +112,11 @@ function buildHow() {
     const mx = (ev.name || "").match(/\b(Gigantamax|Eternamax|Dynamax) ([A-Z][\w'-]+)/);
     const mxId = mx && lastSrc && (lastSrc.data.find(d => (d.pokemon_name || "").toLowerCase() === mx[2].toLowerCase()) || {}).pokemon_id;
     if (mxId) add(mx[2], "pm" + mxId, "max", mx[1] === "Dynamax" ? "dyna" : "giga", true, when, end, false, hours);
+    const rh = (ev.name || "").match(/^(.+?) (?:Super Mega )?Raid (?:Hour|Day)$/);
+    if (rh && lastSrc) for (const n of rh[1].replace(/\s*\(.*?\)/g, "").split(/,\s*|\s+and\s+/)) {
+      const id = (lastSrc.data.find(d => (d.pokemon_name || "").toLowerCase() === n.trim().toLowerCase()) || {}).pokemon_id;
+      if (id) add((/Mega Raid/.test(ev.name) ? "Mega " : "") + n.trim(), "pm" + id, "raid", /Mega Raid/.test(ev.name) ? "mega" : 5, true, when, end, false, hours);
+    }
     if (x.raidbattles && when) for (const p of x.raidbattles.bosses || []) add(p.name, p.image, "raid", tier(ev.name), p.canBeShiny, when, end, /shadow/i.test(ev.name));
   }
   for (const list of map.values()) list.sort((a, b) => (a.start || 0) - (b.start || 0));

@@ -13,7 +13,7 @@ jobs:
       - run: python tools/pvp.py
       - run: python tools/costumes.py
       - run: python tools/max.py || true
-          python tools/mega.py || true
+      - run: python tools/mega.py || true
       - run: |
           git diff --quiet pvp.json costumes.json max.json mega.json && exit 0
           git config user.name "github-actions"

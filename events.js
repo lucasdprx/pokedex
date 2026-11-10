@@ -3,7 +3,7 @@
 // Données : ScrapedDuck, copie automatique de Leek Duck (https://github.com/bigfoott/ScrapedDuck).
 
 const DUCK = "https://raw.githubusercontent.com/bigfoott/ScrapedDuck/data/";
-const DUCK_KEY = "pokedex-go-events3"; // changé : relire tout de suite (raids.json)
+const DUCK_KEY = "pokedex-go-events4"; // changé : relire tout de suite (Team GO Rocket)
 const DUCK_AGE = 3600e3; // relu toutes les heures
 
 let duck = null;      // données brutes reçues
@@ -28,7 +28,7 @@ async function loadDuck(force) {
       return list;
     }).catch(() => get("raids"));
   // Chaque liste à part : une qui ne répond pas (ou change de format) garde sa dernière copie, les autres sont à jour
-  const names = ["raids", "eggs", "research", "events"];
+  const names = ["raids", "eggs", "research", "events", "rocketLineups"];
   const got = await Promise.allSettled([ownRaids, ...names.slice(1).map(get)]);
   const fresh = got.map(r => r.status === "fulfilled" && Array.isArray(r.value) ? r.value : null);
   if (fresh.every(v => !v)) return;                    // hors ligne : la dernière liste reçue, ou rien
@@ -58,6 +58,13 @@ function formEntry(id, reg, breed) {
   return e || entries.find(e => e.id === id && !e.regional) || null;
 }
 const parseDate = s => s ? new Date(s).getTime() : null;
+
+// Adversaire de la Team GO Rocket : « Giovanni », « Cliff », « Sbire Feu » (homme et femme du même type ensemble)
+function rocketWho(x) {
+  if (!/Grunt/.test(x.title || "")) return x.name || "";
+  const ty = (x.type || "").replace(/^./, c => c.toUpperCase());
+  return ty ? t("hGruntType", { ty: typeName(ty) }) : /Decoy/.test(x.name || "") ? t("hGruntDecoy") : t("hGrunt");
+}
 
 function buildHow() {
   if (!duck || !entries.length) return;
@@ -110,6 +117,10 @@ function buildHow() {
     }
   }
   for (const g of duck.eggs || []) add(g.name, g.image, "egg", g.eggType, g.canBeShiny);
+  // Team GO Rocket : l'obscur qu'on capture après le combat, un groupe par adversaire (rocket v1 : A1, B2)
+  for (const x of duck.rocketLineups || [])
+    for (const p of [...(x.firstPokemon || []), ...(x.secondPokemon || []), ...(x.thirdPokemon || [])])
+      if (p.isEncounter) add(p.name, p.image, "rocket", rocketWho(x), p.canBeShiny, null, null, true);
   for (const task of duck.research || [])
     for (const r of task.rewards || []) add(r.name, r.image, "research", (task.text || "").replace(/<[^>]+>/g, "").trim(), r.canBeShiny);
   for (const ev of duck.events || []) {
@@ -149,7 +160,7 @@ function howFor(e) {
   const sh = coll === "shadow" || coll === "purified", mega = coll === "mega";
   const base = only === "giga" || mega ? (entries.find(x => x.id === e.id && !x.regional) || e).key : e.key;
   return (howMap.get(base) || [])
-    .filter(h => (!shinyMode || h.shiny) && (!only || (h.src === "max" && h.detail === only)) && (!sh || h.shadow) && (!mega || (h.mk && h.mk[1] === e.key)));
+    .filter(h => h.src !== "rocket" && (!shinyMode || h.shiny) && (!only || (h.src === "max" && h.detail === only)) && (!sh || h.shadow) && (!mega || (h.mk && h.mk[1] === e.key)));
 }
 
 const fmtHour = ms => new Date(ms).toLocaleTimeString(LANG, { hour: "numeric", minute: new Date(ms).getMinutes() ? "2-digit" : undefined }).replace(/^0(?=\d)/, ""); // « 6 h », pas « 06 h »
@@ -238,6 +249,9 @@ const EGG_COLORS = { 1: ["#59a9e0", "#7fc8f8"], 2: ["#5ba83a", "#8fd36b"], 5: ["
   7: ["#d9b62e", "#f4d35e"], 10: ["#8a5ccf", "#a77fe0"], 12: ["#c43c3c", "#e05252"] };
 const maxIcon = fill => `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="${fill}" stroke="rgba(0,0,0,.25)"/>` +
   `<path d="M7 16V8l5 5 5-5v8" stroke="#fff" stroke-width="2.2" fill="none" stroke-linejoin="round"/></svg>`;
+// Team GO Rocket : un R blanc dans un rond (noir Giovanni, violet leaders, rouge sbires)
+const rocketIcon = fill => `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="${fill}" stroke="rgba(0,0,0,.25)"/>` +
+  `<path d="M9 17V7h3.6a3 3 0 0 1 0 6H9m3.4 0L16 17" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const RAID_COLORS = { 1: "#f29bb6", 3: "#f4c430", 5: "#8a8fa3", mega: "#c0392b", shadow: "#6b3fa0" };
 
 // Le calendrier suit le Pokédex (ou le Shiny), pas les collections Méga, Obscurs, Purifiés :
@@ -259,7 +273,7 @@ function sheetRows() {
 // Icône du haut : le jour, et un point quand un Pokémon qui te manque est disponible
 // et pas encore vu dans la feuille (il part à l'ouverture, revient avec du neuf)
 const SEEN_KEY = "pokedex-go-now-seen";
-const missingNow = () => [...new Set(sheetRows().now.filter(r => r.missing).map(r => (shinyMode ? "s:" : "") + r.e.key))];
+const missingNow = () => [...new Set(sheetRows().now.filter(r => r.missing && r.h.src !== "rocket").map(r => (shinyMode ? "s:" : "") + r.e.key))];
 const seenNow = () => { try { return new Set(JSON.parse(localStorage.getItem(SEEN_KEY)) || []); } catch { return new Set(); } };
 // Images du calendrier téléchargées en fond après le lancement : la feuille s'ouvre sans attendre
 let nowPreloaded = false;
@@ -311,6 +325,13 @@ function sheetGroups(rows) {
     push(maxIcon("#b0306a"), t("hGiga"), rows.filter(r => r.h.src === "max" && r.h.detail === "giga").sort(byStart), false, "max");
     push(maxIcon("#e0457b"), t("hDyna"), rows.filter(r => r.h.src === "max" && r.h.detail === "dyna").sort(byStart), false, "max dyna");
   }
+  // Team GO Rocket : seulement dans son onglet, dans l'ordre de Leek Duck (Giovanni, leaders, sbires)
+  if (nowCat === "rocket") {
+    const rk = rows.filter(r => r.h.src === "rocket");
+    const order = [...new Set((duck.rocketLineups || []).map(rocketWho))];
+    const color = w => w === "Giovanni" ? "#3a3a3a" : /^(Cliff|Arlo|Sierra)$/.test(w) ? "#7b3fb8" : "#c0392b";
+    for (const w of order) push(rocketIcon(color(w)), w, rk.filter(r => r.h.detail === w).sort((a, b) => a.e.id - b.e.id), false, "shadow");
+  }
   if (nowCat === "all" || nowCat === "egg") {
     const eggs = rows.filter(r => r.h.src === "egg");
     const kms = [...new Set(eggs.map(r => r.h.detail))].sort((a, b) => parseFloat(a) - parseFloat(b));
@@ -341,10 +362,10 @@ function renderNow() {
   document.getElementById("nowTitle").textContent = t("nowTitle") + (shinyMode ? " ✦" : "");
   const tab = (attr, key, on, label) => `<button data-${attr}="${key}"${on ? ' class="on"' : ""}>${label}</button>`;
   document.getElementById("nowTabs").innerHTML =
-    tab("p", "now", nowPane === "now", `${t("nowTab")} <span>${now.length}</span>`) +
+    tab("p", "now", nowPane === "now", `${t("nowTab")} <span>${now.filter(r => r.h.src !== "rocket").length}</span>`) +
     tab("p", "soon", nowPane === "soon", `${t("soonTab")} <span>${soon.length}</span>`);
   document.getElementById("nowCats").innerHTML =
-    [["all", "catAll"], ["raid", "catRaids"], ["egg", "catEggs"], ["research", "catResearch"], ["max", "catMax"]]
+    [["all", "catAll"], ["raid", "catRaids"], ["egg", "catEggs"], ["research", "catResearch"], ["max", "catMax"], ["rocket", "catRocket"]]
       .map(([k, key]) => tab("c", k, nowCat === k, t(key))).join("");
   const body = document.getElementById("nowBody");
   // Source muette : le dire, avec « Réessayer » ; liste trop vieille : la date en tête

@@ -57,7 +57,8 @@ def add(name, img, how):
     # Méga et Obscurs : comparés à leur collection (mega, shadow), pas au Pokédex normal
     kind = "mega" if re.match(r"(Mega|Primal) ", name) else "shadow" if name.startswith("Shadow ") else None
     mform = (re.search(r" ([XY])$", name) or [None, ""])[1] if kind == "mega" else ""
-    avail.setdefault((dex, None if kind else reg, kind, mform), how)
+    # Obscur : sa forme régionale compte (Rattata d'Alola obscur ≠ Rattata obscur)
+    avail.setdefault((dex, None if kind == "mega" else reg, kind, mform), how)
 
 
 events = get(DUCK + "events.json")
@@ -101,6 +102,11 @@ for (shadow, t), bosses in live.items():
         name = b.get("name") or ""
         add(("Shadow " if shadow and not name.startswith("Shadow ") else "") + ("Mega " if t == "mega" and not re.match(r"(Mega|Primal) ", name) else "") + name,
             b.get("image"), ("raid", t))
+# Team GO Rocket : l'obscur capturé après le combat (comparé à la collection Obscurs)
+for x in get(DUCK + "rocketLineups.json"):
+    for p in (x.get("firstPokemon") or []) + (x.get("secondPokemon") or []) + (x.get("thirdPokemon") or []):
+        if p.get("isEncounter"):
+            add("Shadow " + p["name"], p.get("image"), ("rocket", (x.get("name") or "", x.get("title") or "", x.get("type") or "")))
 for g in get(DUCK + "eggs.json"):
     add(g["name"], g.get("image"), ("egg", g.get("eggType", "")))
 for task in get(DUCK + "research.json"):
@@ -134,6 +140,22 @@ for ev in events:
     maxes.setdefault((EN_DEX[m.group(2).lower()], "dyna" if m.group(1) == "Dynamax" else "giga"), (max(s.date(), today), hours, e.date()))
 
 HOW_FR = {"raid": "en raid", "egg": "en œuf", "research": "en étude", "spotlight": "en Heure vedette", "cday": "en Journée Communauté"}
+TYPE_FR = {"normal": "Normal", "fire": "Feu", "water": "Eau", "electric": "Électrik", "grass": "Plante", "ice": "Glace",
+           "fighting": "Combat", "poison": "Poison", "ground": "Sol", "flying": "Vol", "psychic": "Psy", "bug": "Insecte",
+           "rock": "Roche", "ghost": "Spectre", "dragon": "Dragon", "dark": "Ténèbres", "steel": "Acier", "fairy": "Fée"}
+
+
+def rocket_how(lang, who):
+    """« chez un Sbire Ténèbres », « chez Giovanni » / « from a Dark Grunt », « from Giovanni »."""
+    name, title, ty = who
+    fr = lang == "fr"
+    if "Grunt" not in title:
+        return f"chez {name}" if fr else f"from {name}"
+    if ty:
+        return f"chez un Sbire {TYPE_FR.get(ty, ty)}" if fr else f"from a {ty.capitalize()} Grunt"
+    return "chez un Sbire" if fr else "from a Grunt"
+
+
 HOW_EN = {"raid": "in raids", "egg": "in eggs", "research": "in research", "spotlight": "in Spotlight Hour", "cday": "on Community Day"}
 
 
@@ -169,7 +191,7 @@ def has(caught, dex, reg):
     return False
 
 
-def has_form(d, dex, kind, mform):
+def has_form(d, dex, kind, mform, reg=None):
     """La Méga (clé « 6_MEGA_X ») ou l'Obscur (clé « 9_Normal ») est-il coché dans sa collection ?"""
     if kind == "mega":
         keys = {f"{dex}_MEGA" + (f"_{mform}" if mform else "")}
@@ -180,7 +202,7 @@ def has_form(d, dex, kind, mform):
         return any(k.partition("_")[0] == str(dex) for k in d.get("dynamax") or [])
     if kind == "giga":
         return f"{dex}_GIGAMAX" in set(d.get("gigamax") or [])
-    return any(k.partition("_")[0] == str(dex) for k in d.get("shadow") or [])
+    return has(d.get("shadow") or [], dex, reg)
 
 
 def label(dex, reg, lang, kind=None, mform=""):
@@ -189,7 +211,7 @@ def label(dex, reg, lang, kind=None, mform=""):
     if kind == "mega":
         return (f"Méga-{n}" if lang == "fr" else f"Mega {n}") + (f" {mform}" if mform else "")
     if kind == "shadow":
-        return f"{n} obscur" if lang == "fr" else f"Shadow {n}"
+        return f"{label(dex, reg, lang)} obscur" if lang == "fr" else f"Shadow {label(dex, reg, lang)}"
     if kind in ("dyna", "giga"):
         if kind == "giga" and dex == 890:  # Éthernatos : Infinimax
             return f"{n} Infinimax" if lang == "fr" else f"Eternamax {n}"
@@ -214,7 +236,7 @@ for snap in db.collection("users").stream():
     caught = d.get("caught") or []
     missing = {}
     for (dex, reg, kind, mform), how in avail.items():
-        got = has_form(d, dex, kind, mform) if kind else has(caught, dex, reg)
+        got = has_form(d, dex, kind, mform, reg) if kind else has(caught, dex, reg)
         if not got:
             k = f"{dex}_{reg or ''}" + (f"_{kind}{mform}" if kind else "")
             missing[k] = (dex, reg, how, kind, mform)
@@ -233,7 +255,7 @@ for snap in db.collection("users").stream():
         hows = HOW_FR if lang == "fr" else HOW_EN
         # Combats Max d'abord : ils ne durent que quelques heures
         fresh.sort(key=lambda v: v[2][0] != "max")
-        parts = [f"{label(dex, reg, lang, kind, mform)} " + (max_when(lang, *how[1]) if how[0] == "max" else hows[how[0]])
+        parts = [f"{label(dex, reg, lang, kind, mform)} " + (max_when(lang, *how[1]) if how[0] == "max" else rocket_how(lang, how[1]) if how[0] == "rocket" else hows[how[0]])
                  for dex, reg, how, kind, mform in fresh[:4]]
         body = (", ".join(parts[:-1]) + et + parts[-1]) if len(parts) > 1 else parts[0]
         if len(fresh) > 4:

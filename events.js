@@ -160,7 +160,7 @@ function howFor(e) {
   const sh = coll === "shadow" || coll === "purified", mega = coll === "mega";
   const base = only === "giga" || mega ? (entries.find(x => x.id === e.id && !x.regional) || e).key : e.key;
   return (howMap.get(base) || [])
-    .filter(h => h.src !== "rocket" && (!shinyMode || h.shiny) && (!only || (h.src === "max" && h.detail === only)) && (!sh || h.shadow) && (!mega || (h.mk && h.mk[1] === e.key)));
+    .filter(h => (!shinyMode || h.shiny) && (!only || (h.src === "max" && h.detail === only)) && (!sh || h.shadow) && (!mega || (h.mk && h.mk[1] === e.key)));
 }
 
 const fmtHour = ms => new Date(ms).toLocaleTimeString(LANG, { hour: "numeric", minute: new Date(ms).getMinutes() ? "2-digit" : undefined }).replace(/^0(?=\d)/, ""); // « 6 h », pas « 06 h »
@@ -172,6 +172,7 @@ function howLabel(h) {
     : h.src === "egg" ? t("eggKm", { km: h.detail })
     : h.src === "research" ? t("fieldResearch")
     : h.src === "max" ? t(h.detail === "dyna" ? "maxDyna" : "maxGiga")
+    : h.src === "rocket" ? h.detail // « Sbire Feu », « Giovanni »
     : h.src === "spotlight" ? t("spotlightOne") : t("cdayOne");
   if (h.hours) return base + (h.start ? " " + fmtDay(h.start) : "") + " " + h.hours;
   return h.start ? base + " " + t("fromDay", { d: fmtDay(h.start) }) : base;

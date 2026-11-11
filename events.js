@@ -444,9 +444,13 @@ function renderNow() {
       const sp = h.sp || spriteOf(e), go = h.mk && byKey.has(h.mk[1]) ? h.mk : null, fresh = missing && nowFresh.has((shinyMode ? "s:" : "") + e.key);
       return `<div class="now-cell${missing ? " missing" : ""}${fresh ? " fresh" : ""}" title="${e.name}" data-key="${go ? go[1] : e.key}" data-coll="${shinyMode ? "" : go ? go[0] : h.src === "max" ? "dynamax" : "dex"}" role="button" tabindex="0"><img crossorigin="anonymous" src="${shinyMode ? SPRITE_TINY_SHINY(sp) : SPRITE_TINY(sp)}" alt="${e.name}" ` +
         `data-sprite="${sp}" data-shiny="${shinyMode ? 1 : 0}" onerror="imgFallback(this)">` +
-        (fresh ? `<i class="now-dot"></i>` : "") + (h.start || h.hours ? `<b>${[h.start && fmtDay(h.start), h.hours].filter(Boolean).join("<br>")}</b>` : "") + `</div>`;
+        (fresh ? `<i class="now-dot"></i>` : "") + (h.start || h.hours ? `<b>${[h.start && fmtDay(h.start), h.hours].filter(Boolean).join("<br>")}${formWord(h)}</b>` : "") + `</div>`;
     }).join("") + `</div>`).join("");
 }
+
+// Nouveauté d'une forme : « Dynamax », « Gigamax », « Méga » sous la date (nouveautes v2 : A2)
+const formWord = h => h.src !== "debut" || !h.detail || h.detail === "shadow" ? ""
+  : `<i class="now-form ${h.detail}">${t(h.detail === "dyna" ? "hDyna" : h.detail === "giga" ? "hGiga" : "mega")}</i>`;
 
 // Fermer (✕, Échap ou retour) : la feuille descend avant de disparaître
 function closeNow(then) {

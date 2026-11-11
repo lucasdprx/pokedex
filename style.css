@@ -100,6 +100,10 @@ header {
 .now-cell.missing img { filter: grayscale(1) opacity(.45); }
 .now-cell b { display: block; text-align: center; font-size: .68rem; color: #b7791f; white-space: nowrap; }
 .now-cell .now-dot { position: absolute; top: 2px; right: 2px; }
+.now-cell b .now-form { display: block; font-style: normal; color: #d61f3c; }
+.now-cell b .now-form.giga { color: #b0306a; } .now-cell b .now-form.mega { color: #c0392b; }
+html[data-theme="dark"] .now-cell b .now-form { color: #ff8a9a; }
+html[data-theme="dark"] .now-cell b .now-form.giga { color: #e98ac0; } html[data-theme="dark"] .now-cell b .now-form.mega { color: #ff9f7a; }
 #langMenu { min-width: 160px; }
 #acctMenu { min-width: 200px; }
 #acctMenu button { display: flex; }

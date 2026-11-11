@@ -102,7 +102,9 @@ function buildHow() {
     if (!bosses || !bosses.length) continue;
     const k = /shadow/i.test(ev.name) + ":" + (tier(ev.name) || 5);
     if (end && end < now) { bosses.forEach(b => ended.add(k + bare(b.name))); continue; }
-    if (!start || start > now) continue;
+    // Pas encore commencé : la page Raids l'annonce parfois d'avance (Tornadus obscur listé avant le 16/11) ; il va dans Bientôt
+    if (start > now) { bosses.forEach(b => ended.add(k + bare(b.name))); continue; }
+    if (!start) continue;
     live.set(k, (live.get(k) || []).concat(bosses));
   }
   const raids = (duck.raids || []).filter(r => {

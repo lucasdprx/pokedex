@@ -75,6 +75,7 @@ def tier(s):
 # sur le site (events.js) : le calendrier l'emporte pour son niveau, les boss dont la période est finie sont retirés
 bare = lambda n: re.sub(r"\s*\(.*$", "", re.sub(r"^Shadow ", "", n or "")).lower()
 live, ended = {}, set()
+upcoming = set()
 for ev in events:
     bosses = ((ev.get("extraData") or {}).get("raidbattles") or {}).get("bosses") or []
     if not bosses:
@@ -85,6 +86,9 @@ for ev in events:
         ended.update(k + (bare(b.get("name")),) for b in bosses)
     elif start and start <= now:
         live.setdefault(k, []).extend(bosses)
+    elif start:
+        # Pas encore commencé : la page Raids l'annonce parfois d'avance (Tornadus obscur listé avant le 16/11)
+        upcoming.update(k + (bare(b.get("name")),) for b in bosses)
 try:
     own = json.load(open("raids.json", encoding="utf-8"))
     # Ancien format (liste) ou fichier plus mis à jour depuis 12 h (tools/raids.py en panne) : ScrapedDuck
@@ -95,7 +99,7 @@ except Exception:
     raids = get(DUCK + "raids.json")
 for r in raids:
     k = (r["name"].startswith("Shadow "), tier(r.get("tier")))
-    if k not in live and k + (bare(r["name"]),) not in ended:
+    if k not in live and k + (bare(r["name"]),) not in ended | upcoming:
         add(r["name"], r.get("image"), ("raid", r.get("tier", "")))
 for (shadow, t), bosses in live.items():
     for b in bosses:

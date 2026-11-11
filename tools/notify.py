@@ -139,6 +139,14 @@ for ev in events:
     hours = f"{s.hour} h–{e.hour} h" if s.date() == e.date() else ""
     maxes.setdefault((EN_DEX[m.group(2).lower()], "dyna" if m.group(1) == "Dynamax" else "giga"), (max(s.date(), today), hours, e.date()))
 
+# Nouveautés à venir (tools/debuts.py) : annoncées une fois, puis rappelées la veille (nouveautes v1 : C3)
+REG_NAME = {"ALOLA": "Alola", "GALARIAN": "Galarian", "HISUIAN": "Hisuian", "PALDEA": "Paldea"}
+try:
+    debuts = [x for x in json.load(open("debuts.json", encoding="utf-8"))["debuts"] if x["start"][:10] > today.isoformat()]
+except Exception as e:
+    print("debuts.json illisible :", e)
+    debuts = []
+
 HOW_FR = {"raid": "en raid", "egg": "en œuf", "research": "en étude", "spotlight": "en Heure vedette", "cday": "en Journée Communauté"}
 TYPE_FR = {"normal": "Normal", "fire": "Feu", "water": "Eau", "electric": "Électrik", "grass": "Plante", "ice": "Glace",
            "fighting": "Combat", "poison": "Poison", "ground": "Sol", "flying": "Vol", "psychic": "Psy", "bug": "Insecte",
@@ -166,6 +174,14 @@ def max_when(lang, day, hours, end):
         return (f"jusqu'au {end:%d/%m}" if fr else f"until {end:%m/%d}")
     w = ("aujourd'hui" if fr else "today") if day == today else ("demain" if fr else "tomorrow")
     return f"{w} {hours}" if hours else w
+
+
+def new_when(lang, day):
+    """Nouveauté : « nouveau demain », « nouveau le 28/11 » / « new tomorrow », « new on 11/28 »."""
+    fr = lang == "fr"
+    if day == today + timedelta(days=1):
+        return "nouveau demain" if fr else "new tomorrow"
+    return f"nouveau le {day:%d/%m}" if fr else f"new on {day:%m/%d}"
 
 
 # Espèces qui n'existent que sous une forme « régionale » (Palarticho = 865_Galarian) : c'est leur carte de base
@@ -243,6 +259,17 @@ for snap in db.collection("users").stream():
     for (dex, kind), (day, hours, end) in maxes.items():
         if not has_form(d, dex, kind, ""):
             missing[f"max_{dex}_{kind}_{day}"] = (dex, None, ("max", (day, hours, end)), kind, "")
+    for x in debuts:
+        dex, reg, kind, mform = x["dex"], REG_NAME.get(x["reg"]), x["kind"] or None, x["mform"]
+        got = (has(d.get("shiny") or [], dex, reg) if x["shiny"] else
+               has_form(d, dex, kind, mform, reg) if kind else has(caught, dex, reg))
+        if got:
+            continue
+        day = datetime.fromisoformat(x["start"][:19]).date()
+        k = f"new_{dex}_{x['reg']}_{x['kind']}{mform}{'_s' if x['shiny'] else ''}"
+        missing[k] = (dex, reg, ("new", (day, x["shiny"])), kind, mform)
+        if day == today + timedelta(days=1):
+            missing[k + "_eve"] = (dex, reg, ("new", (day, x["shiny"])), kind, mform)
     sent = set(d.get("pushSent") or [])
     test = os.environ.get("TEST") == "true"  # lancé à la main avec « test » : tout annoncer, sans rien noter
     fresh = [v for k, v in missing.items() if test or k not in sent]
@@ -254,8 +281,19 @@ for snap in db.collection("users").stream():
         one, many, et = TEXT[lang]
         hows = HOW_FR if lang == "fr" else HOW_EN
         # Combats Max d'abord : ils ne durent que quelques heures
-        fresh.sort(key=lambda v: v[2][0] != "max")
-        parts = [f"{label(dex, reg, lang, kind, mform)} " + (max_when(lang, *how[1]) if how[0] == "max" else rocket_how(lang, how[1]) if how[0] == "rocket" else hows[how[0]])
+        fresh.sort(key=lambda v: {"max": 0, "new": 1}.get(v[2][0], 2))  # nouveautés ensuite : rares et datées
+        # Une nouveauté annoncée et rappelée le même matin (annonce la veille) : une seule fois
+        seen_new, uniq = set(), []
+        for v in fresh:
+            if v[2][0] == "new":
+                if (v[0], v[1], v[3], v[4], v[2][1]) in seen_new:
+                    continue
+                seen_new.add((v[0], v[1], v[3], v[4], v[2][1]))
+            uniq.append(v)
+        fresh = uniq
+        parts = [f"{label(dex, reg, lang, kind, mform)}" + (" shiny" if how[0] == "new" and how[1][1] else "") + " " +
+                 (max_when(lang, *how[1]) if how[0] == "max" else rocket_how(lang, how[1]) if how[0] == "rocket"
+                  else new_when(lang, how[1][0]) if how[0] == "new" else hows[how[0]])
                  for dex, reg, how, kind, mform in fresh[:4]]
         body = (", ".join(parts[:-1]) + et + parts[-1]) if len(parts) > 1 else parts[0]
         if len(fresh) > 4:

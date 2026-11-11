@@ -334,7 +334,8 @@ function filtered() {
     // Manquant et disponible maintenant (raid, œuf, étude, sauvage… sans date de début) : events.js
     if (mode === "now" && !(window.howToGet && (howFor(e) || []).some(h => !h.start))) return false;
     if (regionFilter && e.region !== regionFilter) return false;
-    if (coll !== "dex" && !can(e)) return false; // Méga / Obscurs / Purifiés : seulement ceux qui existent
+    // Méga / Obscurs / Purifiés : seulement ceux qui existent, ou qui arrivent bientôt (Dialga Dynamax « Nouveau le 14 nov. »)
+    if (coll !== "dex" && !can(e) && !(window.howFor && howFor(e))) return false;
     // Comparaison avec un ami : ce qu'il a et pas toi, ou l'inverse (formes de base)
     if (friend && (e.regional || !e.available || (friend.tab === 0 ? !friend.set.has(e.key) || caught.has(e.key) : !caught.has(e.key) || friend.set.has(e.key)))) return false;
     if (terms.length && !terms.every(t => e.search.includes(t))) return false;
@@ -345,11 +346,11 @@ function filtered() {
 const spriteOf = e => e.sprite || REGIONAL_SPRITES[e.id + "_" + e.form.toUpperCase()] || e.id;
 
 function typesHtml(e) {
-  if (!e.available) return `<span class="na">${t("unavailable")}</span>`;
-  if (shinyMode && !e.shinyOut) return `<span class="na">${t("notOut")}</span>`;
-  // Manquant : comment l'avoir (events.js), une fois la liste Leek Duck reçue
+  // Manquant : comment l'avoir (events.js), une fois la liste Leek Duck reçue ; pas encore sorti : « Nouveau le 14 nov. »
   const how = window.howToGet && howToGet(e);
   if (how) return how;
+  if (!e.available) return `<span class="na">${t("unavailable")}</span>`;
+  if (shinyMode && !e.shinyOut) return `<span class="na">${t("notOut")}</span>`;
   // Pas encore attrapé : pas de types (ligne gardée vide pour la hauteur de la carte)
   if (!marks().has(e.key)) {
     const zone = coll === "dex" && window.zoneOf && zoneOf(e); // régional : où le trouver (regionaux v1 : A2)

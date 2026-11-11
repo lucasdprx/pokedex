@@ -3,7 +3,7 @@
 // Données : ScrapedDuck, copie automatique de Leek Duck (https://github.com/bigfoott/ScrapedDuck).
 
 const DUCK = "https://raw.githubusercontent.com/bigfoott/ScrapedDuck/data/";
-const DUCK_KEY = "pokedex-go-events4"; // changé : relire tout de suite (Team GO Rocket)
+const DUCK_KEY = "pokedex-go-events5"; // changé : relire tout de suite (nouveautés)
 const DUCK_AGE = 3600e3; // relu toutes les heures
 
 let duck = null;      // données brutes reçues
@@ -27,9 +27,11 @@ async function loadDuck(force) {
       if (!Array.isArray(list) || !(Date.now() - time < RAIDS_MAX_AGE)) throw "vieux";
       return list;
     }).catch(() => get("raids"));
+  // Nouveautés à venir : notre debuts.json (tools/debuts.py, lu chaque jour sur les pages Leek Duck)
+  const ownDebuts = fetch("debuts.json", { cache: "no-cache" }).then(r => { if (!r.ok) throw r.status; return r.json(); }).then(d => d.debuts);
   // Chaque liste à part : une qui ne répond pas (ou change de format) garde sa dernière copie, les autres sont à jour
-  const names = ["raids", "eggs", "research", "events", "rocketLineups"];
-  const got = await Promise.allSettled([ownRaids, ...names.slice(1).map(get)]);
+  const names = ["raids", "eggs", "research", "events", "rocketLineups", "debuts"];
+  const got = await Promise.allSettled([ownRaids, ...names.slice(1, -1).map(get), ownDebuts]);
   const fresh = got.map(r => r.status === "fulfilled" && Array.isArray(r.value) ? r.value : null);
   if (fresh.every(v => !v)) return;                    // hors ligne : la dernière liste reçue, ou rien
   const next = { time: Date.now() };
@@ -144,6 +146,18 @@ function buildHow() {
     }
     if (x.raidbattles && when) for (const p of x.raidbattles.bosses || []) add(p.name, p.image, "raid", tier(ev.name), p.canBeShiny, when, end, /shadow/i.test(ev.name));
   }
+  // Nouveautés (nouveautes v1 : A1, B2) : le Pokémon dans sa collection (Dynamax, Gigamax, Méga, Obscurs), à sa date
+  for (const d of duck.debuts || []) {
+    const start = parseDate(d.start);
+    if (!(start > now)) continue;
+    const e = formEntry(d.dex, d.reg ? ["", d.reg] : null);
+    if (!e || (d.reg && !e.regional)) continue;
+    const mk = d.kind === "giga" ? ["gigamax", d.dex + "_GIGAMAX"] : d.kind === "mega" ? ["mega", d.dex + "_MEGA" + (d.mform ? "_" + d.mform : "")]
+      : d.kind === "dyna" ? ["dynamax", e.key] : d.kind === "shadow" ? ["shadow", e.key] : null;
+    const list = map.get(e.key) || [];
+    list.push({ src: "debut", detail: d.kind, start, end: null, shadow: d.kind === "shadow", hours: "", sp: d.sprite || null, mk, shiny: d.shiny, shinyOnly: d.shiny });
+    map.set(e.key, list);
+  }
   for (const list of map.values()) list.sort((a, b) => (a.start || 0) - (b.start || 0));
   howMap = map;
   updateNowDot();
@@ -153,14 +167,30 @@ function buildHow() {
 
 // Ce qui compte comme « manquant » dans le mode affiché, avec ses moyens de l'avoir
 function howFor(e) {
-  if (!howMap || !can(e) || marks().has(e.key)) return null;
+  if (!howMap || marks().has(e.key)) return null;
   // Collections Max : seulement leurs combats Max
   const only = coll === "dynamax" ? "dyna" : coll === "gigamax" ? "giga" : null;
   // Obscurs et Purifiés : seulement les raids obscurs (un œuf ou une étude ne donne pas d'obscur) ; Méga : ses raids Méga
   const sh = coll === "shadow" || coll === "purified", mega = coll === "mega";
   const base = only === "giga" || mega ? (entries.find(x => x.id === e.id && !x.regional) || e).key : e.key;
-  return (howMap.get(base) || [])
-    .filter(h => (!shinyMode || h.shiny) && (!only || (h.src === "max" && h.detail === only)) && (!sh || h.shadow) && (!mega || (h.mk && h.mk[1] === e.key)));
+  const list = howMap.get(base) || [];
+  // Pas encore sorti (dans GO, en Dynamax, en shiny…) : seulement sa nouveauté à venir, s'il en a une
+  if (!can(e)) {
+    const deb = list.filter(h => h.src === "debut" && debutFits(h, e));
+    return deb.length ? deb : null;
+  }
+  return list.filter(h => h.src === "debut" ? debutFits(h, e)
+    : (!shinyMode || h.shiny) && (!only || (h.src === "max" && h.detail === only)) && (!sh || h.shadow) && (!mega || (h.mk && h.mk[1] === e.key)));
+}
+
+// Nouveauté qui concerne la carte affichée : même collection (Dynamax, Méga…) ; un shiny seulement en mode Shiny
+function debutFits(h, e) {
+  if (!!h.shinyOnly !== shinyMode) return false;
+  if (coll === "mega") return !!h.mk && h.mk[1] === e.key;
+  if (coll === "gigamax") return h.detail === "giga";
+  if (coll === "dynamax") return h.detail === "dyna";
+  if (coll === "shadow" || coll === "purified") return h.detail === "shadow";
+  return coll === "dex" && h.detail === "";
 }
 
 const fmtHour = ms => new Date(ms).toLocaleTimeString(LANG, { hour: "numeric", minute: new Date(ms).getMinutes() ? "2-digit" : undefined }).replace(/^0(?=\d)/, ""); // « 6 h », pas « 06 h »
@@ -173,7 +203,9 @@ function howLabel(h) {
     : h.src === "research" ? t("fieldResearch")
     : h.src === "max" ? t(h.detail === "dyna" ? "maxDyna" : "maxGiga")
     : h.src === "rocket" ? h.detail // « Sbire Feu », « Giovanni »
+    : h.src === "debut" ? t("newOn", { d: fmtDay(h.start) })
     : h.src === "spotlight" ? t("spotlightOne") : t("cdayOne");
+  if (h.src === "debut") return base;
   if (h.hours) return base + (h.start ? " " + fmtDay(h.start) : "") + " " + h.hours;
   return h.start ? base + " " + t("fromDay", { d: fmtDay(h.start) }) : base;
 }
@@ -253,6 +285,9 @@ const maxIcon = fill => `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx=
 // Team GO Rocket : un R blanc dans un rond (noir Giovanni, violet leaders, rouge sbires)
 const rocketIcon = fill => `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="${fill}" stroke="rgba(0,0,0,.25)"/>` +
   `<path d="M9 17V7h3.6a3 3 0 0 1 0 6H9m3.4 0L16 17" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+// Nouveauté : une étoile à quatre branches dans un rond bleu
+const newIcon = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="#1b8fb0" stroke="rgba(0,0,0,.25)"/>` +
+  `<path d="M12 6.5l1.6 3.9 3.9 1.6-3.9 1.6L12 17.5l-1.6-3.9L6.5 12l3.9-1.6z" fill="#fff"/></svg>`;
 const RAID_COLORS = { 1: "#f29bb6", 3: "#f4c430", 5: "#8a8fa3", mega: "#c0392b", shadow: "#6b3fa0" };
 
 // Le calendrier suit le Pokédex (ou le Shiny), pas les collections Méga, Obscurs, Purifiés :
@@ -264,9 +299,9 @@ function sheetRows() {
   const now = [], soon = [];
   if (!howMap) return { now, soon };
   for (const e of entries) {
-    if (!calCan(e)) continue;
+    const ok = calCan(e); // pas encore sorti : seulement ses nouveautés
     const missing = !calMarks().has(e.key);
-    for (const h of (howMap.get(e.key) || []).filter(h => !shinyMode || h.shiny)) (h.start ? soon : now).push({ e, h, missing: h.mk && !shinyMode ? !formSets[h.mk[0]].has(h.mk[1]) : missing });
+    for (const h of (howMap.get(e.key) || []).filter(h => (ok || h.src === "debut") && (shinyMode ? h.shiny : !h.shinyOnly))) (h.start ? soon : now).push({ e, h, missing: h.mk && !shinyMode ? !formSets[h.mk[0]].has(h.mk[1]) : missing });
   }
   return { now, soon };
 }
@@ -309,6 +344,8 @@ function sheetGroups(rows) {
   const groups = [];
   const push = (icon, title, list, showTier = false, kind = "") => { if (list.length) groups.push({ icon, title, list: list.sort((a, b) => b.missing - a.missing), showTier, kind }); };
   const byStart = (a, b) => (a.h.start || 0) - (b.h.start || 0) || a.e.id - b.e.id;
+  // Nouveautés en tête de Tout (nouveautes v1 : A1)
+  if (nowCat === "all") push(newIcon, t("hNew"), rows.filter(r => r.h.src === "debut").sort(byStart), false, "new");
   if (nowCat === "all" || nowCat === "raid") {
     const raids = rows.filter(r => r.h.src === "raid");
     const plain = raids.filter(r => !r.h.shadow);
@@ -356,7 +393,7 @@ function sheetGroups(rows) {
 
 // Ce dont dépend la feuille : la refaire seulement quand ça change
 let nowDrawn = "";
-const nowSig = () => [nowPane, nowCat, shinyMode, duck && duck.time, calMarks().size, formSets.mega.size, formSets.shadow.size, formSets.gigamax.size, document.documentElement.lang, nowFresh.size].join("|");
+const nowSig = () => [nowPane, nowCat, shinyMode, duck && duck.time, calMarks().size, formSets.mega.size, formSets.shadow.size, formSets.gigamax.size, formSets.dynamax.size, document.documentElement.lang, nowFresh.size].join("|");
 function renderNow() {
   nowDrawn = nowSig();
   const { now, soon } = sheetRows();
@@ -384,8 +421,8 @@ function renderNow() {
   // Vignettes sans nom, six par rangée (calendrier-allege v1 : A1) ; le nom au survol
   body.innerHTML = old + groups.map(g =>
     `<div class="now-sub ${g.kind}">${g.icon}${g.title}</div><div class="now-grid ${g.kind}">` + g.list.map(({ e, h, missing }) => {
-      const sp = h.sp || spriteOf(e), fresh = missing && nowFresh.has((shinyMode ? "s:" : "") + e.key);
-      return `<div class="now-cell${missing ? " missing" : ""}${fresh ? " fresh" : ""}" title="${e.name}" data-key="${h.mk ? h.mk[1] : e.key}" data-coll="${shinyMode ? "" : h.mk ? h.mk[0] : h.src === "max" ? "dynamax" : "dex"}" role="button" tabindex="0"><img crossorigin="anonymous" src="${shinyMode ? SPRITE_TINY_SHINY(sp) : SPRITE_TINY(sp)}" alt="${e.name}" ` +
+      const sp = h.sp || spriteOf(e), go = h.mk && byKey.has(h.mk[1]) ? h.mk : null, fresh = missing && nowFresh.has((shinyMode ? "s:" : "") + e.key);
+      return `<div class="now-cell${missing ? " missing" : ""}${fresh ? " fresh" : ""}" title="${e.name}" data-key="${go ? go[1] : e.key}" data-coll="${shinyMode ? "" : go ? go[0] : h.src === "max" ? "dynamax" : "dex"}" role="button" tabindex="0"><img crossorigin="anonymous" src="${shinyMode ? SPRITE_TINY_SHINY(sp) : SPRITE_TINY(sp)}" alt="${e.name}" ` +
         `data-sprite="${sp}" data-shiny="${shinyMode ? 1 : 0}" onerror="imgFallback(this)">` +
         (fresh ? `<i class="now-dot"></i>` : "") + (h.start || h.hours ? `<b>${[h.start && fmtDay(h.start), h.hours].filter(Boolean).join("<br>")}</b>` : "") + `</div>`;
     }).join("") + `</div>`).join("");

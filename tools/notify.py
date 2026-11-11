@@ -142,10 +142,17 @@ for ev in events:
 # Nouveautés à venir (tools/debuts.py) : annoncées une fois, puis rappelées la veille (nouveautes v1 : C3)
 REG_NAME = {"ALOLA": "Alola", "GALARIAN": "Galarian", "HISUIAN": "Hisuian", "PALDEA": "Paldea"}
 try:
-    debuts = [x for x in json.load(open("debuts.json", encoding="utf-8"))["debuts"] if x["start"][:10] > today.isoformat()]
+    _deb = json.load(open("debuts.json", encoding="utf-8"))
+    debuts = [x for x in _deb["debuts"] if x["start"][:10] > today.isoformat()]
 except Exception as e:
     print("debuts.json illisible :", e)
-    debuts = []
+    _deb, debuts = {}, []
+# Combats Max écrits dans la page d'un événement (Registeel le 11/11 pendant « Into the Wild »)
+for x in _deb.get("max") or []:
+    s, e = datetime.fromisoformat(x["start"][:19]).date(), datetime.fromisoformat(x["end"][:19]).date()
+    if s > today + timedelta(days=1) or e < today:
+        continue
+    maxes.setdefault((x["dex"], x["kind"]), (max(s, today), "", e))
 
 HOW_FR = {"raid": "en raid", "egg": "en œuf", "research": "en étude", "spotlight": "en Heure vedette", "cday": "en Journée Communauté"}
 TYPE_FR = {"normal": "Normal", "fire": "Feu", "water": "Eau", "electric": "Électrik", "grass": "Plante", "ice": "Glace",
@@ -170,7 +177,7 @@ HOW_EN = {"raid": "in raids", "egg": "in eggs", "research": "in research", "spot
 def max_when(lang, day, hours, end):
     """« demain 6 h–21 h », « aujourd'hui », « jusqu'au 15/11 »."""
     fr = lang == "fr"
-    if not hours and day == today:
+    if not hours and day == today and end > today:
         return (f"jusqu'au {end:%d/%m}" if fr else f"until {end:%m/%d}")
     w = ("aujourd'hui" if fr else "today") if day == today else ("demain" if fr else "tomorrow")
     return f"{w} {hours}" if hours else w

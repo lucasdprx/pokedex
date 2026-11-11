@@ -28,10 +28,11 @@ async function loadDuck(force) {
       return list;
     }).catch(() => get("raids"));
   // Nouveautés à venir : notre debuts.json (tools/debuts.py, lu chaque jour sur les pages Leek Duck)
-  const ownDebuts = fetch("debuts.json", { cache: "no-cache" }).then(r => { if (!r.ok) throw r.status; return r.json(); }).then(d => d.debuts);
+  // et les combats Max listés dans la page d'un événement (Registeel dans « Into the Wild »)
+  const debutsFile = fetch("debuts.json", { cache: "no-cache" }).then(r => { if (!r.ok) throw r.status; return r.json(); });
   // Chaque liste à part : une qui ne répond pas (ou change de format) garde sa dernière copie, les autres sont à jour
-  const names = ["raids", "eggs", "research", "events", "rocketLineups", "debuts"];
-  const got = await Promise.allSettled([ownRaids, ...names.slice(1, -1).map(get), ownDebuts]);
+  const names = ["raids", "eggs", "research", "events", "rocketLineups", "debuts", "maxPages"];
+  const got = await Promise.allSettled([ownRaids, ...names.slice(1, -2).map(get), debutsFile.then(d => d.debuts), debutsFile.then(d => d.max)]);
   const fresh = got.map(r => r.status === "fulfilled" && Array.isArray(r.value) ? r.value : null);
   if (fresh.every(v => !v)) return;                    // hors ligne : la dernière liste reçue, ou rien
   const next = { time: Date.now() };
@@ -145,6 +146,23 @@ function buildHow() {
       if (id) add((/Mega Raid/.test(ev.name) ? "Mega " : "") + n.trim(), "pm" + id, "raid", /Mega Raid/.test(ev.name) ? "mega" : 5, true, when, end, false, hours);
     }
     if (x.raidbattles && when) for (const p of x.raidbattles.bosses || []) add(p.name, p.image, "raid", tier(ev.name), p.canBeShiny, when, end, /shadow/i.test(ev.name));
+  }
+  // Combats Max écrits dans la page d'un événement (tools/debuts.py) : Registeel le 11/11 pendant « Into the Wild »
+  for (const m of duck.maxPages || []) {
+    const start = parseDate(m.start), end = parseDate(m.end);
+    if (!(end > now)) continue;
+    const when = start > now ? start : null;
+    // Déjà là par le nom d'un événement (« Eternamax Eternatus Returns », avec ses heures) : pas deux fois
+    const e0 = formEntry(m.dex, null), day = ms => new Date(ms || now).toDateString();
+    if (e0 && (map.get(e0.key) || []).some(h => h.src === "max" && h.detail === m.kind && day(h.start) === day(when))) continue;
+    if (m.kind === "giga" && !gigaEntries.some(g => g.id === m.dex)) {
+      // Gigamax pas encore dans la collection (Duralugon le 14/11) : sa carte de base, gris tant qu'il n'est pas coché en Gigamax
+      const e = formEntry(m.dex, null), d = (duck.debuts || []).find(d => d.dex === m.dex && d.kind === "giga");
+      if (!e) continue;
+      const list = map.get(e.key) || [];
+      list.push({ src: "max", detail: "giga", start: when, end, shadow: false, hours: "", sp: d && d.sprite || null, mk: ["gigamax", m.dex + "_GIGAMAX"], shiny: true });
+      map.set(e.key, list);
+    } else add("", "pm" + m.dex, "max", m.kind, true, when, end);
   }
   // Nouveautés (nouveautes v1 : A1, B2) : le Pokémon dans sa collection (Dynamax, Gigamax, Méga, Obscurs), à sa date
   for (const d of duck.debuts || []) {

@@ -3,7 +3,8 @@
 Sources :
 - pages des événements à venir de Leek Duck (liste ScrapedDuck) : les phrases « X makes its Pokémon GO debut »,
   « Dynamax Dialga and Dynamax Palkia make their debuts », et les listes sous un titre « … Debut(s) » ;
-- liste shiny de Leek Duck : les shiny datés dans le futur.
+- liste shiny de Leek Duck : les shiny datés dans le futur ;
+- rubrique « Max Battles » des événements en cours et à venir : « max » (Registeel le 11/11 dans « Into the Wild »).
 
 {"time": ISO, "debuts": [{"dex", "reg" ("" ou ALOLA…), "kind" ("" espèce, "dyna", "giga", "mega", "shadow"),
   "mform" (X, Y ou ""), "shiny" (seulement le shiny), "sprite" (n° PokeAPI de l'image ou null), "start" (heure locale),
@@ -23,9 +24,10 @@ def get(url, raw=False):
 
 
 try:
-    old = json.load(open("debuts.json", encoding="utf-8"))["debuts"]
+    _o = json.load(open("debuts.json", encoding="utf-8"))
+    old, old_max = _o["debuts"], _o.get("max", [])
 except Exception:
-    old = []
+    old, old_max = [], []
 names = json.load(open("names.json", encoding="utf-8"))["en"]
 dex = json.load(open("dex.json", encoding="utf-8"))
 released, shiny = set(dex["released"]), set(dex["shiny"])
@@ -89,16 +91,59 @@ try:
 except Exception as e:
     print("événements indisponibles :", e)
     events, ok_pages = [], False
+maxb, ok_max = {}, ok_pages  # combats Max listés dans la page d'un événement (Registeel dans « Into the Wild »)
+MONTHS = "January|February|March|April|May|June|July|August|September|October|November|December"
+
+
+def max_section(ev, body):
+    """Rubrique « Max Battles » d'un événement : « Five-Star Max Battles: Wednesday, November 11 » → Registeel ce jour-là ;
+    un niveau sans date (« One-Star Max Battles ») → tout l'événement, sauf si son texte ne cite qu'un jour
+    (« Eternamax Eternatus … on November 21 »). Sous-titres <h2> ou <h3> jusqu'à la rubrique suivante (Research…)."""
+    i = body.find('id="max-battles"')
+    if i < 0:
+        return
+    sec = body[i:]
+    j = sec.find('class="event-section-header', 40)
+    sec = sec[:j] if j > 0 else sec
+    y0 = int(ev["start"][:4])
+    for part in re.split(r"(?=<h[23]\b)", sec)[1:]:
+        head = text_of((re.match(r"<h[23][^>]*>(.*?)</h[23]>", part, re.S) or [None, ""])[1])
+        start, end = ev["start"][:19], (ev.get("end") or ev["start"])[:19]
+        m = re.search(rf"({MONTHS}) (\d{{1,2}})\b", head)
+        m = m.groups() if m else None
+        if not m:  # premier paragraphe qui ne cite qu'un jour (pas « Saturday, November 14, and Sunday, November 15 »)
+            days = re.findall(rf"({MONTHS}) (\d{{1,2}})\b", text_of((re.search(r"(?s)<p>(.*?)</p>", part) or [None, ""])[1]))
+            m = days[0] if len(set(days)) == 1 else None
+        if m:
+            day = datetime.strptime(f"{m[0]} {m[1]} {y0}", "%B %d %Y")
+            if day.strftime("%Y-%m-%d") < ev["start"][:10]:
+                day = day.replace(year=y0 + 1)  # événement à cheval sur deux années
+            start, end = day.strftime("%Y-%m-%dT00:00:00"), day.strftime("%Y-%m-%dT23:59:59")
+        if end[:16] <= NOW:
+            continue
+        for it in re.findall(r'class="pkmn-name">(.*?)</div>', part, re.S):
+            it = text_of(it)
+            nm = NAME_RE.search(it)
+            if not nm:
+                continue
+            k = "giga" if re.search(r"Gigantamax|Eternamax", it + " " + head) else "dyna"
+            key = (EN[nm.group(1)], k, start[:10])
+            maxb.setdefault(key, {"dex": key[0], "kind": k, "start": start, "end": end, "event": ev.get("name") or ""})
+
+
 for ev in events:
-    if (ev.get("start") or "")[:16] <= NOW:
-        continue  # déjà commencé : « En ce moment » le montre par ses raids, combats Max…
+    if (ev.get("end") or "9999")[:16] <= NOW:
+        continue
     try:
         page = get(ev["link"], raw=True)
     except Exception as e:
         print("page indisponible :", ev["link"], e)
-        ok_pages = False
+        ok_pages = ok_max = False
         continue
     body = re.sub(r"(?s)<(script|style|svg)\b.*?</\1>", "", page[page.find("<body"):])
+    max_section(ev, body)
+    if (ev.get("start") or "")[:16] <= NOW:
+        continue  # déjà commencé : ses nouveautés ne sont plus « à venir »
     # Une section = un titre <h2> et ce qui suit jusqu'au titre suivant
     for sec in re.split(r"(?=<h2\b)", body):
         head = text_of((re.match(r"<h2[^>]*>(.*?)</h2>", sec, re.S) or [None, ""])[1])
@@ -148,7 +193,16 @@ prev = {(o["dex"], o["reg"], o["kind"], o["mform"]): o.get("sprite") for o in ol
 for (n, reg, k, mform, sh), v in out.items():
     v["sprite"] = prev.get((n, reg, k, mform)) or sprite(n, k, mform)
 res = sorted(out.values(), key=lambda v: (v["start"], v["dex"]))
+# Combats Max : une page en panne garde ceux d'hier encore en cours ou à venir
+if not ok_max:
+    for o in old_max:
+        if o["end"][:16] > NOW:
+            maxb.setdefault((o["dex"], o["kind"], o["start"][:10]), o)
+mres = sorted(maxb.values(), key=lambda v: (v["start"], v["dex"]))
 with open("debuts.json", "w", encoding="utf-8") as f:
-    json.dump({"time": datetime.now(timezone.utc).isoformat(timespec="seconds"), "debuts": res}, f, ensure_ascii=False, separators=(",", ":"))
+    json.dump({"time": datetime.now(timezone.utc).isoformat(timespec="seconds"), "debuts": res, "max": mres},
+              f, ensure_ascii=False, separators=(",", ":"))
+for v in mres:
+    print("max", v["start"][:10], v["end"][:10], v["dex"], names[v["dex"] - 1], v["kind"], "←", v["event"])
 for v in res:
     print(v["start"][:10], v["dex"], names[v["dex"] - 1], v["reg"], v["kind"], v["mform"], "shiny" if v["shiny"] else "", "←", v["event"])

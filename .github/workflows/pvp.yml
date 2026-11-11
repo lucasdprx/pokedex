@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: python tools/dex.py || true
-      - run: python tools/costumes.py
+      - run: python tools/costumes.py || true
       - run: python tools/max.py || true
       - run: python tools/mega.py || true
       - run: |

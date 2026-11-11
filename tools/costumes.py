@@ -5,7 +5,7 @@ français et en anglais. Les formes qui ne sont pas des costumes (Zarbi, Morphé
 sont écartées ; les costumes d'une année future aussi (trouvés dans le code, pas encore sortis).
 Lancé chaque jour par .github/workflows/pvp.yml.
 """
-import datetime, json, re, urllib.request
+import datetime, json, re, time, urllib.request
 
 TREE = "https://api.github.com/repos/PokeMiners/pogo_assets/git/trees/master?recursive=1"
 DIR = "Images/Pokemon - 256x256/Addressable Assets/"  # le plus complet, 256 px
@@ -116,7 +116,16 @@ def name(dex, code):
     k = code.upper().replace("_NOEVOLVE", "")
     return NAMES.get(f"{dex}:{k}") or NAMES.get(k) or (label(code, "fr"), label(code, "en"))
 
-tree = json.load(urllib.request.urlopen(urllib.request.Request(TREE, headers={"User-Agent": "pokedex-go"}), timeout=120))
+# L'API GitHub répond parfois 500 : trois essais, sinon costumes.json de la veille reste
+for essai in range(3):
+    try:
+        tree = json.load(urllib.request.urlopen(urllib.request.Request(TREE, headers={"User-Agent": "pokedex-go"}), timeout=120))
+        break
+    except Exception as e:
+        print("liste des images indisponible :", e)
+        time.sleep(30)
+else:
+    raise SystemExit(0)
 files = {x["path"][len(DIR):] for x in tree["tree"] if x["path"].startswith(DIR) and x["path"].endswith(".icon.png")}
 year_now = datetime.date.today().year
 seen, out = set(), []
